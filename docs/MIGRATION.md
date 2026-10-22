@@ -1,0 +1,28 @@
+# 从 wbr_control_companion 迁移
+
+来源：`NoneOfEver/wbr_control_companion` 的当前生产清理基线及本地 Foxglove 工作树。
+精确原提交和每个导入文件的原始 SHA256 见 `IMPORT_MANIFEST.json`；旧 MCU 导入来源
+见 `MCU_SOURCE_MANIFEST.json`。源仓库、未提交修改、硬件结果和 NUC 均未被改写。
+目标仓库保留已有 Apache-2.0 LICENSE，并在其初始 main 提交上前进。
+
+| 旧位置 | 新位置 |
+|---|---|
+| `chassis_controller/control` | `modules/chassis` |
+| `chassis_controller/runtime` | `apps/chassis`、`modules/usb`、`modules/telemetry` |
+| `chassis_controller/include` | `include`；实现源文件到 `modules/protocols` |
+| `chassis_controller/config` | `config/chassis` |
+| `chassis_controller/telemetry` | `tools/foxglove` |
+| `src/leg_mpc.cpp` | `modules/mpc` |
+| `src/mpc_link.cpp` | `modules/mpc_link` |
+| `src/ethercat_*` | `modules/ethercat` 和对应 `apps` |
+| `src/realtime_loop.cpp` | `modules/runtime` |
+| 两套测试目录 | `tests/chassis`、`tests/mpc`、`tests/ethercat`、`tests/protocols` |
+| 两个独立顶层 CMake | 单一根 CMake + 模块构建文件 |
+
+原底盘脚本改为 `scripts/build.sh` / `scripts/run.sh`。
+开发构建覆盖当前底盘与仍在开发的 MPC/EtherCAT；它们不再隐式混在默认生产目标中。
+原基准工具保持单独构建，已更新共享 realtime 源码路径。
+
+本次重构不更改控制增益、符号、零点、输入新鲜度阈值、状态机、输出门控或线协议。
+不包括重新刷 MCU、启动真实电机输出或重复实物标定。旧 NUC 验证结论仅对应旧版本，
+本次结构重构还需后续在目标硬件确认时序。

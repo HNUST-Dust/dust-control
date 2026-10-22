@@ -1,0 +1,71 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "production",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/production",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF",
+        "DUST_BUILD_MPC": "OFF",
+        "DUST_BUILD_ETHERCAT": "OFF",
+        "DUST_BUILD_TOOLS": "OFF"
+      }
+    },
+    {
+      "name": "development",
+      "inherits": "production",
+      "binaryDir": "${sourceDir}/build/development",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "DUST_BUILD_MPC": "ON",
+        "DUST_BUILD_ETHERCAT": "ON",
+        "DUST_BUILD_TOOLS": "ON"
+      }
+    },
+    {
+      "name": "headless",
+      "inherits": "development",
+      "binaryDir": "${sourceDir}/build/headless",
+      "cacheVariables": {
+        "DUST_ENABLE_FOXGLOVE": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "production",
+      "configurePreset": "production"
+    },
+    {
+      "name": "development",
+      "configurePreset": "development"
+    },
+    {
+      "name": "headless",
+      "configurePreset": "headless"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "development",
+      "configurePreset": "development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "headless",
+      "configurePreset": "headless",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

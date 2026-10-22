@@ -1,0 +1,128 @@
+{
+  "type": "object",
+  "properties": {
+    "pitch_deg": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "yaw_deg": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "roll_deg": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "left_length_m": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "right_length_m": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "left_height_m": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "right_height_m": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "left_angle_rad": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "right_angle_rad": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "left_length_rate_m_s": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "right_length_rate_m_s": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "imu_age_us": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "control_duration_us": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "simulated": {
+      "type": "boolean"
+    },
+    "imu_fresh": {
+      "type": "boolean"
+    },
+    "remote_fresh": {
+      "type": "boolean"
+    },
+    "feedback_valid": {
+      "type": "boolean"
+    },
+    "left_leg_fresh": {
+      "type": "boolean"
+    },
+    "right_leg_fresh": {
+      "type": "boolean"
+    },
+    "source_connected": {
+      "type": "boolean"
+    },
+    "version": {
+      "type": "number"
+    },
+    "sequence": {
+      "type": "number"
+    },
+    "monotonic_ns": {
+      "type": "number"
+    },
+    "state": {
+      "type": "number"
+    },
+    "motor_stale_mask": {
+      "type": "number"
+    },
+    "missed_releases": {
+      "type": "number"
+    },
+    "queue_drops": {
+      "type": "number"
+    },
+    "transport_age_ms": {
+      "type": "number"
+    }
+  }
+}

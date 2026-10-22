@@ -1,0 +1,203 @@
+{
+  "configById": {
+    "Plot!attitude": {
+      "title": "姿态 (deg)",
+      "paths": [
+        {
+          "value": "/wbr/chassis.pitch_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pitch"
+        },
+        {
+          "value": "/wbr/chassis.yaw_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "yaw"
+        },
+        {
+          "value": "/wbr/chassis.roll_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "roll"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!length": {
+      "title": "左右等效腿长 (m)",
+      "paths": [
+        {
+          "value": "/wbr/chassis.left_length_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left"
+        },
+        {
+          "value": "/wbr/chassis.right_length_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!height": {
+      "title": "髋部到轮轴竖直距离 (m)",
+      "paths": [
+        {
+          "value": "/wbr/chassis.left_height_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left"
+        },
+        {
+          "value": "/wbr/chassis.right_height_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!freshness": {
+      "title": "有效性 / 遥测连接",
+      "paths": [
+        {
+          "value": "/wbr/chassis.source_connected",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "source_connected"
+        },
+        {
+          "value": "/wbr/chassis.imu_fresh",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "imu_fresh"
+        },
+        {
+          "value": "/wbr/chassis.left_leg_fresh",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left_leg_fresh"
+        },
+        {
+          "value": "/wbr/chassis.right_leg_fresh",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right_leg_fresh"
+        },
+        {
+          "value": "/wbr/chassis.simulated",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "simulated"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!timing": {
+      "title": "控制计算与 USB 提交耗时 (us)",
+      "paths": [
+        {
+          "value": "/wbr/chassis.control_duration_us",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "control duration (us)"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!missed": {
+      "title": "漏周期 / 遥测丢样计数",
+      "paths": [
+        {
+          "value": "/wbr/chassis.missed_releases",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "missed_releases"
+        },
+        {
+          "value": "/wbr/chassis.queue_drops",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "queue_drops"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "direction": "column",
+    "first": {
+      "direction": "row",
+      "first": "Plot!attitude",
+      "second": "Plot!length",
+      "splitPercentage": 50
+    },
+    "second": {
+      "direction": "column",
+      "first": {
+        "direction": "row",
+        "first": "Plot!height",
+        "second": "Plot!freshness",
+        "splitPercentage": 50
+      },
+      "second": {
+        "direction": "row",
+        "first": "Plot!timing",
+        "second": "Plot!missed",
+        "splitPercentage": 50
+      },
+      "splitPercentage": 50
+    },
+    "splitPercentage": 40
+  }
+}

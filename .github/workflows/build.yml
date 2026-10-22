@@ -1,0 +1,22 @@
+name: build-and-test
+on: [push, pull_request]
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        preset: [development, headless]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev python3-yaml python3-venv
+          python3 -m venv --system-site-packages .cache/test-venv
+          .cache/test-venv/bin/pip install -r tools/foxglove/requirements-test.txt
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }} -DPython3_EXECUTABLE="$PWD/.cache/test-venv/bin/python"
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel 2
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }}

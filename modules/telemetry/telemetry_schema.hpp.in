@@ -1,0 +1,2 @@
+#pragma once
+inline constexpr char kTelemetrySchema[] = R"schema(@telemetry_schema_json@)schema";

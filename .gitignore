@@ -1,0 +1,16 @@
+/build/
+/.cache/
+/CMakeUserPresets.json
+/compile_commands.json
+**/__pycache__/
+*.py[cod]
+*.o
+*.a
+*.so
+*.so.*
+results/
+*.csv
+*.log
+*.mcap
+.DS_Store
+*~
