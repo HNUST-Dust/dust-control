@@ -1,4 +1,7 @@
-# dust-control
+# dust-control — wbr_infantry USB
+
+当前正式兵种分支：`wbr_infantry`；EtherCAT 开发分支：`dev/wbr_infantry_ethercat`。
+发布版本：`v0.1`。分支及 CI/CD 约定见 [分支说明](docs/BRANCHES.md)。
 
 HNUST-Dust 轮腿机器人 Linux 控制工程。默认应用沿用已迁移的 1 kHz 底盘控制器，
 通过 USB Bulk 与 MCU 网关通讯；Foxglove 提供可选的原生只读遥测。

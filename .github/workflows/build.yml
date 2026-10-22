@@ -1,11 +1,20 @@
-name: build-and-test
-on: [push, pull_request]
+name: CI and release
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: ['**']
+permissions:
+  contents: read
 jobs:
   linux:
+    name: test (${{ matrix.preset }})
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
-        preset: [development, headless]
+        preset: [wbr-infantry-usb-ci, development, headless]
     steps:
       - uses: actions/checkout@v4
       - name: Install build dependencies
@@ -20,3 +29,43 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }} --parallel 2
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
+  release:
+    name: publish wbr_infantry USB package
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: linux
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify official USB release source
+        shell: bash
+        run: |
+          git fetch origin wbr_infantry:refs/remotes/origin/wbr_infantry
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/wbr_infantry
+          test -f "docs/releases/$GITHUB_REF_NAME.md"
+      - name: Install production build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev python3-yaml
+      - name: Build USB production package
+        run: |
+          cmake --preset production
+          cmake --build --preset production --parallel 2
+          bash scripts/package.sh "$GITHUB_REF_NAME"
+      - name: Retain build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wbr_infantry-${{ github.ref_name }}-linux-x86_64
+          path: dist/*
+          if-no-files-found: error
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/SHA256SUMS \
+            --verify-tag --target "$GITHUB_SHA" \
+            --title "wbr_infantry USB $GITHUB_REF_NAME" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"
