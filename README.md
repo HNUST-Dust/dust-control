@@ -5,7 +5,8 @@
 
 HNUST-Dust 轮腿机器人 Linux 控制工程。默认应用沿用已迁移的 1 kHz 底盘控制器，
 通过 USB Bulk 与 MCU 网关通讯；Foxglove 提供可选的原生只读遥测。
-MPC 控制算法和 EtherCAT 下位机通讯均是正在开发的独立模块，保留完整代码与测试。
+MPC 控制算法作为在研模块保留；EtherCAT 实现、应用及构建入口仅在
+`dev/wbr_infantry_ethercat` 分支继续开发。
 
 ## 依赖与默认构建
 
@@ -17,7 +18,7 @@ sudo apt-get install build-essential cmake ninja-build pkg-config libeigen3-dev 
 ```
 
 CMake >=3.21，C++20。首次构建下载固定版本并校验 Foxglove C++ SDK；
-默认构建不引入 OSQP/MPC、EtherCAT 开发应用或测试程序。
+默认构建不引入 OSQP/MPC、开发应用或测试程序。
 离线环境可通过 `DUST_FOXGLOVE_SDK_DIR` 指向已解压 SDK，
 或 `-DDUST_ENABLE_FOXGLOVE=OFF` 关闭 SDK。其他架构需指定匹配的官方 SDK。
 
@@ -38,9 +39,9 @@ sudo ./scripts/run.sh --foxglove
 ./scripts/test.sh
 ```
 
-`development` 预设启用 MPC、EtherCAT、开发应用和自动回归；MPC 使用固定版本
-OSQP v1.0.0。IgH/SOEM 依赖按可用性检测，没有硬件库时仍可测试 EtherCAT 编解码、
-安全策略和 mock backend。开发构建不会自动切换默认底盘控制的算法或通讯。
+`development` 预设启用 MPC、开发应用和自动回归，MPC 使用固定版本 OSQP v1.0.0。
+开发构建不会自动切换默认底盘控制算法。当前分支没有 EtherCAT 构建选项；
+开发该方案请切换到 `dev/wbr_infantry_ethercat`。
 
 ```bash
 cmake --preset development
@@ -59,11 +60,10 @@ ctest --preset development
 
 | 目录 | 职责 |
 |---|---|
-| `apps/` | 底盘、USB MPC、EtherCAT MPC 等可执行入口 |
+| `apps/` | 底盘、USB MPC 等可执行入口 |
 | `modules/chassis/` | 原控制管线、状态机、运动学和执行器门控 |
 | `modules/mpc/` | 正在开发的腿高/横滚 MPC 算法 |
 | `modules/usb/` | MCU 网关、USB 生命周期、采集快照与解码 |
-| `modules/ethercat/` | 正在开发的 EtherCAT 通讯、协议与安全策略 |
 | `modules/mpc_link/` | 现有 MPC offload 链路协议，区别于网关协议 |
 | `modules/runtime/` | 共享 Linux 时钟、调度和统计工具 |
 | `modules/telemetry/` | 有界队列、非实时序列化、Foxglove 服务 |
@@ -75,5 +75,5 @@ ctest --preset development
 | `cmake/`、`scripts/` | 依赖、参数生成和统一构建运行入口 |
 
 阅读 [模块边界](docs/ARCHITECTURE.md)、[迁移记录](docs/MIGRATION.md)、
-[MPC 与 EtherCAT 开发](docs/MPC_AND_ETHERCAT.md)、[Foxglove 使用](tools/foxglove/README.md)。
+[MPC 开发](docs/MPC.md)、[Foxglove 使用](tools/foxglove/README.md)。
 重构后已做的离线验证不代替硬件验证，重构版本尚未在机器人上使能运行。

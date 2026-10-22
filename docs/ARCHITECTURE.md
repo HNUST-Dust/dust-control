@@ -12,15 +12,14 @@
 队列满立即丢遥测，不等待。普通调度的消费线程负责 JSON 和 SDK，SDK 网络线程
 继承避开控制/USB CPU 的亲和性。USB 库不依赖遥测库。
 
-`dust_mpc` 是单独的 OSQP 控制算法库，`dust_ethercat` 是单独的下位机通讯库，
-两者不是历史代码。现有 `ethercat_mpc` 和 `usb_mpc` 应用保留各自原控制/安全策略。
-当前缺少将 MPC 作为新的 `ChassisController` 算法自动切换、或把 EtherCAT 替换
-USB 网关的统一适配层；本次不虚构已完成集成，也不修改控制行为来追求统一接口。
-后续在这些库的输入/输出边界上增量集成。
+`dust_mpc` 是单独的 OSQP 控制算法库，`usb_mpc` 开发应用保留原控制与安全策略。
+将 MPC 作为新的 `ChassisController` 算法接入仍是独立开发工作。
+EtherCAT 实现、专用协议/安全策略、应用和测试仅在 `dev/wbr_infantry_ethercat` 分支；
+当前 USB 正式分支没有相应源码或构建入口。
 
 公共 `wbr::`、`modules::` 等命名空间、线协议和配置字段暂保留，避免将大规模
 符号改名和行为变更混入本次结构重构。CMake 对外提供 `dust::chassis`、`dust::usb`、
-`dust::telemetry`、`dust::mpc`、`dust::ethercat` 等目标。
+`dust::telemetry`、`dust::mpc` 等目标。
 
-默认生产构建只产生当前底盘应用与依赖。MPC、EtherCAT 开发模块、开发应用和测试
+默认生产构建只产生当前底盘应用与依赖。MPC 开发模块、开发应用和测试
 由构建选项显式开启，不由设备探测结果自动替换正式控制路径。

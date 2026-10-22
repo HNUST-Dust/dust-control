@@ -442,24 +442,6 @@
       "destination_sha256": "e613d815217e3b1a8a20f1c27964828812426ff138bba184bb50ed4c9f89cf8d"
     },
     {
-      "source": "include/wbr/ethercat_mpc_safety.hpp",
-      "destination": "include/wbr/ethercat_mpc_safety.hpp",
-      "sha256": "7dcfa8c33eb95e8bd2aef5af823760752516937f07a5c476d3e7e72d510a579d",
-      "destination_sha256": "7dcfa8c33eb95e8bd2aef5af823760752516937f07a5c476d3e7e72d510a579d"
-    },
-    {
-      "source": "include/wbr/ethercat_protocol.hpp",
-      "destination": "include/wbr/ethercat_protocol.hpp",
-      "sha256": "b2bd457297cf4ab3e701ef18ede1b7bf45a6d4d475503e0cc4ac401fbbf67745",
-      "destination_sha256": "b2bd457297cf4ab3e701ef18ede1b7bf45a6d4d475503e0cc4ac401fbbf67745"
-    },
-    {
-      "source": "include/wbr/ethercat_transport.hpp",
-      "destination": "include/wbr/ethercat_transport.hpp",
-      "sha256": "01a701465d32eb4b23748c166fef8038aa795b96818f4ef7f4529e5f594aea4d",
-      "destination_sha256": "01a701465d32eb4b23748c166fef8038aa795b96818f4ef7f4529e5f594aea4d"
-    },
-    {
       "source": "include/wbr/leg_mpc.hpp",
       "destination": "include/wbr/leg_mpc.hpp",
       "sha256": "281d0de2afc26ee715accedf1d786a392c34b22ab98d8e55f8f20189e46a4f6f",
@@ -490,36 +472,6 @@
       "destination_sha256": "6d0d6c99690ef900eea903fd8961b1cf9f89fbeae70fd9da6ad36c5b0a174866"
     },
     {
-      "source": "src/ethercat_mpc_safety.cpp",
-      "destination": "modules/ethercat/ethercat_mpc_safety.cpp",
-      "sha256": "78622351be1586ab37990c8a6a094bf9e861b8a15ca7227d290c2d0155ac31a7",
-      "destination_sha256": "78622351be1586ab37990c8a6a094bf9e861b8a15ca7227d290c2d0155ac31a7"
-    },
-    {
-      "source": "src/ethercat_protocol.cpp",
-      "destination": "modules/ethercat/ethercat_protocol.cpp",
-      "sha256": "077655b8eb0e921ae96a868a73e4bd387e4b8b2ae63db3d006f7d63a472f936f",
-      "destination_sha256": "077655b8eb0e921ae96a868a73e4bd387e4b8b2ae63db3d006f7d63a472f936f"
-    },
-    {
-      "source": "src/ethercat_transport_igh.cpp",
-      "destination": "modules/ethercat/ethercat_transport_igh.cpp",
-      "sha256": "4df705d7f35ad5ebd9d2bb5d84755acf52fca16025ca29dc8c1779c2a145a82c",
-      "destination_sha256": "4df705d7f35ad5ebd9d2bb5d84755acf52fca16025ca29dc8c1779c2a145a82c"
-    },
-    {
-      "source": "src/ethercat_transport_mock.cpp",
-      "destination": "modules/ethercat/ethercat_transport_mock.cpp",
-      "sha256": "b9ac88a2a83f634c3fc776ef17ab72c4aab643df2fc5ff5b40b7a634a3d6fe3e",
-      "destination_sha256": "b9ac88a2a83f634c3fc776ef17ab72c4aab643df2fc5ff5b40b7a634a3d6fe3e"
-    },
-    {
-      "source": "src/ethercat_transport_soem.cpp",
-      "destination": "modules/ethercat/ethercat_transport_soem.cpp",
-      "sha256": "9295eebcb6019ee6bbab5d7e19239220406e3c791551894424a39ba77dbd5620",
-      "destination_sha256": "9295eebcb6019ee6bbab5d7e19239220406e3c791551894424a39ba77dbd5620"
-    },
-    {
       "source": "src/main.cpp",
       "destination": "apps/mpc_demo/main.cpp",
       "sha256": "a44f60f86040fdf7ea852a8891306439564c7b560f8b790a7195af58867dade9",
@@ -530,18 +482,6 @@
       "destination": "apps/usb_mpc/main.cpp",
       "sha256": "bd116ea6344f02a101705fdaa628fd34745871390d01e4d14ae804ea42aa9b50",
       "destination_sha256": "bd116ea6344f02a101705fdaa628fd34745871390d01e4d14ae804ea42aa9b50"
-    },
-    {
-      "source": "src/ethercat_mpc.cpp",
-      "destination": "apps/ethercat_mpc/main.cpp",
-      "sha256": "cc253ac210f1b948b0701ab50b18b95e9d0f735ae5e520e4dc0708bc5ceb0589",
-      "destination_sha256": "cc253ac210f1b948b0701ab50b18b95e9d0f735ae5e520e4dc0708bc5ceb0589"
-    },
-    {
-      "source": "src/ethercat_bench.cpp",
-      "destination": "apps/ethercat_bench/main.cpp",
-      "sha256": "49bede06361ae2cc17c85dc6b69f34b605a244e3aa2689e01d7ece4349e7ce5c",
-      "destination_sha256": "49bede06361ae2cc17c85dc6b69f34b605a244e3aa2689e01d7ece4349e7ce5c"
     },
     {
       "source": "chassis_controller/config/chassis_params.schema.yaml",
@@ -674,12 +614,6 @@
       "destination": "tests/chassis/usb_reconnect.cpp",
       "sha256": "91c3fbf462c0225a9800f007c5af57cf3fd9a5ba2049ccf53c8f0dd4ac6622a1",
       "destination_sha256": "91c3fbf462c0225a9800f007c5af57cf3fd9a5ba2049ccf53c8f0dd4ac6622a1"
-    },
-    {
-      "source": "tests/ethercat_protocol_test.cpp",
-      "destination": "tests/ethercat/ethercat_protocol_test.cpp",
-      "sha256": "2cc2173167d96d12e9c8f79067fdf81b81d1dbd0b338853c9567cd5350c2612b",
-      "destination_sha256": "5b2a4ab78253e933dc4117cf34563fdcc77882bb21a1e55c177c7c4e67569bd8"
     },
     {
       "source": "tests/leg_mpc_benchmark.cpp",
@@ -1006,6 +940,85 @@
       "destination_sha256": "ad1f98782890206370d776cb3a3b1ec41f6ca0929157b22d4f7c990d962f161a"
     },
     {
+      "source": "chassis_controller/source_manifest.json",
+      "destination": "docs/MCU_SOURCE_MANIFEST.json",
+      "sha256": "9327c00a17396e7f63b84ab31acd0e5e836747e8288754fcbb5b60c33ce9e0da",
+      "destination_sha256": "9327c00a17396e7f63b84ab31acd0e5e836747e8288754fcbb5b60c33ce9e0da"
+    }
+  ],
+  "notes": [
+    "source sha256 records the original working-tree content; destination_sha256 records this import after include/path/documentation adjustments",
+    "control algorithms, YAML configs, MPC and EtherCAT implementation sources were imported byte-for-byte; project/build structure is new",
+    "EtherCAT implementation/apps/tools/tests were removed from wbr_infantry after v0.1 and remain in development_branch; development_only_files records their import provenance"
+  ],
+  "development_only_files": [
+    {
+      "source": "include/wbr/ethercat_mpc_safety.hpp",
+      "destination": "include/wbr/ethercat_mpc_safety.hpp",
+      "sha256": "7dcfa8c33eb95e8bd2aef5af823760752516937f07a5c476d3e7e72d510a579d",
+      "destination_sha256": "7dcfa8c33eb95e8bd2aef5af823760752516937f07a5c476d3e7e72d510a579d"
+    },
+    {
+      "source": "include/wbr/ethercat_protocol.hpp",
+      "destination": "include/wbr/ethercat_protocol.hpp",
+      "sha256": "b2bd457297cf4ab3e701ef18ede1b7bf45a6d4d475503e0cc4ac401fbbf67745",
+      "destination_sha256": "b2bd457297cf4ab3e701ef18ede1b7bf45a6d4d475503e0cc4ac401fbbf67745"
+    },
+    {
+      "source": "include/wbr/ethercat_transport.hpp",
+      "destination": "include/wbr/ethercat_transport.hpp",
+      "sha256": "01a701465d32eb4b23748c166fef8038aa795b96818f4ef7f4529e5f594aea4d",
+      "destination_sha256": "01a701465d32eb4b23748c166fef8038aa795b96818f4ef7f4529e5f594aea4d"
+    },
+    {
+      "source": "src/ethercat_mpc_safety.cpp",
+      "destination": "modules/ethercat/ethercat_mpc_safety.cpp",
+      "sha256": "78622351be1586ab37990c8a6a094bf9e861b8a15ca7227d290c2d0155ac31a7",
+      "destination_sha256": "78622351be1586ab37990c8a6a094bf9e861b8a15ca7227d290c2d0155ac31a7"
+    },
+    {
+      "source": "src/ethercat_protocol.cpp",
+      "destination": "modules/ethercat/ethercat_protocol.cpp",
+      "sha256": "077655b8eb0e921ae96a868a73e4bd387e4b8b2ae63db3d006f7d63a472f936f",
+      "destination_sha256": "077655b8eb0e921ae96a868a73e4bd387e4b8b2ae63db3d006f7d63a472f936f"
+    },
+    {
+      "source": "src/ethercat_transport_igh.cpp",
+      "destination": "modules/ethercat/ethercat_transport_igh.cpp",
+      "sha256": "4df705d7f35ad5ebd9d2bb5d84755acf52fca16025ca29dc8c1779c2a145a82c",
+      "destination_sha256": "4df705d7f35ad5ebd9d2bb5d84755acf52fca16025ca29dc8c1779c2a145a82c"
+    },
+    {
+      "source": "src/ethercat_transport_mock.cpp",
+      "destination": "modules/ethercat/ethercat_transport_mock.cpp",
+      "sha256": "b9ac88a2a83f634c3fc776ef17ab72c4aab643df2fc5ff5b40b7a634a3d6fe3e",
+      "destination_sha256": "b9ac88a2a83f634c3fc776ef17ab72c4aab643df2fc5ff5b40b7a634a3d6fe3e"
+    },
+    {
+      "source": "src/ethercat_transport_soem.cpp",
+      "destination": "modules/ethercat/ethercat_transport_soem.cpp",
+      "sha256": "9295eebcb6019ee6bbab5d7e19239220406e3c791551894424a39ba77dbd5620",
+      "destination_sha256": "9295eebcb6019ee6bbab5d7e19239220406e3c791551894424a39ba77dbd5620"
+    },
+    {
+      "source": "src/ethercat_mpc.cpp",
+      "destination": "apps/ethercat_mpc/main.cpp",
+      "sha256": "cc253ac210f1b948b0701ab50b18b95e9d0f735ae5e520e4dc0708bc5ceb0589",
+      "destination_sha256": "cc253ac210f1b948b0701ab50b18b95e9d0f735ae5e520e4dc0708bc5ceb0589"
+    },
+    {
+      "source": "src/ethercat_bench.cpp",
+      "destination": "apps/ethercat_bench/main.cpp",
+      "sha256": "49bede06361ae2cc17c85dc6b69f34b605a244e3aa2689e01d7ece4349e7ce5c",
+      "destination_sha256": "49bede06361ae2cc17c85dc6b69f34b605a244e3aa2689e01d7ece4349e7ce5c"
+    },
+    {
+      "source": "tests/ethercat_protocol_test.cpp",
+      "destination": "tests/ethercat/ethercat_protocol_test.cpp",
+      "sha256": "2cc2173167d96d12e9c8f79067fdf81b81d1dbd0b338853c9567cd5350c2612b",
+      "destination_sha256": "5b2a4ab78253e933dc4117cf34563fdcc77882bb21a1e55c177c7c4e67569bd8"
+    },
+    {
       "source": "scripts/run_ethercat_matrix.sh",
       "destination": "scripts/run_ethercat_matrix.sh",
       "sha256": "d3e9e41dacb7dfdf4fa2051b988f99abdf1e5e4912d39891d3cfa2c1bf8d4742",
@@ -1028,16 +1041,7 @@
       "destination": "docs/MPC_AND_ETHERCAT.md",
       "sha256": "c2e557f6878e41d0f0f26855b122f8d6b7ae326bb06677dd7125d10c88216dd8",
       "destination_sha256": "5c8bf97d82eb8a69d34149ba66be6423576941506a6abfe6d410d0e8fbc8da04"
-    },
-    {
-      "source": "chassis_controller/source_manifest.json",
-      "destination": "docs/MCU_SOURCE_MANIFEST.json",
-      "sha256": "9327c00a17396e7f63b84ab31acd0e5e836747e8288754fcbb5b60c33ce9e0da",
-      "destination_sha256": "9327c00a17396e7f63b84ab31acd0e5e836747e8288754fcbb5b60c33ce9e0da"
     }
   ],
-  "notes": [
-    "source sha256 records the original working-tree content; destination_sha256 records this import after include/path/documentation adjustments",
-    "control algorithms, YAML configs, MPC and EtherCAT implementation sources were imported byte-for-byte; project/build structure is new"
-  ]
+  "development_branch": "dev/wbr_infantry_ethercat"
 }
