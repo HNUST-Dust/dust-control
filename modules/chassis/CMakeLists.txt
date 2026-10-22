@@ -15,7 +15,7 @@ add_library(dust_chassis
   support_force_estimator.cpp
   unified_lqr_schedule.cc
 )
-target_link_libraries(dust_chassis PUBLIC dust_protocols Eigen3::Eigen)
+target_link_libraries(dust_chassis PUBLIC dust_protocols Eigen3::Eigen dust_config)
 target_include_directories(dust_chassis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${DUST_GENERATED_DIR}")
 target_compile_options(dust_chassis PRIVATE -Wall -Wextra -Wpedantic)
 add_dependencies(dust_chassis dust_parameters)

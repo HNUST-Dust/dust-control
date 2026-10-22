@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
 #include "chassis_input_reader.h"
+#include "runtime_config.hpp"
 
 #include <cmath>
 
@@ -18,7 +19,6 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
                               ChassisCycleInput &input, uint64_t now_us,
                               double dt, bool arm_complete) {
   input.dt = dt;
-  const uint32_t now_ms = static_cast<uint32_t>(now_us / 1000);
 
   // 固化六个执行器的原始 CAN 快照，再统一解码。
   input.wheel_frame.left = sources.motors[0];
@@ -62,12 +62,13 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
   if (input.remote.sequence != 0U &&
       input.remote.sequence != last_remote_sequence_) {
     last_remote_sequence_ = input.remote.sequence;
-    last_remote_update_ms_ = now_ms;
+    last_remote_update_us_ = now_us;
   }
   input.remote_age_ms = last_remote_sequence_ != 0U
-                            ? now_ms - last_remote_update_ms_
+                            ? static_cast<uint32_t>((now_us - last_remote_update_us_) / 1000)
                             : UINT32_MAX;
-  input.remote_fresh = input.remote_age_ms <= kRemoteTimeoutMs;
+  input.remote_fresh = last_remote_sequence_ != 0U && now_us >= last_remote_update_us_ &&
+      now_us - last_remote_update_us_ <= dust::config::Freshness().remote_us;
   input.requested_enable = input.remote_fresh && input.remote.robot_enable;
 
   ChassisImuSample new_imu = {};
@@ -87,7 +88,7 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
           : UINT64_MAX;
   input.imu_fresh =
       input.imu.valid && last_imu_sequence_ != 0U &&
-      input.imu_age_us <= static_cast<uint64_t>(kImuTimeoutMs) * 1000ULL;
+      input.imu_age_us <= dust::config::Freshness().hi91_us;
 
   const auto frame_age_us =
       [feedback_now_us](const msg::ChassisMotorFeedbackRawFrame &frame,
@@ -111,12 +112,12 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
   input.motor_feedback_age_us[5] =
       frame_age_us(input.joint_frame.right.d, joint_decoded.right.d);
   const bool motor_fresh[] = {
-      input.motor_feedback_age_us[0] <= kMotorTimeoutUs,
-      input.motor_feedback_age_us[1] <= kMotorTimeoutUs,
-      input.motor_feedback_age_us[2] <= kMotorTimeoutUs,
-      input.motor_feedback_age_us[3] <= kMotorTimeoutUs,
-      input.motor_feedback_age_us[4] <= kMotorTimeoutUs,
-      input.motor_feedback_age_us[5] <= kMotorTimeoutUs,
+      input.motor_feedback_age_us[0] <= dust::config::Freshness().motors[0],
+      input.motor_feedback_age_us[1] <= dust::config::Freshness().motors[1],
+      input.motor_feedback_age_us[2] <= dust::config::Freshness().motors[2],
+      input.motor_feedback_age_us[3] <= dust::config::Freshness().motors[3],
+      input.motor_feedback_age_us[4] <= dust::config::Freshness().motors[4],
+      input.motor_feedback_age_us[5] <= dust::config::Freshness().motors[5],
   };
   input.motor_stale_mask = 0U;
   bool motors_fresh = true;

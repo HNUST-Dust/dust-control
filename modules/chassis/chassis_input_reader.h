@@ -25,7 +25,7 @@ public:
 
 private:
   uint32_t last_remote_sequence_ = 0U;
-  uint32_t last_remote_update_ms_ = 0U;
+  uint64_t last_remote_update_us_ = 0U;
   uint32_t last_imu_sequence_ = 0U;
   SidePair<protocols::DjiMotorFeedback> wheel_feedback_;
   SidePair<JointPair<protocols::DmMotorFeedbackNormal>> joint_feedback_;

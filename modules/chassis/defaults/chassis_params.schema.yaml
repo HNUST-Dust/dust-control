@@ -146,18 +146,6 @@ parameters:
     cpp_name: kJointTorqueLimit
     cpp_type: double
     min: 0.0
-  safety.remote_timeout_ms:
-    cpp_name: kRemoteTimeoutMs
-    cpp_type: uint32_t
-    min: 1
-  safety.imu_timeout_ms:
-    cpp_name: kImuTimeoutMs
-    cpp_type: uint32_t
-    min: 1
-  safety.motor_timeout_us:
-    cpp_name: kMotorTimeoutUs
-    cpp_type: uint64_t
-    min: 1
   safety.tilt_cutoff_deg:
     cpp_name: kTiltCutoffDeg
     cpp_type: double

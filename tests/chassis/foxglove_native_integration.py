@@ -9,7 +9,7 @@ from websockets.asyncio.client import connect
 
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser()
-parser.add_argument('--controller', type=Path, default=ROOT / 'build/development/apps/chassis_controller')
+parser.add_argument('--controller', type=Path, default=ROOT / 'build/development/chassis_controller')
 parser.add_argument('--fixture', type=Path, default=ROOT / 'build/development/tests/telemetry_contracts')
 args = parser.parse_args()
 

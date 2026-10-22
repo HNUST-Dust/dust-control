@@ -8,19 +8,19 @@
 | 旧位置 | 新位置 |
 |---|---|
 | `chassis_controller/control` | `modules/chassis` |
-| `chassis_controller/runtime` | `apps/chassis`、`modules/usb`、`modules/telemetry` |
+| `chassis_controller/runtime` | `src/main.cpp`、`modules/usb`、`modules/telemetry` |
 | `chassis_controller/include` | `include`；实现源文件到 `modules/protocols` |
-| `chassis_controller/config` | `config/chassis` |
+| `chassis_controller/config` | 内部默认值在 `modules/chassis/defaults`；启动配置在 `config` |
 | `chassis_controller/telemetry` | `tools/foxglove` |
 | `src/leg_mpc.cpp` | `modules/mpc` |
 | `src/mpc_link.cpp` | `modules/mpc_link` |
-| `src/ethercat_*` | `modules/ethercat` 和对应 `apps` |
+| `src/ethercat_*` | 仅在 `dev/wbr_infantry_ethercat` 保留 |
 | `src/realtime_loop.cpp` | `modules/runtime` |
-| 两套测试目录 | `tests/chassis`、`tests/mpc`、`tests/ethercat`、`tests/protocols` |
+| 两套测试目录 | `tests/chassis`、`tests/mpc`、`tests/protocols`；共享统计测试在 `tests/runtime` |
 | 两个独立顶层 CMake | 单一根 CMake + 模块构建文件 |
 
 原底盘脚本改为 `scripts/build.sh` / `scripts/run.sh`。
-开发构建覆盖当前底盘与仍在开发的 MPC/EtherCAT；它们不再隐式混在默认生产目标中。
+当前 USB 分支开发构建覆盖底盘与在研 MPC；EtherCAT 专用代码在独立开发分支。
 原基准工具保持单独构建，已更新共享 realtime 源码路径。
 
 本次重构不更改控制增益、符号、零点、输入新鲜度阈值、状态机、输出门控或线协议。

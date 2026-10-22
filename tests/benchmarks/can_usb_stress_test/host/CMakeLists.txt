@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
   message(FATAL_ERROR "This native benchmark targets the Linux NUC")
 endif()
-set(WBR_COMPANION_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../.." CACHE PATH
+set(WBR_COMPANION_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." CACHE PATH
     "dust-control source tree")
 if(NOT EXISTS "${WBR_COMPANION_DIR}/modules/runtime/realtime_loop.cpp")
   message(FATAL_ERROR "Set WBR_COMPANION_DIR to the dust-control checkout")

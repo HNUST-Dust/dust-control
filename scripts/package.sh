@@ -6,7 +6,7 @@ if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
   echo "Expected a release tag such as v0.1" >&2; exit 2
 fi
 build_dir="${DUST_BUILD_DIR:-$root/build/production}"
-for option in BUILD_TESTING DUST_BUILD_MPC DUST_BUILD_ETHERCAT DUST_BUILD_TOOLS; do
+for option in BUILD_TESTING DUST_BUILD_MPC DUST_BUILD_TOOLS; do
   if ! grep -q "^$option:BOOL=OFF$" "$build_dir/CMakeCache.txt"; then
     echo "Release packaging requires a production build ($option must be OFF)" >&2
     exit 2
