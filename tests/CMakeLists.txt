@@ -83,3 +83,7 @@ add_test(NAME configuration.startup_loading COMMAND ${Python3_EXECUTABLE}
   $<TARGET_FILE:runtime_config_contracts> $<TARGET_FILE:chassis_controller>
   "${PROJECT_SOURCE_DIR}/config")
 set_tests_properties(configuration.startup_loading PROPERTIES TIMEOUT 35)
+
+add_executable(adapter_protocol_contracts protocols/adapter_protocol.cpp)
+target_link_libraries(adapter_protocol_contracts PRIVATE dust_headers)
+add_test(NAME usb.generic_protocol_contracts COMMAND adapter_protocol_contracts)

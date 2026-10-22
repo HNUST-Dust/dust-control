@@ -25,7 +25,8 @@ std::condition_variable changed;
 std::deque<libusb_transfer *> inputs, outputs, cancelled;
 std::deque<wire::Packet> replies;
 uint32_t session, command_count, last_sequence;
-bool ready_delivered, stop_received, disconnected;
+bool ready_delivered, stop_received, disconnected, configured, armed;
+wire::SessionPolicy policy;
 uint32_t Now() {
   return uint32_t(std::chrono::duration_cast<std::chrono::microseconds>(
                       std::chrono::steady_clock::now().time_since_epoch())
@@ -36,10 +37,10 @@ void FullLoadSensors(const wire::Commands &packet) {
     std::abort();
   for (unsigned i = 0; i < 6; ++i) {
     const auto *frame = packet.data() + 32 + 16 * i;
-    const unsigned slot = frame[12];
+    const bool wheel = wire::U32(frame + 4) == 0x200;
     for (unsigned byte = 0; byte < 8; ++byte) {
-      const uint8_t expected = slot < 2 ? 0 : (byte == 7 ? 0xfd : 0xff);
-      if (frame[4 + byte] != expected)
+      const uint8_t expected = wheel ? 0 : (byte == 7 ? 0xfd : 0xff);
+      if (frame[8 + byte] != expected)
         std::abort();
     }
   }
@@ -88,9 +89,11 @@ void FullLoadSensors(const wire::Commands &packet) {
 void Process(libusb_transfer *transfer) {
   const auto *data = transfer->buffer;
   if (wire::HasHeader(data, transfer->length, wire::Kind::Hello)) {
-    if (transfer->length != 64)
+    if (transfer->length != 128)
       std::abort();
     session = wire::U32(data + 12);
+    configured = armed = false;
+    policy.Open(session);
     ready_delivered = false;
     stop_received = false;
     last_sequence = 0;
@@ -100,8 +103,11 @@ void Process(libusb_transfer *transfer) {
     wire::Put32(reply.data() + 16, std::getenv("WBR_MOCK_BAD_CAPS") ? 0 : 15);
     wire::Put32(reply.data() + 20, 128);
     wire::Put32(reply.data() + 24, 64);
+    wire::Put32(reply.data() + 28, 12);
+    reply[32] = reply[33] = 6;
     if (std::getenv("WBR_MOCK_OLD_FIRMWARE"))
       wire::Put32(reply.data(), 0x314b4341);
+    if (std::getenv("WBR_MOCK_V1_FIRMWARE")) reply[8] = 1;
     replies.push_back(reply);
     if (std::getenv("WBR_MOCK_STALE_SESSION")) {
       wire::Packet stale{};
@@ -111,11 +117,43 @@ void Process(libusb_transfer *transfer) {
       wire::CanRecord(stale.data() + 16, 3, 0x201, payload, 8, Now());
       replies.push_back(stale);
     }
-  } else if (wire::HasHeader(data, transfer->length, wire::Kind::Commands)) {
-    if (!ready_delivered || transfer->length != 128)
+  } else if (wire::HasHeader(data, transfer->length, wire::Kind::ConfigureSafety) ||
+             wire::HasHeader(data, transfer->length, wire::Kind::Arm)) {
+    if (!ready_delivered || transfer->length != 128 || wire::U32(data + 12) != session) std::abort();
+    wire::Commands request{}; std::copy_n(data, 128, request.begin());
+    int status = 0;
+    if (data[9] == uint8_t(wire::Kind::ConfigureSafety)) {
+      if (armed || !wire::ValidRecords(request, true) || request[10] != 6 ||
+          wire::U32(data + 16) != wire::kCommandTimeoutUs) std::abort();
+      for (unsigned i = 0; i < 6; ++i) {
+        const auto record = wire::Decode(data + 32 + 16 * i);
+        const unsigned slots[] = {0, 2, 3, 1, 4, 5};
+        const auto &motor = platform::motor_map::kMotors[slots[i]];
+        if (record.channel != motor.bus || record.id != motor.command_id || record.length != 8)
+          std::abort();
+        for (unsigned byte = 0; byte < 8; ++byte)
+          if (record.data[byte] != (slots[i] < 2 ? 0 : (byte == 7 ? 0xfd : 0xff))) std::abort();
+      }
+      configured = policy.Configure(wire::U32(data + 16));
+      policy.Observe(wire::U32(data + 4));
+      if (std::getenv("WBR_MOCK_SAFETY_REJECT")) status = -22;
+    } else {
+      if (!configured || !policy.Arm(wire::U32(data + 4), Now())) std::abort();
+      armed = true;
+      if (std::getenv("WBR_MOCK_ARM_REJECT")) { status = -22; armed = false; policy.Close(); }
+    }
+    wire::Packet result{};
+    wire::Header(result.data(), wire::Kind::Result, Now(), session);
+    wire::Put32(result.data() + 16, wire::U32(data + 4));
+    result[20] = data[9]; result[21] = armed;
+    wire::Put32(result.data() + 24, uint32_t(status));
+    replies.push_back(result);
+  } else if (wire::HasHeader(data, transfer->length, wire::Kind::Transmit)) {
+    if (!ready_delivered || !armed || transfer->length != 128)
       std::abort();
     wire::Commands packet{};
     std::copy_n(data, 128, packet.begin());
+    if (!policy.Accept(wire::U32(data + 4), Now())) std::abort();
     if (!wire::ValidCommands(packet, session))
       std::abort();
     const auto sequence = wire::U32(data + 4);
@@ -123,6 +161,14 @@ void Process(libusb_transfer *transfer) {
       std::abort();
     last_sequence = sequence;
     ++command_count;
+    if (std::getenv("WBR_MOCK_DATA_REJECT")) {
+      wire::Packet result{};
+      wire::Header(result.data(), wire::Kind::Result, Now(), session);
+      wire::Put32(result.data() + 16, wire::U32(data + 4));
+      result[20] = data[9]; result[21] = armed; wire::Put32(result.data() + 24, uint32_t(-28));
+      replies.push_back(result); policy.Close();
+      return;
+    }
     if (std::getenv("WBR_MOCK_FULL_LOAD"))
       FullLoadSensors(packet);
     if (std::getenv("WBR_MOCK_UART")) {
@@ -141,24 +187,19 @@ void Process(libusb_transfer *transfer) {
         replies.push_back(uart);
       }
     }
-    for (unsigned side = 0; side < 2; ++side) {
+    for (unsigned slot = 0; slot < 6; ++slot) {
       wire::Packet feedback{};
       wire::Header(feedback.data(), wire::Kind::Can, Now(), session);
-      feedback[10] = 3;
-      const unsigned slots[2][3] = {{0, 2, 3}, {1, 4, 5}};
-      for (unsigned i = 0; i < 3; ++i) {
-        const auto &motor = platform::motor_map::kMotors[slots[side][i]];
-        uint8_t value[8]{};
-        if (slots[side][i] == 2 && std::getenv("WBR_MOCK_FULL_FAULT"))
-          value[0] = 0xa0;
-        wire::CanRecord(feedback.data() + 16 + 16 * i, motor.bus,
-                        motor.feedback_id, value, 8,
-                        wire::U32(feedback.data() + 4));
-      }
+      feedback[10] = 1;
+      const auto &motor = platform::motor_map::kMotors[slot];
+      uint8_t value[8]{};
+      if (slot == 2 && std::getenv("WBR_MOCK_FULL_FAULT")) value[0] = 0xa0;
+      wire::CanRecord(feedback.data() + 16, motor.bus, motor.feedback_id, value, 8,
+                      wire::U32(feedback.data() + 4), command_count);
       replies.push_back(feedback);
     }
   } else if (wire::HasHeader(data, transfer->length, wire::Kind::Stop)) {
-    if (transfer->length != 64 || wire::U32(data + 12) != session)
+    if (transfer->length != 128 || wire::U32(data + 12) != session)
       std::abort();
     stop_received = true;
   } else
@@ -174,7 +215,7 @@ void LIBUSB_CALL libusb_exit(libusb_context *) {
   std::lock_guard<std::mutex> lock(mutex);
   if (!inputs.empty() || !outputs.empty() || !cancelled.empty())
     std::abort();
-  if (command_count && !disconnected && !stop_received)
+  if (command_count && !disconnected && !stop_received && policy.Session())
     std::abort();
 }
 libusb_device_handle *LIBUSB_CALL
