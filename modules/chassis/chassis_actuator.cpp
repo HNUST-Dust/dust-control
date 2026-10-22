@@ -72,7 +72,7 @@ void ChassisActuator::SendDmControl(protocols::DmControlCommand command) const {
   }
   const auto submit_joint = [&](Side side, Joint joint) {
     const cfg::MotorAddress &motor =
-        cfg::kLegHardware.Get(side).joint.Get(joint);
+        cfg::JointMotor(side,joint);
     (void)sink_.Submit(motor.tx_slot, motor.bus, motor.command_id, data,
                        sizeof(data));
   };
@@ -90,13 +90,13 @@ void ChassisActuator::SendDmTorque(Side side, Joint joint,
   if (protocols::PackDmMitCommand(&command, &cfg::kDmRange, data) != 0) {
     return;
   }
-  const cfg::MotorAddress &motor = cfg::kLegHardware.Get(side).joint.Get(joint);
+  const cfg::MotorAddress &motor = cfg::JointMotor(side,joint);
   (void)sink_.Submit(motor.tx_slot, motor.bus, motor.command_id, data,
                      sizeof(data));
 }
 
 void ChassisActuator::SendWheelCurrent(Side side, int16_t current) const {
-  const cfg::MotorAddress &wheel = cfg::kLegHardware.Get(side).wheel;
+  const cfg::MotorAddress &wheel = cfg::WheelMotor(side);
   int16_t currents[4] = {};
   currents[wheel.command_slot] = current;
   uint8_t data[8] = {};

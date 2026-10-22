@@ -13,10 +13,6 @@ parameters:
     cpp_name: kHi91RxRingPollPeriodMs
     cpp_type: uint32_t
     min: 1
-  hi91_imu.freshness_deadline_us:
-    cpp_name: kHi91FreshnessDeadlineUs
-    cpp_type: uint32_t
-    min: 1
   hi91_imu.maximum_valid_pitch_deg:
     cpp_name: kHi91MaximumValidPitchDeg
     cpp_type: float

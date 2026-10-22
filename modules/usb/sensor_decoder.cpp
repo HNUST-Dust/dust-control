@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "sensor_decoder.hpp"
+#include "runtime_config.hpp"
 #include "chassis_config.h"
 #include <algorithm>
 #include <chassis_controller/motor_map.h>
@@ -123,9 +124,7 @@ void SensorDecoder::Feed(unsigned port, const uint8_t *data, size_t count,
 void SensorDecoder::PollRemoteTimeout(uint64_t host_now_us) {
   if (!remote_timeout_pending() || host_now_us < remote_lost_start_us_ ||
       host_now_us - remote_lost_start_us_ <
-          uint64_t(modules::remote_input_params::
-                       kRemoteInputWflyFrameLostTimeoutMs) *
-              1000)
+          uint64_t(modules::remote_input_params::kRemoteInputWflyFrameLostTimeoutMs) * 1000)
     return;
   latest_.control.remote = {};
   latest_.control.remote.source = msg::kRemoteInputWfly;
@@ -256,7 +255,7 @@ void SensorDecoder::ParseHi91(Stream &stream, uint64_t timestamp) {
         protocols::CalculateHi91FrameCrc(payload, stream.bytes.data() + 6);
     if (!hi91_time_guard_.Accept(
             decoded.system_time_ms, timestamp,
-            modules::chassis_config::kImuTimeoutMs * 1000ULL, crc_valid)) {
+            dust::config::Freshness().hi91_us, crc_valid)) {
       ConsumeBytes(stream, size);
       continue;
     }

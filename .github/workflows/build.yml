@@ -20,7 +20,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev python3-yaml python3-venv
+          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev libyaml-cpp-dev python3-yaml python3-venv
           python3 -m venv --system-site-packages .cache/test-venv
           .cache/test-venv/bin/pip install -r tools/foxglove/requirements-test.txt
       - name: Configure
@@ -49,7 +49,7 @@ jobs:
       - name: Install production build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev python3-yaml
+          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev libyaml-cpp-dev python3-yaml
       - name: Build USB production package
         run: |
           cmake --preset production

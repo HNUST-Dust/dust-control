@@ -8,7 +8,7 @@ MPC 仍是在研控制算法，源码保留在当前 USB 分支；默认生产�
 输出左右绝对支撑力，采样 100 Hz，预测 15 步。OSQP v1.0.0 求解完整约束 QP，
 保留力上下界、变化率限制、重力前馈和未收敛回退策略。
 
-开发程序：`build/development/apps/leg_mpc_demo`、`usb_mpc`；
+开发程序：`build/development/tests/leg_mpc_demo`、`usb_mpc`；
 性能工具：`build/development/tests/leg_mpc_benchmark`。
 QP 回归和 MPC Link 测试随开发预设执行。
 独立 SciPy 对照可运行

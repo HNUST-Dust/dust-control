@@ -1,3 +1,4 @@
+#include "runtime_config.hpp"
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "chassis_config.h"
 #include "chassis_controller.h"
@@ -210,7 +211,7 @@ int main() {
   freshness.Read(sources, checked, 1000, .001, false);
   CHECK(checked.requested_enable);
   freshness.Read(sources, checked,
-                 1000ULL * (modules::chassis_config::kRemoteTimeoutMs + 2),
+                 dust::config::Freshness().remote_us + 2000,
                  .001, false);
   CHECK(!checked.remote_fresh && !checked.requested_enable);
   modules::ChassisInputReader imu_freshness;
@@ -219,7 +220,7 @@ int main() {
   imu_sources.imu.sequence = 1;
   imu_sources.imu.precise_timestamp_us = 10000;
   const uint64_t imu_timeout_us =
-      modules::chassis_config::kImuTimeoutMs * 1000ULL;
+      dust::config::Freshness().hi91_us;
   imu_freshness.Read(imu_sources, checked, 10000 + imu_timeout_us, .001, false);
   CHECK(checked.imu_fresh);
   imu_freshness.Read(imu_sources, checked, 10001 + imu_timeout_us, .001, false);
@@ -234,11 +235,11 @@ int main() {
   motor_sources.motors[0].precise_timestamp_us = 10000;
   motor_sources.motors[1].precise_timestamp_us = 12000;
   motor_reader.Read(motor_sources, checked,
-                    10000 + modules::chassis_config::kMotorTimeoutUs, .001,
+                    10000 + dust::config::Freshness().motors[0], .001,
                     false);
   CHECK(!(checked.motor_stale_mask & 3));
   motor_reader.Read(motor_sources, checked,
-                    10001 + modules::chassis_config::kMotorTimeoutUs, .001,
+                    10001 + dust::config::Freshness().motors[0], .001,
                     false);
   CHECK((checked.motor_stale_mask & 3) == 1); // only left wheel expires
   CHECK(!checked.feedback_valid && (checked.feedback_invalid_mask & 1));

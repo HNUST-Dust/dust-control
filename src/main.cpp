@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "chassis_controller.h"
+#include "runtime_config.hpp"
 #include "motor_commands.hpp"
 #include "usb_link.hpp"
 #include "telemetry.hpp"
@@ -17,6 +18,7 @@ int main(int argc, char **argv) {
   try {
     bool simulate = false, enable_output = false;
     double seconds = 0;
+    std::string config_directory;
     int control_cpu = 3;
     int telemetry_port = 0, foxglove_port = 0;
     wbr::host::UsbOptions usb;
@@ -45,7 +47,7 @@ int main(int argc, char **argv) {
       if (option == "--help") {
         std::cout
             << "chassis_controller [--cpu 3] [--usb-cpu 3] [--priority 80] "
-               "[--seconds N] [--foxglove] [--foxglove-port 8765]\n"
+               "[--config DIR] [--seconds N] [--foxglove] [--foxglove-port 8765]\n"
             << "  Default: disabled actuator policy; remote disabled pose must "
                "be observed\n"
             << "  after startup before --enable-output can honor the remote "
@@ -55,7 +57,9 @@ int main(int argc, char **argv) {
       }
       if (++i == argc)
         throw std::runtime_error("Missing value for " + option);
-      if (option == "--cpu")
+      if (option == "--config")
+        config_directory = argv[i];
+      else if (option == "--cpu")
         control_cpu = std::stoi(argv[i]);
       else if (option == "--usb-cpu")
         usb.cpu = std::stoi(argv[i]);
@@ -80,6 +84,10 @@ int main(int argc, char **argv) {
       seconds = 1;
     if (simulate && enable_output)
       throw std::runtime_error("Simulation cannot enable real outputs");
+    if (!config_directory.empty()) {
+      dust::config::Load(config_directory);
+      std::cout << "Configuration loaded: " << config_directory << std::endl;
+    }
     std::signal(SIGINT, Signal);
     std::signal(SIGTERM, Signal);
     wbr::host::SensorStore sensors;

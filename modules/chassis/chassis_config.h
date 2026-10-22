@@ -21,8 +21,6 @@ using namespace chassis_params;
 using MotorAddress = platform::motor_map::MotorAddress;
 
 struct LegHardwareMap {
-  MotorAddress wheel;
-  JointPair<MotorAddress> joint;
   int kinematic_branch;
   double leg_angle_offset;
   double leg_coordinate_sign;
@@ -32,19 +30,13 @@ struct LegHardwareMap {
 };
 
 inline constexpr SidePair<LegHardwareMap> kLegHardware = {
-    .left = {platform::motor_map::kLeftWheel,
-             {platform::motor_map::kLeftJointB,
-              platform::motor_map::kLeftJointD},
-             kLeftKinematicBranch,
+    .left = {kLeftKinematicBranch,
              kLeftLegAngleOffset,
              kLeftLegCoordinateSign,
              kLeftWheelFeedbackSign,
              kLeftVmcTorqueSign,
              kLeftWheelCommandSign},
-    .right = {platform::motor_map::kRightWheel,
-              {platform::motor_map::kRightJointB,
-               platform::motor_map::kRightJointD},
-              kRightKinematicBranch,
+    .right = {kRightKinematicBranch,
               kRightLegAngleOffset,
               kRightLegCoordinateSign,
               kRightWheelFeedbackSign,
@@ -52,6 +44,12 @@ inline constexpr SidePair<LegHardwareMap> kLegHardware = {
               kRightWheelCommandSign},
 };
 
+inline const MotorAddress &JointMotor(Side side, Joint joint) {
+  return platform::motor_map::kMotors[2 + (side==Side::kRight ? 2:0) + (joint==Joint::kD ? 1:0)];
+}
+inline const MotorAddress &WheelMotor(Side side) {
+  return platform::motor_map::kMotors[side==Side::kRight ? 1:0];
+}
 inline constexpr protocols::DmMitRange kDmRange = {
     .p_min = kDmPositionMin,
     .p_max = kDmPositionMax,

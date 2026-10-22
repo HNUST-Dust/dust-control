@@ -13,7 +13,7 @@ MPC 控制算法作为在研模块保留；EtherCAT 实现、应用及构建入�
 在 Orb Ubuntu 或机器人 Linux 主机中：
 
 ```bash
-sudo apt-get install build-essential cmake ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev python3-yaml
+sudo apt-get install build-essential cmake ninja-build pkg-config libeigen3-dev libusb-1.0-0-dev libyaml-cpp-dev python3-yaml
 ./scripts/build.sh
 ```
 
@@ -53,27 +53,31 @@ ctest --preset development
 
 原生 WebSocket 测试需要 Python `websockets==15.0.1`；仅测试客户端需要 Python 包，
 运行服务不需要 Python 进程。详见 [测试说明](docs/TESTING.md)。
-生产运行入口默认使用 `build/production/apps/chassis_controller`；
+生产运行入口默认使用 `build/production/chassis_controller`；
 可通过 `DUST_BUILD_DIR` 选择其他构建目录。
 
 ## 工程结构
 
 | 目录 | 职责 |
 |---|---|
-| `apps/` | 底盘、USB MPC 等可执行入口 |
+| `src/main.cpp` | 当前 USB/LQR 底盘程序唯一正式入口 |
 | `modules/chassis/` | 原控制管线、状态机、运动学和执行器门控 |
 | `modules/mpc/` | 正在开发的腿高/横滚 MPC 算法 |
 | `modules/usb/` | MCU 网关、USB 生命周期、采集快照与解码 |
 | `modules/mpc_link/` | 现有 MPC offload 链路协议，区别于网关协议 |
 | `modules/runtime/` | 共享 Linux 时钟、调度和统计工具 |
+| `modules/config/` | 启动期 YAML 解析与只读运行配置 |
 | `modules/telemetry/` | 有界队列、非实时序列化、Foxglove 服务 |
 | `modules/protocols/`、`include/` | 传感器/电机编解码与公共协议头文件 |
-| `config/chassis/` | 原 YAML 参数和校验 schema |
+| `config/` | 电机映射与传感器 freshness 的启动时配置 |
+| `modules/chassis/defaults/` | 内部编译期参数和 schema |
 | `tests/` | 各模块自动回归，不链接进生产应用 |
 | `tools/foxglove/` | 遥测消息定义、曲线布局与使用说明 |
-| `benchmarks/` | 独立性能研究工具，默认不编译 |
+| `tests/benchmarks/` | 独立性能研究工具，默认不编译 |
 | `cmake/`、`scripts/` | 依赖、参数生成和统一构建运行入口 |
 
 阅读 [模块边界](docs/ARCHITECTURE.md)、[迁移记录](docs/MIGRATION.md)、
 [MPC 开发](docs/MPC.md)、[Foxglove 使用](tools/foxglove/README.md)。
 重构后已做的离线验证不代替硬件验证，重构版本尚未在机器人上使能运行。
+
+运行时配置范围、加载方式和校验规则见 [配置说明](config/README.md)。

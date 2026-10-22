@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include <array>
 #include "motor_address.h"
 #include <motors_params_generated.h>
 
@@ -35,7 +36,9 @@ inline constexpr MotorAddress kRightJointD = {
     motors_params::kRightJointDBus, motors_params::kRightJointDCommandId,
     motors_params::kRightJointDFeedbackId, 0U, CanTxSlot::kRightJointD};
 
-inline constexpr MotorAddress kMotors[] = {
+inline constexpr std::array<MotorAddress, 6> kDefaultMotors = {
     kLeftWheel, kRightWheel, kLeftJointB, kLeftJointD, kRightJointB, kRightJointD};
 
+const std::array<MotorAddress, 6> &Addresses();
+extern const std::array<MotorAddress,6> &kMotors;
 } // namespace platform::motor_map

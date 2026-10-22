@@ -67,3 +67,19 @@ add_executable(realtime_statistics_test runtime/statistics_test.cpp)
 target_link_libraries(realtime_statistics_test PRIVATE dust_realtime)
 target_compile_options(realtime_statistics_test PRIVATE -UNDEBUG)
 add_test(NAME runtime.statistics COMMAND realtime_statistics_test)
+
+# Standalone MPC development programs belong to the test/development tree.
+if(DUST_BUILD_MPC AND DUST_BUILD_TOOLS)
+  add_executable(leg_mpc_demo mpc/mpc_demo/main.cpp)
+  target_link_libraries(leg_mpc_demo PRIVATE dust_mpc)
+  add_executable(usb_mpc mpc/usb_mpc/main.cpp)
+  target_link_libraries(usb_mpc PRIVATE dust_mpc dust_mpc_link dust_realtime PkgConfig::LIBUSB)
+endif()
+
+add_executable(runtime_config_contracts runtime/config_contracts.cpp)
+target_link_libraries(runtime_config_contracts PRIVATE dust_usb)
+add_test(NAME configuration.startup_loading COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/runtime/config_loading.py"
+  $<TARGET_FILE:runtime_config_contracts> $<TARGET_FILE:chassis_controller>
+  "${PROJECT_SOURCE_DIR}/config")
+set_tests_properties(configuration.startup_loading PROPERTIES TIMEOUT 35)

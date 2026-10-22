@@ -8,9 +8,9 @@
 | 旧位置 | 新位置 |
 |---|---|
 | `chassis_controller/control` | `modules/chassis` |
-| `chassis_controller/runtime` | `apps/chassis`、`modules/usb`、`modules/telemetry` |
+| `chassis_controller/runtime` | `src/main.cpp`、`modules/usb`、`modules/telemetry` |
 | `chassis_controller/include` | `include`；实现源文件到 `modules/protocols` |
-| `chassis_controller/config` | `config/chassis` |
+| `chassis_controller/config` | 内部默认值在 `modules/chassis/defaults`；启动配置在 `config` |
 | `chassis_controller/telemetry` | `tools/foxglove` |
 | `src/leg_mpc.cpp` | `modules/mpc` |
 | `src/mpc_link.cpp` | `modules/mpc_link` |

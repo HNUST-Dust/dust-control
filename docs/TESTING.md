@@ -28,3 +28,6 @@ MPC 测试随对应模块开启，Release 下保留测试断言。
 
 EtherCAT 构建和回归只在 `dev/wbr_infantry_ethercat` 执行。共享 realtime 统计
 测试独立放在 `tests/runtime`，不依赖下位机通讯方案。
+
+`configuration.startup_loading` 验证实际路由、每电机阈值、HI91/遥控微秒边界、
+非法配置启动失败、失败不部分应用以及启动后禁止重新加载。
