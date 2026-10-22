@@ -3,6 +3,8 @@ target_link_libraries(chassis_contracts PRIVATE dust_usb)
 add_test(NAME chassis.contracts COMMAND chassis_contracts)
 add_test(NAME chassis.disabled_smoke COMMAND chassis_controller --simulate --no-rt --seconds 0.1)
 add_library(production_usb_mock SHARED chassis/usb_mock.cpp)
+add_dependencies(production_usb_mock dust_adapter_profile)
+target_include_directories(production_usb_mock PRIVATE "${DUST_GENERATED_DIR}")
 target_link_libraries(production_usb_mock PRIVATE dust_chassis Threads::Threads PkgConfig::LIBUSB)
 add_test(NAME usb.lifecycle COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/chassis/usb_integration.py" $<TARGET_FILE:chassis_controller> $<TARGET_FILE:production_usb_mock>)

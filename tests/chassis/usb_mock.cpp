@@ -11,6 +11,7 @@
 #include <mutex>
 #include <protocols/imu/hi91_protocol.h>
 #include <wbr_bridge/bridge_protocol.hpp>
+#include <can_profile_generated.hpp>
 
 struct libusb_context {};
 struct libusb_device_handle {};
@@ -104,7 +105,14 @@ void Process(libusb_transfer *transfer) {
     wire::Put32(reply.data() + 20, 128);
     wire::Put32(reply.data() + 24, 64);
     wire::Put32(reply.data() + 28, 12);
-    reply[32] = reply[33] = 6;
+    reply[32] = 6;
+    reply[33] = dust::can_profile::kProtectionFrames.size();
+    reply[34] = wire::kFirmwareCanProtection;
+    auto signature = dust::can_profile::kProtectionSignature;
+    if (std::getenv("WBR_MOCK_PROFILE_MISMATCH")) signature ^= 1;
+    if (std::getenv("WBR_MOCK_NO_PROFILE")) reply[34] = 0;
+    wire::Put32(reply.data() + 36, signature);
+    wire::Put32(reply.data() + 40, dust::can_profile::kCommandTimeoutUs);
     if (std::getenv("WBR_MOCK_OLD_FIRMWARE"))
       wire::Put32(reply.data(), 0x314b4341);
     if (std::getenv("WBR_MOCK_V1_FIRMWARE")) reply[8] = 1;
@@ -123,17 +131,9 @@ void Process(libusb_transfer *transfer) {
     wire::Commands request{}; std::copy_n(data, 128, request.begin());
     int status = 0;
     if (data[9] == uint8_t(wire::Kind::ConfigureSafety)) {
-      if (armed || !wire::ValidRecords(request, true) || request[10] != 6 ||
+      if (armed || !wire::ValidRecords(request, true) || request[10] != 0 ||
           wire::U32(data + 16) != wire::kCommandTimeoutUs) std::abort();
-      for (unsigned i = 0; i < 6; ++i) {
-        const auto record = wire::Decode(data + 32 + 16 * i);
-        const unsigned slots[] = {0, 2, 3, 1, 4, 5};
-        const auto &motor = platform::motor_map::kMotors[slots[i]];
-        if (record.channel != motor.bus || record.id != motor.command_id || record.length != 8)
-          std::abort();
-        for (unsigned byte = 0; byte < 8; ++byte)
-          if (record.data[byte] != (slots[i] < 2 ? 0 : (byte == 7 ? 0xfd : 0xff))) std::abort();
-      }
+      // Zero actions select firmware defaults and must not clear this baseline.
       configured = policy.Configure(wire::U32(data + 16));
       policy.Observe(wire::U32(data + 4));
       if (std::getenv("WBR_MOCK_SAFETY_REJECT")) status = -22;

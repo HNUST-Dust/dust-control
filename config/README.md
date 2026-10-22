@@ -1,6 +1,9 @@
 # 启动时运行配置
 
-日常调试只需修改两个文件，修改后重启程序即可，不需要重新编译：
+新固件使用 CAN 设备白名单。下述运行期映射必须位于编译的设备表中；新增地址
+需要同步修改 MCU/上位机的 `can_devices.yaml` 并重新构建。freshness 仍只需重启程序。
+
+运行期配置文件：
 
 - `motors_params.yaml`：六个电机的 CAN 总线、命令 ID、反馈 ID、轮电机 command_slot，
   以及各自的 `freshness_deadline_us`。
@@ -38,3 +41,13 @@ HI91 过期判定和时间基准恢复共同使用配置的 HI91 阈值。
 其余几何、零点、方向、算法常量和状态机参数位于 `modules/chassis/defaults`，
 继续编译期生成，不属于日常运行配置。内部 motors 默认值供未传 --config 时回退；
 显式文件始终在启动时覆盖实际反馈路由和执行器映射。
+
+## 编译期 MCU 设备与保护配置
+
+`can_devices.yaml` 与 dust-adapter 使用同一格式、默认内容和生成器。两端构建可以
+通过 `-DDUST_ADAPTER_CAN_CONFIG=/absolute/path/devices.yaml` 指向同一份 YAML。
+它不是 --config 运行期加载的参数；修改后必须重新构建两端并刷写 MCU。
+
+USB Open 会比较 MCU 与本工程生成的默认保护表数量、租约上限和签名，随后选择
+固件默认保护，不再在 C++ 中重复硬编码停止帧。运行期六电机映射还必须匹配设备表
+允许的标准数据帧命令/反馈地址。配置不一致时拒绝使能转发。

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "usb_link.hpp"
 #include <dust_adapter/client.hpp>
+#include <can_profile_generated.hpp>
 #include <chassis_controller/motor_map.h>
 #include <algorithm>
 #include <chrono>
@@ -165,9 +166,15 @@ void LIBUSB_CALL UsbLink::Receive(libusb_transfer *transfer) {
         if (!(channels & (1U << motor.bus))) {
           self.Fail("Adapter CAN channel capability missing"); return;
         }
-      if (packet[32] < 6 || packet[33] < 6) {
+      if (packet[32] < 6) {
         self.Fail("Adapter batch/safety capacity missing"); return;
       }
+      if (!(packet[34] & bridge::kFirmwareCanProtection)) {
+        self.Fail("Adapter firmware CAN protection profile missing"); return;
+      }
+      self.protection_signature_ = bridge::U32(packet.data() + 36);
+      self.protection_timeout_us_ = bridge::U32(packet.data() + 40);
+      self.protection_count_ = packet[33];
       self.capabilities_ = bridge::U32(packet.data() + 16);
       self.decoder_.Reset();
       { std::lock_guard<std::mutex> lock(self.mutex_); self.ready_ = true; }
@@ -252,19 +259,24 @@ bool UsbLink::Exchange(bridge::Commands request) {
   return true;
 }
 bool UsbLink::ConfigureSafetyAndArm() {
-  // These are robot policy, not firmware defaults. Preserve W/B/D scheduling.
-  bridge::Record stops[6]{};
-  unsigned count = 0;
-  for (unsigned slot : {0U, 2U, 3U, 1U, 4U, 5U}) {
-    const auto &motor = platform::motor_map::kMotors[slot];
-    auto &record = stops[count++];
-    record.channel = motor.bus; record.id = motor.command_id; record.length = 8;
-    if (slot >= 2) {
-      std::fill_n(record.data, 8, uint8_t(0xff)); record.data[7] = 0xfd;
-    }
+  namespace profile = dust::can_profile;
+  if (protection_count_ != profile::kProtectionFrames.size() ||
+      protection_timeout_us_ != profile::kCommandTimeoutUs ||
+      protection_signature_ != profile::kProtectionSignature)
+    return Fail("MCU CAN protection profile differs from host device configuration");
+  // Runtime motor remapping must remain within the shared compiled device profile.
+  for (const auto &motor : platform::motor_map::kMotors) {
+    const auto matches = [&motor](const auto &addresses, uint32_t id) {
+      for (const auto &address : addresses)
+        if (address.channel == motor.bus && address.id == id && !address.flags) return true;
+      return false;
+    };
+    if (!matches(profile::kTransmitAddresses, motor.command_id) ||
+        !matches(profile::kReceiveFilters, motor.feedback_id))
+      return Fail("Host motor mapping is outside MCU CAN device profile");
   }
-  if (!Exchange(dust::SafetyConfiguration(++sequence_, session_, bridge::kCommandTimeoutUs, stops, 6)))
-    return false;
+  const auto lease = std::min(protection_timeout_us_, bridge::kCommandTimeoutUs);
+  if (!Exchange(dust::SelectFirmwareSafety(++sequence_, session_, lease))) return false;
   return Exchange(dust::Control(bridge::Kind::Arm, ++sequence_, session_));
 }
 bool UsbLink::Send(bridge::Commands packet) {

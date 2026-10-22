@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 binary, backend = sys.argv[1:]
-for mode in (None, "WBR_MOCK_BAD_CAPS", "WBR_MOCK_OLD_FIRMWARE", "WBR_MOCK_DISCONNECT", "WBR_MOCK_SAFETY_REJECT", "WBR_MOCK_ARM_REJECT", "WBR_MOCK_V1_FIRMWARE", "WBR_MOCK_DATA_REJECT"):
+for mode in (None, "WBR_MOCK_BAD_CAPS", "WBR_MOCK_OLD_FIRMWARE", "WBR_MOCK_DISCONNECT", "WBR_MOCK_SAFETY_REJECT", "WBR_MOCK_ARM_REJECT", "WBR_MOCK_V1_FIRMWARE", "WBR_MOCK_DATA_REJECT", "WBR_MOCK_PROFILE_MISMATCH", "WBR_MOCK_NO_PROFILE"):
     environment = dict(os.environ, LD_PRELOAD=backend, WBR_MOCK_REQUIRE_PREPOST="1")
     if mode:
         environment[mode] = "1"
@@ -22,6 +22,10 @@ for mode in (None, "WBR_MOCK_BAD_CAPS", "WBR_MOCK_OLD_FIRMWARE", "WBR_MOCK_DISCO
         assert "rejected safety" in result.stderr
     elif mode == "WBR_MOCK_V1_FIRMWARE":
         assert "version mismatch" in result.stderr
+    elif mode == "WBR_MOCK_PROFILE_MISMATCH":
+        assert "profile differs" in result.stderr
+    elif mode == "WBR_MOCK_NO_PROFILE":
+        assert "profile missing" in result.stderr
     elif mode == "WBR_MOCK_DATA_REJECT":
         assert "rejected a data request" in result.stderr
     else:
