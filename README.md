@@ -1,3 +1,7 @@
+> 通用适配器迁移分支：必须配套 dust-adapter 的 `feature/generic-usb-adapter`（协议 v2）。
+> v0.1 固件不兼容。当前分支保留原控制算法/遥控门控，尚未完成机器人上板验收。
+> 见 [通用 USB 迁移](docs/GENERIC_USB_ADAPTER.md)。
+
 # dust-control — wbr_infantry USB
 
 当前正式兵种分支：`wbr_infantry`；EtherCAT 开发分支：`dev/wbr_infantry_ethercat`。

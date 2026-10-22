@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "usb_link.hpp"
+#include <dust_adapter/client.hpp>
+#include <can_profile_generated.hpp>
+#include <chassis_controller/motor_map.h>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -99,7 +102,7 @@ bool UsbLink::Open() {
     if (failed_)
       return false;
   }
-  bridge::Packet hello{};
+  bridge::Commands hello{};
   bridge::Header(hello.data(), bridge::Kind::Hello, 0, session_);
   if (!Transmit(hello.data(), hello.size()))
     return false;
@@ -108,9 +111,10 @@ bool UsbLink::Open() {
                           [this] { return ready_.load() || failed_.load(); })) {
     lock.unlock();
     return Fail(
-        "Production handshake timed out; flash usb_can_bridge firmware");
+        "Adapter v2 handshake timed out; matching generic firmware is required");
   }
-  return !failed_;
+  lock.unlock();
+  return !failed_ && ConfigureSafetyAndArm();
 }
 void UsbLink::Submit(Input &input) {
   libusb_fill_bulk_transfer(input.transfer, device_, 0x81, input.data.data(),
@@ -138,6 +142,10 @@ void LIBUSB_CALL UsbLink::Receive(libusb_transfer *transfer) {
     return;
   }
   const auto &packet = input.data;
+  if (bridge::U32(packet.data()) == bridge::kMagic && packet[8] != bridge::kVersion) {
+    self.Fail("Adapter protocol version mismatch (v2 required)");
+    return;
+  }
   if (bridge::U32(packet.data()) == bridge::kMagic &&
       packet[8] == bridge::kVersion &&
       bridge::U32(packet.data() + 12) == self.session_) {
@@ -153,10 +161,43 @@ void LIBUSB_CALL UsbLink::Receive(libusb_transfer *transfer) {
         self.Fail("Bridge CAN/remote/HI91 capability missing");
         return;
       }
+      const auto channels = bridge::U32(packet.data() + 28);
+      for (const auto &motor : platform::motor_map::kMotors)
+        if (!(channels & (1U << motor.bus))) {
+          self.Fail("Adapter CAN channel capability missing"); return;
+        }
+      if (packet[32] < 6) {
+        self.Fail("Adapter batch/safety capacity missing"); return;
+      }
+      if (!(packet[34] & bridge::kFirmwareCanProtection)) {
+        self.Fail("Adapter firmware CAN protection profile missing"); return;
+      }
+      self.protection_signature_ = bridge::U32(packet.data() + 36);
+      self.protection_timeout_us_ = bridge::U32(packet.data() + 40);
+      self.protection_count_ = packet[33];
       self.capabilities_ = bridge::U32(packet.data() + 16);
       self.decoder_.Reset();
-      self.ready_ = true;
+      { std::lock_guard<std::mutex> lock(self.mutex_); self.ready_ = true; }
       self.ready_cv_.notify_all();
+    } else if (packet[9] == uint8_t(bridge::Kind::Result)) {
+      const auto sequence = bridge::U32(packet.data() + 16);
+      if (sequence == self.expected_result_.load()) {
+        const auto status = int32_t(bridge::U32(packet.data() + 24));
+        if (packet[20] != self.expected_kind_.load() || packet[21] > 1 ||
+            (!status && packet[20] == uint8_t(bridge::Kind::Arm) && !packet[21])) {
+          self.Fail("Malformed adapter control acknowledgement"); return;
+        }
+        {
+          std::lock_guard<std::mutex> lock(self.mutex_);
+          self.result_code_ = int32_t(bridge::U32(packet.data() + 24));
+          self.received_result_ = sequence;
+        }
+        self.ready_cv_.notify_all();
+      } else if (int32_t(bridge::U32(packet.data() + 24))) {
+        self.Fail("Adapter rejected a data request"); return;
+      }
+    } else if (packet[9] == uint8_t(bridge::Kind::Status)) {
+      // Explicit status queries do not enter sensor decoding.
     } else if (self.ready_) {
       const uint64_t arrival_ns = rt::MonotonicTimeNs();
       if (!self.decoder_.Consume(packet, arrival_ns / 1000))
@@ -199,17 +240,56 @@ bool UsbLink::Transmit(const uint8_t *data, size_t length) {
   return Fail("USB command queue full; control is stopped instead of replaying "
               "stale commands");
 }
+bool UsbLink::Exchange(bridge::Commands request) {
+  const auto sequence = bridge::U32(request.data() + 4);
+  expected_kind_ = request[9];
+  expected_result_ = sequence;
+  received_result_ = 0;
+  if (!Transmit(request.data(), request.size())) return false;
+  std::unique_lock<std::mutex> lock(mutex_);
+  if (!ready_cv_.wait_for(lock, std::chrono::seconds(2), [this, sequence] {
+        return received_result_.load() == sequence || failed_.load();
+      })) {
+    lock.unlock(); return Fail("Adapter safety configuration/arm timed out");
+  }
+  if (failed_) return false;
+  if (result_code_.load()) {
+    lock.unlock(); return Fail("Adapter rejected safety configuration/arm");
+  }
+  return true;
+}
+bool UsbLink::ConfigureSafetyAndArm() {
+  namespace profile = dust::can_profile;
+  if (protection_count_ != profile::kProtectionFrames.size() ||
+      protection_timeout_us_ != profile::kCommandTimeoutUs ||
+      protection_signature_ != profile::kProtectionSignature)
+    return Fail("MCU CAN protection profile differs from host device configuration");
+  // Runtime motor remapping must remain within the shared compiled device profile.
+  for (const auto &motor : platform::motor_map::kMotors) {
+    const auto matches = [&motor](const auto &addresses, uint32_t id) {
+      for (const auto &address : addresses)
+        if (address.channel == motor.bus && address.id == id && !address.flags) return true;
+      return false;
+    };
+    if (!matches(profile::kTransmitAddresses, motor.command_id) ||
+        !matches(profile::kReceiveFilters, motor.feedback_id))
+      return Fail("Host motor mapping is outside MCU CAN device profile");
+  }
+  const auto lease = std::min(protection_timeout_us_, bridge::kCommandTimeoutUs);
+  if (!Exchange(dust::SelectFirmwareSafety(++sequence_, session_, lease))) return false;
+  return Exchange(dust::Control(bridge::Kind::Arm, ++sequence_, session_));
+}
 bool UsbLink::Send(bridge::Commands packet) {
   if (!healthy())
     return false;
-  bridge::Header(packet.data(), bridge::Kind::Commands, ++sequence_, session_);
+  bridge::Header(packet.data(), bridge::Kind::Transmit, ++sequence_, session_);
   return Transmit(packet.data(), packet.size());
 }
 void UsbLink::Stop() {
   if (!device_ || !thread_.joinable() || closing_)
     return;
   if (!failed_) {
-    bridge::Packet stop{};
+    bridge::Commands stop{};
     bridge::Header(stop.data(), bridge::Kind::Stop, ++sequence_, session_);
     Transmit(stop.data(), stop.size());
   }

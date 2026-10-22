@@ -127,20 +127,19 @@ int main() {
   CHECK(!time_guard.Accept(4, 11000, 3000, true));
   CHECK(!time_guard.Accept(5, 12000, 3000, true));
   CHECK(time_guard.Accept(6, 13000, 3000, true));
-  bridge::CommandLease lease;
-  CHECK(!lease.Expired(100000, false));
-  CHECK(lease.CanAccept(0xffffffffU));
-  lease.Renew(0xffffffffU, 0xfffffff0U);
-  CHECK(!lease.CanAccept(0xffffffffU));
-  CHECK(lease.CanAccept(0));
-  CHECK(!lease.Expired(0x10U, true));
-  CHECK(lease.Expired(0x10U, false));
-  CHECK(lease.Expired(uint32_t(0xfffffff0U + bridge::kCommandTimeoutUs), true));
-  lease.Renew(0, 0); // zero is not used as a sentinel
-  CHECK(!lease.Expired(bridge::kCommandTimeoutUs - 1, true));
-  CHECK(lease.Expired(bridge::kCommandTimeoutUs, true));
-  lease.Reset();
-  CHECK(!lease.Expired(0, false));
+  bridge::SessionPolicy lease;
+  lease.Open(1);
+  CHECK(!lease.Arm(1, 0));
+  CHECK(lease.Configure(bridge::kCommandTimeoutUs));
+  CHECK(lease.Arm(0xffffffffU, 0xfffffff0U));
+  CHECK(!lease.Accept(0xffffffffU, 0));
+  CHECK(lease.Fresh(0));
+  CHECK(!lease.Expired(0x10U));
+  CHECK(lease.Expired(uint32_t(0xfffffff0U + bridge::kCommandTimeoutUs)));
+  CHECK(lease.Accept(0, 0));
+  CHECK(!lease.Expired(bridge::kCommandTimeoutUs - 1));
+  CHECK(lease.Expired(bridge::kCommandTimeoutUs));
+  lease.Close(); CHECK(!lease.Armed());
 
   CHECK(bridge::NewSequence(0, 0xffffffffU));
   CHECK(!bridge::NewSequence(9, 10));
@@ -150,12 +149,12 @@ int main() {
   CHECK(commands.Submit(platform::CanTxSlot::kLeftWheel, 3, 0x200, zero, 8) ==
         0);
   auto packet = commands.packet();
-  bridge::Header(packet.data(), bridge::Kind::Commands, 1, 7);
+  bridge::Header(packet.data(), bridge::Kind::Transmit, 1, 7);
   CHECK(bridge::ValidCommands(packet, 7));
   CHECK(!bridge::ValidCommands(packet, 8));
   packet[10] = 2;
   std::copy_n(packet.data() + 32, 16, packet.data() + 48);
-  CHECK(!bridge::ValidCommands(packet, 7));
+  CHECK(bridge::ValidCommands(packet, 7)); // raw FIFO permits repeated IDs
   packet[10] = 7;
   CHECK(!bridge::ValidCommands(packet, 7));
   commands.Begin();
@@ -169,11 +168,11 @@ int main() {
   CHECK(disabled[10] == 6);
   for (unsigned i = 0; i < 6; ++i) {
     auto *record = disabled.data() + 32 + 16 * i;
-    if (record[12] < 2)
+    if (bridge::U32(record + 4) == 0x200)
       for (unsigned j = 0; j < 8; ++j)
-        CHECK(record[4 + j] == 0);
+        CHECK(record[8 + j] == 0);
     else
-      CHECK(record[11] == 0xfd); // exit command, never enter or nonzero torque
+      CHECK(record[15] == 0xfd); // exit command, never enter or nonzero torque
   }
   modules::ChassisStateMachine states;
   modules::ChassisCycleInput input{};

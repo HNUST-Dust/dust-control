@@ -7,34 +7,30 @@
 namespace wbr::host {
 class MotorCommands final : public modules::FrameSink {
 public:
-  void Begin() { packet_ = {}; }
+  void Begin() { present_ = {}; records_ = {}; }
   int Submit(platform::CanTxSlot slot, uint8_t bus, uint16_t id,
              const uint8_t *data, size_t length) override {
     const auto index = static_cast<unsigned>(slot);
-    if (index >= 6 || length != 8 || !data)
-      return -EINVAL;
+    if (index >= 6 || length != 8 || !data) return -EINVAL;
     const auto &motor = platform::motor_map::kMotors[index];
-    if (motor.bus != bus || motor.command_id != id)
-      return -EINVAL;
-    // A later write to the same motor within one control cycle supersedes
-    // the previous one before the single merged USB command is submitted.
-    unsigned position = 0;
-    for (; position < packet_[10]; ++position)
-      if (packet_[32 + 16 * position + 12] == index)
-        break;
-    if (position == packet_[10]) {
-      if (position == 6)
-        return -ENOSPC;
-      ++packet_[10];
-    }
-    auto *record = packet_.data() + 32 + 16 * position;
-    bridge::CanRecord(record, bus, id, data, 8);
-    record[12] = index;
+    if (motor.bus != bus || motor.command_id != id) return -EINVAL;
+    auto &record = records_[index];
+    record.channel = bus; record.id = id; record.length = length;
+    std::memcpy(record.data, data, length);
+    present_[index] = true;
     return 0;
   }
-  bridge::Commands packet() const { return packet_; }
-
+  bridge::Commands packet() const {
+    bridge::Commands packet{};
+    // Device-specific scheduling stays on the host. Firmware forwards FIFO order.
+    for (unsigned slot : {0U, 2U, 3U, 1U, 4U, 5U}) {
+      if (!present_[slot]) continue;
+      bridge::Encode(packet.data() + 32 + 16 * packet[10]++, records_[slot]);
+    }
+    return packet;
+  }
 private:
-  bridge::Commands packet_{};
+  std::array<bridge::Record, 6> records_{};
+  std::array<bool, 6> present_{};
 };
 } // namespace wbr::host

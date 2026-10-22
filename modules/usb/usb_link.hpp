@@ -43,6 +43,8 @@ private:
   static void LIBUSB_CALL Receive(libusb_transfer *);
   static void LIBUSB_CALL Sent(libusb_transfer *);
   void Events();
+  bool ConfigureSafetyAndArm();
+  bool Exchange(bridge::Commands);
   void Submit(Input &);
   bool Transmit(const uint8_t *, size_t);
   bool Fail(const std::string &);
@@ -59,6 +61,11 @@ private:
   std::atomic<uint64_t> last_receive_us_{0};
   std::atomic<bool> inputs_ready_{false};
   uint32_t session_ = 0, sequence_ = 0, capabilities_ = 0;
+  uint32_t protection_signature_ = 0, protection_timeout_us_ = 0;
+  uint8_t protection_count_ = 0;
+  std::atomic<uint32_t> expected_result_{0}, received_result_{0};
+  std::atomic<int32_t> result_code_{0};
+  std::atomic<uint8_t> expected_kind_{0};
   std::mutex mutex_;
   std::condition_variable ready_cv_;
   std::string error_;

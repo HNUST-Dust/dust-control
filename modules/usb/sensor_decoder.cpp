@@ -34,30 +34,31 @@ bool SensorDecoder::Consume(const bridge::Packet &packet, uint64_t host_us) {
   if (U32(packet.data()) != kMagic || packet[8] != kVersion)
     return false;
   if (packet[9] == uint8_t(Kind::Can)) {
-    if (packet[10] < 1 || packet[10] > 3)
+    if (packet[10] < 1 || packet[10] > 2)
       return false;
     // Reject a malformed packet atomically before publishing partial state.
     for (unsigned i = 0; i < packet[10]; ++i)
-      if (!ValidCan(packet.data() + 16 + 16 * i))
+      if (!ValidRecord(packet.data() + 16 + 24 * i))
         return false;
     for (unsigned i = 0; i < packet[10]; ++i) {
-      const auto *record = packet.data() + 16 + 16 * i;
+      const auto *record = packet.data() + 16 + 24 * i;
+      if (record[2]) continue; // robot motor decoders accept only standard data frames
       for (unsigned motor = 0; motor < 6; ++motor) {
         const auto &address = platform::motor_map::kMotors[motor];
-        if (record[0] != address.bus || U16(record + 2) != address.feedback_id)
+        if (record[0] != address.bus || U32(record + 4) != address.feedback_id)
           continue;
         auto &frame = latest_.control.motors[motor];
         const uint32_t age =
-            uint32_t(U32(packet.data() + 4) - U32(record + 12));
+            uint32_t(U32(packet.data() + 4) - U32(record + 16));
         frame.valid =
             record[1] == 8 && age <= kCommandTimeoutUs && host_us >= age;
         frame.precise_timestamp_us = frame.valid ? host_us - age : 0;
         frame.timestamp_us = frame.precise_timestamp_us;
-        std::memcpy(frame.data, record + 4, 8);
+        std::memcpy(frame.data, record + 8, 8);
       }
     }
   } else if (packet[9] == uint8_t(Kind::Uart)) {
-    if (packet[10] < 1 || packet[10] > 3 || packet[11] > 40)
+    if (packet[10] < 1 || packet[10] > 2 || packet[11] > 40)
       return false;
     const unsigned port = packet[10] - 1;
     auto &stream = streams_[port];
