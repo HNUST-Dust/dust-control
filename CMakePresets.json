@@ -36,6 +36,23 @@
       "cacheVariables": {
         "DUST_ENABLE_FOXGLOVE": "OFF"
       }
+    },
+    {
+      "name": "wbr-infantry-usb-ci",
+      "inherits": "production",
+      "binaryDir": "${sourceDir}/build/wbr-infantry-usb-ci",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "DUST_ENABLE_FOXGLOVE": "ON"
+      }
+    },
+    {
+      "name": "ethercat-development",
+      "inherits": "development",
+      "binaryDir": "${sourceDir}/build/ethercat-development",
+      "cacheVariables": {
+        "DUST_BUILD_ETHERCAT": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -50,6 +67,14 @@
     {
       "name": "headless",
       "configurePreset": "headless"
+    },
+    {
+      "name": "wbr-infantry-usb-ci",
+      "configurePreset": "wbr-infantry-usb-ci"
+    },
+    {
+      "name": "ethercat-development",
+      "configurePreset": "ethercat-development"
     }
   ],
   "testPresets": [
@@ -63,6 +88,20 @@
     {
       "name": "headless",
       "configurePreset": "headless",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "wbr-infantry-usb-ci",
+      "configurePreset": "wbr-infantry-usb-ci",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ethercat-development",
+      "configurePreset": "ethercat-development",
       "output": {
         "outputOnFailure": true
       }
