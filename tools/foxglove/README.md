@@ -75,7 +75,7 @@ $HOME/OrbStack/ubuntu/home/<linux-user>/dust-control/tools/foxglove/debug-layout
 | `imu_fresh` / `left_leg_fresh` / `right_leg_fresh` | 对应测量的新鲜度与有效性 |
 | `feedback_valid` / `motor_stale_mask` | 控制输入整体有效性、六电机过期位图 |
 | `source_connected` / `transport_age_ms` | 遥测源状态、队列传递年龄 |
-| `state` | 原控制状态编号，见 `modules/chassis/chassis_types.h` |
+| `state` | 原控制状态编号，见 `src/chassis/chassis_types.h` |
 | `control_duration_us` | Tick、快照复制与 USB Send 耗时，微秒，仅采样周期 |
 | `missed_releases` / `queue_drops` | 控制漏周期、生产队列满时丢样累计计数 |
 | `sequence` / `monotonic_ns` / `simulated` | 样本序号、单调采样时间、是否模拟数据 |

@@ -30,4 +30,7 @@ EtherCAT 构建和回归只在 `dev/wbr_infantry_ethercat` 执行。共享 realt
 测试独立放在 `tests/runtime`，不依赖下位机通讯方案。
 
 `configuration.startup_loading` 验证实际路由、每电机阈值、HI91/遥控微秒边界、
-非法配置启动失败、失败不部分应用以及启动后禁止重新加载。
+非法配置启动失败、失败不影响已有设备、构造配置副本、独立实例共存与 HI91 恢复阈值隔离。
+
+`chassis.runtime_lifecycle` 验证底盘可独立离线运行、禁止重复启动，以及 Stop/析构
+不会停止借用的 USB 发送器；USB 会话只能由其所有者停止，停止后不能重新启动。

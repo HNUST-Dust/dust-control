@@ -1,11 +1,16 @@
-> 通用适配器迁移分支：必须配套 dust-adapter 的 `feature/generic-usb-adapter`（协议 v2）。
+> 当前主机使用 USB v4，需配套同版本 dust-adapter 固件。
 > v0.1 固件不兼容。当前分支保留原控制算法/遥控门控，尚未完成机器人上板验收。
+
 > 见 [通用 USB 迁移](docs/GENERIC_USB_ADAPTER.md)。
 
 # dust-control — wbr_infantry USB
 
+ROS 2 单节点入口与独立控制线程见 [ROS 2 使用说明](docs/ROS2.md)。
+Humble 环境下可用 colcon 构建；默认关闭电机输出，保留原离线命令行入口。
+
+
 当前正式兵种分支：`wbr_infantry`；EtherCAT 开发分支：`dev/wbr_infantry_ethercat`。
-发布版本：`v0.1`。分支及 CI/CD 约定见 [分支说明](docs/BRANCHES.md)。
+历史版本：`v0.1`。分支及 CI 约定见 [分支说明](docs/BRANCHES.md)。
 
 HNUST-Dust 轮腿机器人 Linux 控制工程。默认应用沿用已迁移的 1 kHz 底盘控制器，
 通过 USB Bulk 与 MCU 网关通讯；Foxglove 提供可选的原生只读遥测。
@@ -37,6 +42,8 @@ sudo ./scripts/run.sh --foxglove
 失能姿态，再满足原控制器的使能、传感器新鲜度和恢复条件。Foxglove 不提供使能接口。
 原控制参数、符号、零点、20 ms MCU lease、SBUS 丢帧策略和 HI91 恢复规则保持原样。
 
+编码风格及格式检查入口见 [C++ 编码约定](docs/CPP_STYLE.md)。
+
 ## 开发构建与测试
 
 ```bash
@@ -62,19 +69,20 @@ ctest --preset development
 
 ## 工程结构
 
+项目实现与内部头文件统一放在 `src/`，按职责相邻存放；当前不提供对外 C++ SDK，
+因此不保留独立的根目录 `include/`。测试和开发工具保留各自目录。
+
 | 目录 | 职责 |
 |---|---|
-| `src/main.cpp` | 当前 USB/LQR 底盘程序唯一正式入口 |
-| `modules/chassis/` | 原控制管线、状态机、运动学和执行器门控 |
-| `modules/mpc/` | 正在开发的腿高/横滚 MPC 算法 |
-| `modules/usb/` | MCU 网关、USB 生命周期、采集快照与解码 |
-| `modules/mpc_link/` | 现有 MPC offload 链路协议，区别于网关协议 |
-| `modules/runtime/` | 共享 Linux 时钟、调度和统计工具 |
-| `modules/config/` | 启动期 YAML 解析与只读运行配置 |
-| `modules/telemetry/` | 有界队列、非实时序列化、Foxglove 服务 |
-| `modules/protocols/`、`include/` | 传感器/电机编解码与公共协议头文件 |
-| `config/` | 电机映射与传感器 freshness 的启动时配置 |
-| `modules/chassis/defaults/` | 内部编译期参数和 schema |
+| `src/main.cpp`、`src/dust_control_node.*` | ROS 2 节点入口、参数、指令接收和状态发布 |
+| `src/robot.*` | 配置加载、模块装配和启动退出协调，不创建工作线程 |
+| `src/options.*`、`src/standalone_main.cpp` | 运行选项和保留的离线命令行入口 |
+| `src/hardware/` | 按 motors、remote、imu、referee 归并协议与设备处理；usb 独立管理通信 |
+| `src/chassis/` | 底盘控制线程、指令仲裁、控制管线、状态机、运动学和 MPC 算法 |
+| `src/concurrency/` | 有界线程间快照与优先级继承锁 |
+| `src/telemetry/` | 有界队列、非实时序列化、Foxglove 服务 |
+| `config/` | 电机映射与传感器 freshness 的启动时配置，各硬件模块负责加载和校验 |
+| `src/chassis/defaults/` | 内部编译期参数和 schema |
 | `tests/` | 各模块自动回归，不链接进生产应用 |
 | `tools/foxglove/` | 遥测消息定义、曲线布局与使用说明 |
 | `tests/benchmarks/` | 独立性能研究工具，默认不编译 |
