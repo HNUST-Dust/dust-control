@@ -8,11 +8,25 @@
 #include "chassis_config.h"
 
 namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kClimbIntermediateLegLength = 0.33;
+constexpr double kClimbRetractedLegLength = 0.15;
+constexpr double kClimbLegLengthRate = 1.8;
+constexpr double kClimbSwingTheta = 1.45;
+constexpr double kClimbMotion1AngleRateDeg = 300.0;
+constexpr double kClimbMotion2AngleRateDeg = 270.0;
+constexpr double kClimbLengthTolerance = 0.05;
+constexpr double kClimbMotion1AngleToleranceDeg = 20.0;
+constexpr double kClimbMotion2AngleToleranceDeg = 15.0;
+constexpr uint32_t kClimbReadyHoldMs = 30;
+constexpr uint32_t kClimbMotion1TimeoutMs = 1000;
+constexpr uint32_t kClimbMotion2TimeoutMs = 800;
+}  // namespace
+
+namespace {
 using namespace modules::chassis_config;
 
 constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
-constexpr double kLegAngleOffset[2] = {kLeftLegAngleOffset,
-                                       kRightLegAngleOffset};
 
 double MoveToward(double current, double target, double maximum_delta) {
     return current +
@@ -161,7 +175,7 @@ bool ClimbStairsController::UpdateJointTargets(
         double target_phi1 = 0.0;
         double target_phi2 = 0.0;
         if (!InverseKinematics(target_hx, target_hz, kBranch[side], seed_phi1,
-                               seed_phi2, target_phi1, target_phi2)) {
+                               seed_phi2, target_phi1, target_phi2, config_)) {
             all_valid = false;
             continue;
         }
@@ -176,8 +190,10 @@ bool ClimbStairsController::UpdateJointTargets(
 double ClimbStairsController::RawKinematicAngle(uint8_t side,
                                                 double normalized_angle) {
     return side == 0U
-               ? std::remainder(kLegAngleOffset[0] - normalized_angle, kTwoPi)
-               : std::remainder(normalized_angle + kLegAngleOffset[1], kTwoPi);
+               ? std::remainder(
+                     config_.left_leg_angle_offset - normalized_angle, kTwoPi)
+               : std::remainder(
+                     normalized_angle + config_.right_leg_angle_offset, kTwoPi);
 }
 
 double ClimbStairsController::ComputeJointTorque(uint8_t index, double target,
@@ -191,20 +207,20 @@ double ClimbStairsController::ComputeJointTorque(uint8_t index, double target,
 
     JointPidState &pid = joint_pid_[index];
     const double position_error = std::remainder(target - position, kTwoPi);
-    pid.position_integral =
-        std::clamp(pid.position_integral + position_error * dt,
-                   -kJointPositionMaxSpeed, kJointPositionMaxSpeed);
-    const double speed_target =
-        std::clamp(kJointPositionKp * position_error +
-                       kJointPositionKi * pid.position_integral,
-                   -kJointPositionMaxSpeed, kJointPositionMaxSpeed);
+    pid.position_integral = std::clamp(
+        pid.position_integral + position_error * dt,
+        -config_.joint_position_max_speed, config_.joint_position_max_speed);
+    const double speed_target = std::clamp(
+        config_.joint_position_kp * position_error +
+            kJointPositionKi * pid.position_integral,
+        -config_.joint_position_max_speed, config_.joint_position_max_speed);
     const double speed_error = speed_target - velocity;
     pid.speed_integral =
         std::clamp(pid.speed_integral + speed_error * dt,
                    -kJointIntegralTorqueLimit, kJointIntegralTorqueLimit);
-    return std::clamp(
-        kJointSpeedKp * speed_error + kJointSpeedKi * pid.speed_integral,
-        -kJointTorqueMax, kJointTorqueMax);
+    return std::clamp(config_.joint_speed_kp * speed_error +
+                          kJointSpeedKi * pid.speed_integral,
+                      -kJointTorqueMax, kJointTorqueMax);
 }
 
 }  // namespace modules

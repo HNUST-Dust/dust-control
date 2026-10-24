@@ -7,6 +7,14 @@
 #include "chassis_config.h"
 #include "joint_output.h"
 
+namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr uint32_t kDmClearTicks = 50;
+constexpr uint32_t kDmArmTicks = 300;
+constexpr uint32_t kDmModePeriodTicks = 10;
+static_assert(kDmClearTicks < kDmArmTicks);
+}  // namespace
+
 namespace modules {
 namespace cfg = chassis_config;
 namespace {
@@ -27,13 +35,13 @@ void SetWheelTargets(dust::devices::MotorTargets& targets,
 }  // namespace
 
 bool ChassisOutputPolicy::arm_complete() const {
-    return dm_arm_ticks_ >= cfg::kDmArmTicks;
+    return dm_arm_ticks_ >= kDmArmTicks;
 }
 
 bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
                                 const ChassisCycleInput& input,
                                 ChassisControlOutput& output) {
-    PrepareJointOutput(state, input, output);
+    PrepareJointOutput(state, input, output, config_);
     auto& targets = output.motor_targets;
     targets = {};
     switch (state) {
@@ -51,14 +59,14 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
             return true;
 
         case ChassisControlState::kDmArming:
-            if ((loop_ticks % cfg::kDmModePeriodTicks) == 0U) {
+            if ((loop_ticks % kDmModePeriodTicks) == 0U) {
                 SetJointTargets(targets,
-                                dm_arm_ticks_ < cfg::kDmClearTicks
+                                dm_arm_ticks_ < kDmClearTicks
                                     ? dust::devices::MotorMode::kClearError
                                     : dust::devices::MotorMode::kEnable);
             }
             SetWheelTargets(targets);
-            if (dm_arm_ticks_ < cfg::kDmArmTicks) {
+            if (dm_arm_ticks_ < kDmArmTicks) {
                 ++dm_arm_ticks_;
             }
             return true;

@@ -9,6 +9,18 @@
 #include "leg_vmc.h"
 #include "unified_lqr_schedule.h"
 
+namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kBalanceThetaReferenceRate = 1.0;
+constexpr double kBalancePitchReferenceRate = 0.6;
+constexpr double kPositionErrorLimit = 0.15;
+constexpr double kYawRateFilterCutoffHz = 20.0;
+constexpr double kDifferentialLegTorqueLimit = 4.0;
+constexpr bool kHoldLqrTranslationErrorAtZero = false;
+constexpr double kRollReferenceRateDegPerSec = 30.0;
+constexpr double kRollCompensationSign = 1;
+}  // namespace
+
 namespace modules {
 namespace {
 using namespace chassis_config;
@@ -44,19 +56,20 @@ double MoveToward(double current, double target, double max_delta) {
     return current + std::clamp(target - current, -max_delta, max_delta);
 }
 
-double ApplyRemoteDeadband(double value) {
+double ApplyRemoteDeadband(double value, const ChassisConfig &config) {
     if (!std::isfinite(value)) {
         return 0.0;
     }
 
     const double limited = std::clamp(value, -1.0, 1.0);
     const double magnitude = std::abs(limited);
-    if (magnitude <= kRemoteDeadband) {
+    if (magnitude <= config.remote_deadband) {
         return 0.0;
     }
 
     return std::copysign(
-        (magnitude - kRemoteDeadband) / (1.0 - kRemoteDeadband), limited);
+        (magnitude - config.remote_deadband) / (1.0 - config.remote_deadband),
+        limited);
 }
 
 static_assert(ToIndex(UnifiedLqrState::kCount) == 10U);
@@ -64,8 +77,11 @@ static_assert(ToIndex(UnifiedLqrOutput::kCount) == 4U);
 
 }  // namespace
 
-BalanceController::BalanceController()
-    : target_leg_length_(kStoolTargetLegLength) {}
+BalanceController::BalanceController(double wheel_torque_limit,
+                                     ChassisConfig config)
+    : config_(config),
+      wheel_torque_limit_(wheel_torque_limit),
+      target_leg_length_(config_.stool_target_leg_length) {}
 
 void BalanceController::Reset() {
     body_motion_estimator_.Reset();
@@ -80,8 +96,8 @@ void BalanceController::Reset() {
 }
 
 void BalanceController::ResetForEnable() {
-    target_leg_length_ = kStoolTargetLegLength;
-    balance_theta_reference_ = kThetaBalanceBias;
+    target_leg_length_ = config_.stool_target_leg_length;
+    balance_theta_reference_ = config_.theta_balance_bias();
     balance_pitch_reference_ = 0.0;
     balance_roll_reference_ = 0.0;
     Reset();
@@ -100,7 +116,7 @@ void BalanceController::Update(
     const ExternalSupportForceCommand *external_support) {
     // 从交接姿态以受限速率回到稳态目标，角速度反馈始终保持完整控制权。
     balance_theta_reference_ =
-        MoveToward(balance_theta_reference_, kThetaBalanceBias,
+        MoveToward(balance_theta_reference_, config_.theta_balance_bias(),
                    kBalanceThetaReferenceRate * input.dt);
     balance_pitch_reference_ = MoveToward(
         balance_pitch_reference_, 0.0, kBalancePitchReferenceRate * input.dt);
@@ -109,9 +125,10 @@ void BalanceController::Update(
                    kRollReferenceRateDegPerSec * kDegToRad * input.dt);
     output.roll_reference = balance_roll_reference_;
     const double roll_error = balance_roll_reference_ - input.roll;
-    output.roll_compensation_force =
-        std::clamp(kRollCompensationSign * kRollCompensationKp * roll_error,
-                   -kRollCompensationForceLimit, kRollCompensationForceLimit);
+    output.roll_compensation_force = std::clamp(
+        kRollCompensationSign * config_.roll_compensation_kp * roll_error,
+        -config_.roll_compensation_force_limit,
+        config_.roll_compensation_force_limit);
     if (external_support != nullptr) {
         output.roll_compensation_force =
             0.5 *
@@ -131,25 +148,26 @@ void BalanceController::Update(
 
     const SidePair<double> raw_wheel_omega = {
         .left = input.wheel_motor_speed_rpm.left * kRpmToRadPerSec /
-                kWheelReduction,
+                config_.wheel_reduction,
         .right = input.wheel_motor_speed_rpm.right * kRpmToRadPerSec /
-                 kWheelReduction,
+                 config_.wheel_reduction,
     };
 
     // 将轮速转换到世界坐标，再叠加髋部随腿运动产生的速度。
     const SidePair<double> wheel_world_omega = {
-        .left = kLegHardware.left.wheel_feedback_sign * raw_wheel_omega.left +
+        .left = config_.leg_hardware(false).wheel_feedback_sign *
+                    raw_wheel_omega.left +
                 input.pitch_rate - input.leg.left.angle_rate,
-        .right =
-            kLegHardware.right.wheel_feedback_sign * raw_wheel_omega.right +
-            input.pitch_rate - input.leg.right.angle_rate,
+        .right = config_.leg_hardware(true).wheel_feedback_sign *
+                     raw_wheel_omega.right +
+                 input.pitch_rate - input.leg.right.angle_rate,
     };
 
     SidePair<double> body_speed;
     const auto calculate_body_speed = [&](Side side) {
         const LegKinematics &leg = input.leg.Get(side);
         body_speed.Get(side) =
-            -kWheelRadius * wheel_world_omega.Get(side) +
+            -config_.wheel_radius * wheel_world_omega.Get(side) +
             leg.length_rate * sin_theta.Get(side) +
             leg.length * input.theta_rate.Get(side) * cos_theta.Get(side);
     };
@@ -169,35 +187,37 @@ void BalanceController::Update(
     const bool motion_command_enabled =
         input.remote.run && input.requested_enable;
     const double body_command =
-        motion_command_enabled ? ApplyRemoteDeadband(input.remote.chassis_x)
-                               : 0.0;
+        motion_command_enabled
+            ? ApplyRemoteDeadband(input.remote.chassis_x, config_)
+            : 0.0;
     const double turn_command =
         motion_command_enabled
-            ? ApplyRemoteDeadband(input.remote.chassis_rotate)
+            ? ApplyRemoteDeadband(input.remote.chassis_rotate, config_)
             : 0.0;
     const double leg_length_command =
         motion_command_enabled
-            ? ApplyRemoteDeadband(input.remote.leg_length_delta)
+            ? ApplyRemoteDeadband(input.remote.leg_length_delta, config_)
             : 0.0;
     const double previous_target_leg_length = target_leg_length_;
-    target_leg_length_ =
-        std::clamp(target_leg_length_ +
-                       leg_length_command * kLegLengthCommandRate * input.dt,
-                   kMinCommandedLegLength, kMaxCommandedLegLength);
+    target_leg_length_ = std::clamp(
+        target_leg_length_ +
+            leg_length_command * kLegLengthCommandRate * input.dt,
+        config_.min_commanded_leg_length, config_.max_commanded_leg_length);
     const double target_leg_length_rate =
         input.dt > 0.0
             ? (target_leg_length_ - previous_target_leg_length) / input.dt
             : 0.0;
     target_body_speed_ =
-        MoveToward(target_body_speed_, body_command * kMaxBodySpeed,
-                   kBodyAccelerationLimit * input.dt);
+        MoveToward(target_body_speed_, body_command * config_.max_body_speed,
+                   config_.body_acceleration_limit * input.dt);
     /*
      * 当前遥控正转向使左轮向前、右轮向后，对应顺时针 yaw。
      * IMU 坐标以逆时针为正，因此目标 yaw-rate 在这里取反号，
      * 保持操作手现有的摇杆方向不变。
      */
-    target_yaw_rate_ = MoveToward(target_yaw_rate_, -turn_command * kMaxYawRate,
-                                  kYawAccelerationLimit * input.dt);
+    target_yaw_rate_ =
+        MoveToward(target_yaw_rate_, -turn_command * config_.max_yaw_rate(),
+                   config_.yaw_acceleration_limit() * input.dt);
     const double measured_yaw =
         static_cast<double>(input.imu.yaw_deg) * kDegToRad;
     if (!yaw_reference_initialized_) {
@@ -274,8 +294,8 @@ void BalanceController::Update(
                                            : 0.0;
     output.requested_turn_torque =
         std::isfinite(left_wheel - right_wheel)
-            ? std::clamp(0.5 * (left_wheel - right_wheel), -kTurnTorqueLimit,
-                         kTurnTorqueLimit)
+            ? std::clamp(0.5 * (left_wheel - right_wheel),
+                         -config_.turn_torque_limit, config_.turn_torque_limit)
             : 0.0;
     output.differential_leg_torque =
         std::isfinite(left_leg - right_leg)
@@ -285,7 +305,7 @@ void BalanceController::Update(
             : 0.0;
     // 差动力矩只使用共模平衡力矩之外的余量，避免转向命令削弱平衡控制权。
     const double turn_torque_available =
-        std::max(0.0, kWheelTorqueLimit - std::abs(common_wheel_torque));
+        std::max(0.0, wheel_torque_limit_ - std::abs(common_wheel_torque));
     output.allocated_turn_torque =
         std::clamp(output.requested_turn_torque, -turn_torque_available,
                    turn_torque_available);
@@ -305,7 +325,8 @@ void BalanceController::Update(
 
     // 第三步：VMC 将轴向力和腿部姿态力矩转换为四个关节力矩。
     const auto calculate_vmc_output = [&](Side side) {
-        const LegHardwareMap &hardware = kLegHardware.Get(side);
+        const LegHardwareMap &hardware =
+            config_.leg_hardware(side == Side::kRight);
         const LegKinematics &leg = input.leg.Get(side);
         SideState &state = side_state_.Get(side);
         const bool external_force_active = external_support != nullptr;
@@ -315,11 +336,13 @@ void BalanceController::Update(
             // 后续同时抑制 P、D 输入，避免对抗 MPC 的差动力瞬态。
             state.leg_length_integral_force = 0.0;
         } else {
-            state.leg_length_integral_force = UpdateLegLengthIntegral(
-                state.leg_length_integral_force, length_error, input.dt);
+            state.leg_length_integral_force =
+                UpdateLegLengthIntegral(state.leg_length_integral_force,
+                                        length_error, input.dt, config_);
         }
-        const double nominal_support_force =
-            0.5 * kRobotMass * kGravity / std::max(cos_theta.Get(side), 0.5);
+        const double nominal_support_force = 0.5 * config_.robot_mass *
+                                             kGravity /
+                                             std::max(cos_theta.Get(side), 0.5);
         const double roll_force = side == Side::kLeft
                                       ? output.roll_compensation_force
                                       : -output.roll_compensation_force;
@@ -347,17 +370,19 @@ void BalanceController::Update(
         const LegVmcOutput vmc =
             ComputeLegVmc(leg, vmc_target_length, support_force,
                           state.leg_length_integral_force, vmc_angle_torque,
-                          vmc_leg_speed, vmc_target_length_rate);
+                          vmc_leg_speed, vmc_target_length_rate, config_);
         output.leg_axial_force.Get(side) = vmc.axial_force;
         JointPair<double> &joint_torque = output.joint_torque.Get(side);
-        joint_torque.b = std::isfinite(vmc.phi2_torque)
-                             ? std::clamp(vmc.phi2_torque, -kJointTorqueLimit,
-                                          kJointTorqueLimit)
-                             : 0.0;
-        joint_torque.d = std::isfinite(vmc.phi1_torque)
-                             ? std::clamp(vmc.phi1_torque, -kJointTorqueLimit,
-                                          kJointTorqueLimit)
-                             : 0.0;
+        joint_torque.b =
+            std::isfinite(vmc.phi2_torque)
+                ? std::clamp(vmc.phi2_torque, -config_.joint_torque_limit,
+                             config_.joint_torque_limit)
+                : 0.0;
+        joint_torque.d =
+            std::isfinite(vmc.phi1_torque)
+                ? std::clamp(vmc.phi1_torque, -config_.joint_torque_limit,
+                             config_.joint_torque_limit)
+                : 0.0;
     };
 
     calculate_vmc_output(Side::kLeft);

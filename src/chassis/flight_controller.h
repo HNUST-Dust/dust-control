@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "chassis_config.h"
 #include "chassis_types.h"
 
 namespace modules {
@@ -18,6 +19,7 @@ struct FlightControllerOutput {
 
 class FlightController {
    public:
+    explicit FlightController(ChassisConfig config = {}) : config_(config) {}
     void Reset();
     bool UpdateLiftoffDetection(
         const ChassisCycleInput &input,
@@ -33,6 +35,7 @@ class FlightController {
     }
 
    private:
+    const ChassisConfig config_;
     FlightPhase phase_ = FlightPhase::kInit;
     double liftoff_elapsed_s_ = 0.0;
     double flight_elapsed_s_ = 0.0;

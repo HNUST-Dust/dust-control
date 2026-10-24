@@ -16,6 +16,9 @@ Robot::Robot(const Options& options) : options_(options) {
             (directory / "sensors_params.yaml").string());
         const auto remote = devices::LoadRemoteConfig(
             (directory / "sensors_params.yaml").string());
+        const auto chassis = modules::LoadChassisConfig(
+            (directory / "chassis_params.yaml").string());
+        chassis_config_ = chassis;
         motors_ = motors;
         imu_ = imu;
         remote_ = remote;
@@ -58,7 +61,7 @@ void Robot::Start() {
             control, motors_,
             modules::InputDeadlines{motors_.freshness_us, imu_.freshness_us,
                                     remote_.freshness_us},
-            devices, telemetry_.get());
+            devices, telemetry_.get(), chassis_config_);
         if (usb_) {
             if (!usb_->Start()) {
                 throw std::runtime_error(usb_->error());

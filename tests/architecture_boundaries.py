@@ -16,6 +16,7 @@ chassis_data_headers = {
     "hardware/imu/imu_sample.hpp",
     "hardware/motors/motor_state.hpp",
     "hardware/motors/motor_targets.hpp",
+    "hardware/motors/dji_model.hpp",
     "hardware/remote/remote_input_state.hpp",
 }
 for directory, forbidden in rules.items():
@@ -24,8 +25,8 @@ for directory, forbidden in rules.items():
             continue
         for number, line in enumerate(path.read_text().splitlines(), 1):
             match = re.match(r'\s*#\s*include\s*[<"]([^>"]+)', line)
-            is_chassis_runtime = directory == "src/chassis" and path.name in ("chassis_runtime.cpp", "chassis_runtime.hpp")
-            if is_chassis_runtime and match and match[1] in (
+            is_chassis_runtime = directory == "src/chassis" and path.name in ("chassis_runtime.cpp", "chassis_runtime.hpp", "chassis_config_loading.cpp")
+            if is_chassis_runtime and path.name != "chassis_config_loading.cpp" and match and match[1] in (
                 "robot.hpp", "options.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp",
                 "hardware/config_yaml.hpp",
             ):

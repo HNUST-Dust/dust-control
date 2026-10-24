@@ -10,6 +10,17 @@
 #include "chassis_config.h"
 #include "gas_spring_model.h"
 
+namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kSupportWorldVerticalSpecificForceSign = 1;
+constexpr double kSupportLeftJointTorqueSign = 1;
+constexpr double kSupportRightJointTorqueSign = 1;
+constexpr double kSupportDerivativeFilterCutoffHz = 18.0;
+constexpr double kSupportForceFilterCutoffHz = 25.0;
+constexpr double kSupportJacobianDamping = 1e-06;
+constexpr double kSupportMaximumAbsForce = 300.0;
+}  // namespace
+
 namespace modules {
 namespace {
 using namespace chassis_config;
@@ -81,7 +92,7 @@ ChassisSupportForceEstimate SupportForceEstimator::Update(
         jacobian << leg.jacobian[0][0], leg.jacobian[0][1], leg.jacobian[1][0],
             leg.jacobian[1][1];
         const JointPair<double> compensation =
-            ConfiguredGasSpringCompensation(side, input);
+            ConfiguredGasSpringCompensation(side, input, config_);
         const JointPair<double> &feedback =
             input.joint_torque_feedback.Get(side);
         const double torque_sign = side == Side::kLeft
@@ -101,7 +112,8 @@ ChassisSupportForceEstimate SupportForceEstimator::Update(
         // 先将末端力分解为径向和原始角向分量。
         // 校准后的机体角为 alpha = sign * (raw_angle - offset)，
         // 因此根据虚功原理，切向力必须应用相同的符号。
-        const LegHardwareMap &hardware = kLegHardware.Get(side);
+        const LegHardwareMap &hardware =
+            config_.leg_hardware(side == Side::kRight);
         const double radial_x = leg.hx / leg.length;
         const double radial_z = leg.hz / leg.length;
         const double radial_force =
@@ -134,7 +146,7 @@ ChassisSupportForceEstimate SupportForceEstimator::Update(
             leg.length * theta_rate * theta_rate * std::cos(theta);
         const double raw_force =
             leg_vertical_force +
-            kSupportWheelMass * (kGravity + wheel_vertical_accel);
+            config_.support_wheel_mass * (kGravity + wheel_vertical_accel);
         if (!endpoint_force.allFinite() || !std::isfinite(raw_force)) {
             valid = false;
             continue;

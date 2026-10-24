@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 
+#include "chassis_config.h"
 #include "leg_kinematics.h"
 
 namespace modules {
@@ -47,6 +48,7 @@ struct RecoveryControllerOutput {
 
 class RecoveryController {
    public:
+    explicit RecoveryController(ChassisConfig config = {}) : config_(config) {}
     void Reset();
     RecoveryControllerOutput Update(const RecoveryControllerInput &input);
     RecoveryPhase phase() const {
@@ -54,6 +56,7 @@ class RecoveryController {
     }
 
    private:
+    const ChassisConfig config_;
     enum class SwingEscapePhase : uint8_t {
         kNone = 0U,
         kBackToVertical,
@@ -70,7 +73,7 @@ class RecoveryController {
     bool UpdateJointTargets(const RecoveryControllerInput &input);
     double ComputeJointTorque(uint8_t index, double target, double position,
                               double velocity, double dt);
-    static double RawKinematicAngle(uint8_t side, double normalized_angle);
+    double RawKinematicAngle(uint8_t side, double normalized_angle);
 
     RecoveryPhase phase_ = RecoveryPhase::kInit;
     double phase_elapsed_s_ = 0.0;

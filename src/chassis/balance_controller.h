@@ -3,6 +3,7 @@
 #pragma once
 
 #include "body_motion_estimator.h"
+#include "chassis_config.h"
 #include "chassis_types.h"
 
 namespace modules {
@@ -10,7 +11,9 @@ namespace modules {
 /** 维护平衡参考和滤波状态；通过冻结输入计算输出，不执行设备 I/O。 */
 class BalanceController {
    public:
-    BalanceController();
+    explicit BalanceController(
+        double wheel_torque_limit = chassis_config::kWheelTorqueLimit,
+        ChassisConfig config = {});
     void Reset();
     void ResetForEnable();
     void SynchronizeReferences(const ChassisCycleInput &input);
@@ -38,10 +41,12 @@ class BalanceController {
     }
 
    private:
+    const ChassisConfig config_;
     struct SideState {
         double leg_length_integral_force = 0.0;
     };
 
+    const double wheel_torque_limit_;
     BodyMotionEstimator body_motion_estimator_;
     double target_leg_length_ = 0.0;
     double balance_theta_reference_ = 0.0;

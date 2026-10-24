@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 
+#include "chassis_config.h"
 #include "leg_kinematics.h"
 
 namespace modules {
@@ -36,6 +37,8 @@ struct ClimbStairsControllerOutput {
 /** 连续执行 Init → Motion1 → Motion2 → Return 爬楼动作。 */
 class ClimbStairsController {
    public:
+    explicit ClimbStairsController(ChassisConfig config = {})
+        : config_(config) {}
     void Reset();
     ClimbStairsControllerOutput Update(const ClimbStairsControllerInput &input);
     ClimbStairsPhase phase() const {
@@ -43,6 +46,7 @@ class ClimbStairsController {
     }
 
    private:
+    const ChassisConfig config_;
     struct JointPidState {
         double position_integral = 0.0;
         double speed_integral = 0.0;
@@ -53,7 +57,7 @@ class ClimbStairsController {
     bool UpdateJointTargets(const ClimbStairsControllerInput &input);
     double ComputeJointTorque(uint8_t index, double target, double position,
                               double velocity, double dt);
-    static double RawKinematicAngle(uint8_t side, double normalized_angle);
+    double RawKinematicAngle(uint8_t side, double normalized_angle);
 
     ClimbStairsPhase phase_ = ClimbStairsPhase::kInit;
     double phase_elapsed_s_ = 0.0;

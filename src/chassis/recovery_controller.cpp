@@ -8,10 +8,32 @@
 #include "chassis_config.h"
 
 namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kRecoveryUprightAccelSign = 1;
+constexpr double kRecoveryUprightAccelThresholdG = 0.4;
+constexpr double kRecoveryMaximumLegLength = 0.33;
+constexpr double kRecoveryMinimumLegLength = 0.15;
+constexpr double kRecoverySwingTheta = 1.45;
+constexpr double kRecoveryTurnoverSweepRateDeg = 180.0;
+constexpr double kRecoverySwingAngleRateDeg = 180.0;
+constexpr double kRecoveryDrawbackAngleRateDeg = 200.0;
+constexpr double kRecoveryExtendLegRate = 1.2;
+constexpr double kRecoveryEscapeLegRate = 1.8;
+constexpr double kRecoveryDrawbackLegRate = 1.2;
+constexpr double kRecoveryTurnoverStuckSpeedDeg = 35.0;
+constexpr double kRecoverySwingStuckSpeedDeg = 15.0;
+constexpr uint32_t kRecoveryStuckTimeoutMs = 600;
+constexpr uint32_t kRecoveryUprightHoldMs = 20;
+constexpr uint32_t kRecoveryReadyHoldMs = 50;
+constexpr uint32_t kRecoveryTurnoverTimeoutMs = 4000;
+constexpr uint32_t kRecoverySwingTimeoutMs = 2500;
+constexpr uint32_t kRecoveryDrawbackTimeoutMs = 1500;
+constexpr uint32_t kRecoveryMaximumTurnoverReversals = 3;
+}  // namespace
+
+namespace {
 using namespace modules::chassis_config;
 constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
-constexpr double kLegAngleOffset[2] = {kLeftLegAngleOffset,
-                                       kRightLegAngleOffset};
 
 double MoveToward(double current, double target, double maximum_delta) {
     return current +
@@ -263,8 +285,8 @@ bool RecoveryController::UpdateJointTargets(
                                  : input.joint_position[base];
         double phi1 = 0.0;
         double phi2 = 0.0;
-        if (!InverseKinematics(hx, hz, kBranch[side], seed1, seed2, phi1,
-                               phi2)) {
+        if (!InverseKinematics(hx, hz, kBranch[side], seed1, seed2, phi1, phi2,
+                               config_)) {
             all_valid = false;
             continue;
         }
@@ -277,8 +299,9 @@ bool RecoveryController::UpdateJointTargets(
 }
 
 double RecoveryController::RawKinematicAngle(uint8_t side, double angle) {
-    return side == 0U ? std::remainder(kLegAngleOffset[0] - angle, kTwoPi)
-                      : std::remainder(angle + kLegAngleOffset[1], kTwoPi);
+    return side == 0U
+               ? std::remainder(config_.left_leg_angle_offset - angle, kTwoPi)
+               : std::remainder(angle + config_.right_leg_angle_offset, kTwoPi);
 }
 
 double RecoveryController::ComputeJointTorque(uint8_t index, double target,
@@ -292,19 +315,20 @@ double RecoveryController::ComputeJointTorque(uint8_t index, double target,
 
     JointPidState &pid = joint_pid_[index];
     const double error = std::remainder(target - position, kTwoPi);
-    pid.position_integral =
-        std::clamp(pid.position_integral + error * dt, -kJointPositionMaxSpeed,
-                   kJointPositionMaxSpeed);
+    pid.position_integral = std::clamp(pid.position_integral + error * dt,
+                                       -config_.joint_position_max_speed,
+                                       config_.joint_position_max_speed);
     const double speed_target = std::clamp(
-        kJointPositionKp * error + kJointPositionKi * pid.position_integral,
-        -kJointPositionMaxSpeed, kJointPositionMaxSpeed);
+        config_.joint_position_kp * error +
+            kJointPositionKi * pid.position_integral,
+        -config_.joint_position_max_speed, config_.joint_position_max_speed);
     const double speed_error = speed_target - velocity;
     pid.speed_integral =
         std::clamp(pid.speed_integral + speed_error * dt,
                    -kJointIntegralTorqueLimit, kJointIntegralTorqueLimit);
-    return std::clamp(
-        kJointSpeedKp * speed_error + kJointSpeedKi * pid.speed_integral,
-        -kJointTorqueMax, kJointTorqueMax);
+    return std::clamp(config_.joint_speed_kp * speed_error +
+                          kJointSpeedKi * pid.speed_integral,
+                      -kJointTorqueMax, kJointTorqueMax);
 }
 
 }  // namespace modules

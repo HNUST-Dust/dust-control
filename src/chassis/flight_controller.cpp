@@ -9,6 +9,21 @@
 #include "leg_vmc.h"
 #include "unified_lqr_schedule.h"
 
+namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kFlightLiftoffForceRatio = 0.2;
+constexpr uint32_t kFlightLiftoffHoldMs = 20;
+constexpr double kFlightMinimumDetectionLegLength = 0.17;
+constexpr double kFlightMaximumLegLength = 0.33;
+constexpr double kFlightMaximumLengthMargin = 0.01;
+constexpr double kFlightTouchdownRetractSpeed = -0.05;
+constexpr double kFlightTouchdownPeakMin = 0.1;
+constexpr double kFlightTouchdownPeakDrop = 0.15;
+constexpr double kFlightTouchdownLengthMargin = 0.03;
+constexpr uint32_t kFlightTouchdownHoldMs = 10;
+constexpr uint32_t kFlightTimeoutMs = 1500;
+}  // namespace
+
 namespace modules {
 namespace {
 using namespace chassis_config;
@@ -44,7 +59,7 @@ bool FlightController::UpdateLiftoffDetection(
     }
 
     const double threshold =
-        kFlightLiftoffForceRatio * 0.5 * kRobotMass * kGravity;
+        kFlightLiftoffForceRatio * 0.5 * config_.robot_mass * kGravity;
     const bool away_from_mechanical_stop =
         input.leg.left.length >= kFlightMinimumDetectionLegLength &&
         input.leg.right.length >= kFlightMinimumDetectionLegLength;
@@ -132,22 +147,23 @@ FlightControllerOutput FlightController::Update(
         const bool near_maximum =
             leg.length >= kFlightMaximumLegLength - kFlightMaximumLengthMargin;
         const double axial_feedforward =
-            touched ? 0.25 * kRobotMass * kGravity /
+            touched ? 0.25 * config_.robot_mass * kGravity /
                           std::max(std::cos(input.theta.Get(side)), 0.5)
-                    : (near_maximum ? 0.0 : kFlightAirbornePushForce);
-        const LegHardwareMap &hardware = kLegHardware.Get(side);
+                    : (near_maximum ? 0.0 : config_.flight_airborne_push_force);
+        const LegHardwareMap &hardware =
+            config_.leg_hardware(side == Side::kRight);
         const LegVmcOutput vmc =
             ComputeLegVmc(leg, target_length, axial_feedforward, 0.0,
                           hardware.vmc_torque_sign * actuator[leg_torque_index],
-                          leg.length_rate, 0.0);
+                          leg.length_rate, 0.0, config_);
         output.control.leg_axial_force.Get(side) = vmc.axial_force;
         output.control.body_on_leg_torque.Get(side) =
             actuator[leg_torque_index];
         JointPair<double> &torque = output.control.joint_torque.Get(side);
-        torque.b =
-            std::clamp(vmc.phi2_torque, -kJointTorqueLimit, kJointTorqueLimit);
-        torque.d =
-            std::clamp(vmc.phi1_torque, -kJointTorqueLimit, kJointTorqueLimit);
+        torque.b = std::clamp(vmc.phi2_torque, -config_.joint_torque_limit,
+                              config_.joint_torque_limit);
+        torque.d = std::clamp(vmc.phi1_torque, -config_.joint_torque_limit,
+                              config_.joint_torque_limit);
     };
 
     update_leg(Side::kLeft, kLeftLegTorque);

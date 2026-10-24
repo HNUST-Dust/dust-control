@@ -1,5 +1,6 @@
 add_subdirectory(runtime)
 add_library(dust_chassis
+  chassis_config.cpp
   balance_controller.cpp
   body_motion_estimator.cpp
   chassis_output_policy.cpp
@@ -17,9 +18,8 @@ add_library(dust_chassis
   unified_lqr_schedule.cc
 )
 target_link_libraries(dust_chassis PUBLIC dust_headers Eigen3::Eigen)
-target_include_directories(dust_chassis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${DUST_GENERATED_DIR}")
+target_include_directories(dust_chassis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_options(dust_chassis PRIVATE -Wall -Wextra -Wpedantic)
-add_dependencies(dust_chassis dust_parameters)
 target_compile_definitions(dust_chassis PRIVATE EIGEN_NO_MALLOC EIGEN_DONT_VECTORIZE)
 add_library(dust::chassis ALIAS dust_chassis)
 
@@ -28,6 +28,7 @@ if(DUST_BUILD_MPC)
 endif()
 
 # 业务运行依赖设备和观测；纯控制算法 dust_chassis 继续独立。
-add_library(dust_chassis_runtime chassis_runtime.cpp)
+add_library(dust_chassis_runtime chassis_runtime.cpp chassis_config_loading.cpp)
+target_link_libraries(dust_chassis_runtime PRIVATE yaml-cpp)
 target_link_libraries(dust_chassis_runtime PUBLIC dust_chassis dust_usb dust_telemetry)
 target_compile_options(dust_chassis_runtime PRIVATE -Wall -Wextra -Wpedantic -Werror)

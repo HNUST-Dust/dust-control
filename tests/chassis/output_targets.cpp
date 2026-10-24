@@ -7,7 +7,10 @@
 
 int main() {
     using namespace modules;
-    namespace cfg = modules::chassis_config;
+    // 冻结当前使能握手的时序合约，独立于实现中的私有常量。
+    constexpr unsigned kExpectedArmTicks = 300;
+    constexpr unsigned kExpectedModePeriodTicks = 10;
+    constexpr unsigned kExpectedClearTicks = 50;
     ChassisOutputPolicy policy;
     dust::devices::MotorEncoder encoder;
     ChassisCycleInput input{};
@@ -31,14 +34,14 @@ int main() {
     encoded = encoder.Encode(output.motor_targets);
     assert(encoded && encoded->count == 2);
 
-    for (unsigned tick = 0; tick < cfg::kDmArmTicks; ++tick) {
+    for (unsigned tick = 0; tick < kExpectedArmTicks; ++tick) {
         policy.Apply(ChassisControlState::kDmArming, tick, input, output);
         assert(output.motor_targets[0].mode ==
                dust::devices::MotorMode::kTorque);
         assert(output.motor_targets[0].torque_nm == 0);
-        if (tick % cfg::kDmModePeriodTicks == 0) {
+        if (tick % kExpectedModePeriodTicks == 0) {
             assert(output.motor_targets[2].mode ==
-                   (tick < cfg::kDmClearTicks
+                   (tick < kExpectedClearTicks
                         ? dust::devices::MotorMode::kClearError
                         : dust::devices::MotorMode::kEnable));
         } else {

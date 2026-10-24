@@ -8,28 +8,30 @@
 #include "motion_command.hpp"
 
 namespace dust::chassis {
-inline double ToRemoteAxis(double value, double maximum) {
+inline double ToRemoteAxis(double value, double maximum,
+                           const modules::ChassisConfig& config = {}) {
     using namespace modules::chassis_config;
     const double fraction = std::clamp(value / maximum, -1.0, 1.0);
-    return fraction == 0
-               ? 0
-               : std::copysign(kRemoteDeadband +
-                                   std::abs(fraction) * (1 - kRemoteDeadband),
-                               fraction);
+    return fraction == 0 ? 0
+                         : std::copysign(config.remote_deadband +
+                                             std::abs(fraction) *
+                                                 (1 - config.remote_deadband),
+                                         fraction);
 }
 // 保留物理遥控的 sequence、使能和失能姿态，外部指令不能刷新遥控新鲜度或使能。
 inline void ApplyMotionCommand(modules::ControllerInputs& input,
                                MotionCommand& command,
                                const MotionCommandOptions& options,
-                               MotionCommandQueue& queue, uint64_t now_ns) {
+                               MotionCommandQueue& queue, uint64_t now_ns,
+                               const modules::ChassisConfig& config = {}) {
     queue.TakeLatest(command);
     if (!options.external_commands) {
         return;
     }
     using namespace modules::chassis_config;
     auto& remote = input.remote;
-    const auto active = [](float axis) {
-        return std::abs(axis) > kRemoteDeadband;
+    const auto active = [&](float axis) {
+        return std::abs(axis) > config.remote_deadband;
     };
     if (!remote.robot_enable || remote.jump || remote.climb_stairs ||
         remote.fast_spin || active(remote.chassis_x) ||
@@ -42,11 +44,15 @@ inline void ApplyMotionCommand(modules::ControllerInputs& input,
     const bool fresh = command.received_ns && now_ns >= command.received_ns &&
                        now_ns - command.received_ns < options.timeout_ns;
     remote.chassis_x =
-        fresh ? ToRemoteAxis(command.forward_m_s, kMaxBodySpeed) : 0;
+        fresh ? ToRemoteAxis(command.forward_m_s, config.max_body_speed, config)
+              : 0;
     // 现有遥控轴顺时针为正，ROS yaw 采用逆时针为正。
     remote.chassis_rotate =
-        fresh ? ToRemoteAxis(-command.yaw_rad_s, kMaxYawRate) : 0;
+        fresh ? ToRemoteAxis(-command.yaw_rad_s, config.max_yaw_rate(), config)
+              : 0;
     remote.leg_length_delta =
-        fresh ? ToRemoteAxis(command.leg_rate_m_s, kLegLengthCommandRate) : 0;
+        fresh
+            ? ToRemoteAxis(command.leg_rate_m_s, kLegLengthCommandRate, config)
+            : 0;
 }
 }  // namespace dust::chassis

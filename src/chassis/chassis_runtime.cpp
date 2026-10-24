@@ -20,12 +20,14 @@ ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
                                const devices::MotorConfig& motors,
                                modules::InputDeadlines deadlines,
                                ChassisDevices devices,
-                               wbr::host::TelemetryPublisher* telemetry)
-    : options_(options),
+                               wbr::host::TelemetryPublisher* telemetry,
+                               modules::ChassisConfig config)
+    : config_(config),
+      options_(options),
       devices_(devices),
       telemetry_(telemetry),
       encoder_(motors),
-      controller_(deadlines) {
+      controller_(deadlines, motors.wheel_torque_limit_nm(), config) {
     const bool any = devices_.motors || devices_.remote || devices_.imu ||
                      devices_.transmitter;
     const bool all = devices_.motors && devices_.remote && devices_.imu &&
@@ -100,7 +102,7 @@ void ChassisRuntime::Run() {
     wbr::host::TelemetrySample sample;
     MotionCommand command{};
     while (!stop_.load() && wbr::realtime::MonotonicTimeNs() < finish) {
-        release += 1000000;
+        release += modules::chassis_config::kControlPeriodNs;
         if (!wbr::realtime::SleepUntilNs(release, error)) {
             if (stop_.load()) {
                 break;
@@ -114,9 +116,10 @@ void ChassisRuntime::Run() {
             throw std::runtime_error(
                 "Control deadline exceeded bridge watchdog");
         }
-        if (now - release >= 1000000) {
-            const auto missed = (now - release) / 1000000;
-            release += missed * 1000000;
+        if (now - release >= modules::chassis_config::kControlPeriodNs) {
+            const auto missed =
+                (now - release) / modules::chassis_config::kControlPeriodNs;
+            release += missed * modules::chassis_config::kControlPeriodNs;
             late_cycles += missed;
         }
         if (devices_.transmitter && !devices_.transmitter->healthy()) {
@@ -132,7 +135,8 @@ void ChassisRuntime::Run() {
             input.remote_disable_pose = remote.disable_pose;
             input.imu = devices_.imu->Read();
         }
-        ApplyMotionCommand(input, command, options_.commands, commands_, now);
+        ApplyMotionCommand(input, command, options_.commands, commands_, now,
+                           config_);
         disabled_observed |= input.remote_disable_pose;
         const auto tick_start = wbr::realtime::MonotonicTimeNs();
         const bool observe = tick_start >= next_telemetry;

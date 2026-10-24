@@ -8,6 +8,25 @@
 #include "leg_vmc.h"
 #include "unified_lqr_schedule.h"
 
+namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kJumpPrecompressLegLength = 0.15;
+constexpr double kJumpPrecompressLengthTolerance = 0.01;
+constexpr double kJumpPrecompressSpeedTolerance = 0.2;
+constexpr uint32_t kJumpPrecompressTimeoutMs = 200;
+constexpr double kJumpJointBThrustSign = 1;
+constexpr double kJumpJointDThrustSign = -1;
+constexpr double kJumpThrustExitLegLength = 0.33;
+constexpr uint32_t kJumpThrustTimeoutMs = 300;
+constexpr double kJumpAirRetractLegLength = 0.16;
+constexpr double kJumpAirRetractRate = 2.5;
+constexpr double kJumpAirRetractGravityFeedforward = -12.0;
+constexpr double kJumpAirRetractLengthTolerance = 0.01;
+constexpr uint32_t kJumpAirRetractHoldMs = 100;
+constexpr uint32_t kJumpAirRetractTimeoutMs = 500;
+constexpr uint32_t kJumpTotalTimeoutMs = 2000;
+}  // namespace
+
 namespace modules {
 namespace {
 using namespace chassis_config;
@@ -93,19 +112,20 @@ void JumpController::ComputeVmcLeg(const ChassisCycleInput &input, Side side,
                                    double support_force, double leg_torque,
                                    ChassisControlOutput &output) const {
     const LegKinematics &leg = input.leg.Get(side);
-    const LegHardwareMap &hardware = kLegHardware.Get(side);
+    const LegHardwareMap &hardware = config_.leg_hardware(side == Side::kRight);
     // 推力阶段仅通过 VMC 计算切向姿态力矩，不引入轴向阻尼。
-    const LegVmcOutput vmc = ComputeLegVmc(
-        leg, target_length, support_force, 0.0,
-        hardware.vmc_torque_sign * leg_torque,
-        phase_ == JumpPhase::kThrust ? 0.0 : leg.length_rate, target_rate);
+    const LegVmcOutput vmc =
+        ComputeLegVmc(leg, target_length, support_force, 0.0,
+                      hardware.vmc_torque_sign * leg_torque,
+                      phase_ == JumpPhase::kThrust ? 0.0 : leg.length_rate,
+                      target_rate, config_);
     output.leg_axial_force.Get(side) = vmc.axial_force;
     output.body_on_leg_torque.Get(side) = leg_torque;
     JointPair<double> &torque = output.joint_torque.Get(side);
-    torque.b =
-        std::clamp(vmc.phi2_torque, -kJointTorqueLimit, kJointTorqueLimit);
-    torque.d =
-        std::clamp(vmc.phi1_torque, -kJointTorqueLimit, kJointTorqueLimit);
+    torque.b = std::clamp(vmc.phi2_torque, -config_.joint_torque_limit,
+                          config_.joint_torque_limit);
+    torque.d = std::clamp(vmc.phi1_torque, -config_.joint_torque_limit,
+                          config_.joint_torque_limit);
 }
 
 JumpControllerOutput JumpController::Update(const ChassisCycleInput &input,
@@ -123,9 +143,9 @@ JumpControllerOutput JumpController::Update(const ChassisCycleInput &input,
     JumpControllerOutput output = {};
 
     if (phase_ == JumpPhase::kPreCompress) {
-        const double precompress_length =
-            std::clamp(kJumpPrecompressLegLength, kMinCommandedLegLength,
-                       kMaxCommandedLegLength);
+        const double precompress_length = std::clamp(
+            kJumpPrecompressLegLength, config_.min_commanded_leg_length,
+            config_.max_commanded_leg_length);
         balance.set_target_leg_length(precompress_length);
         ChassisCycleInput precompress_input = input;
         precompress_input.remote.leg_length_delta = 0.0;
@@ -155,16 +175,16 @@ JumpControllerOutput JumpController::Update(const ChassisCycleInput &input,
             JointPair<double> &torque = output.control.joint_torque.Get(side);
             // 左右五连杆互为镜像，需在各自运动学分支应用配置的关节方向，
             // 使正跳跃力矩伸展双腿，而非只伸展左腿。
-            const double mirror_sign =
-                static_cast<double>(kLegHardware.Get(side).kinematic_branch);
-            torque.b =
-                std::clamp(torque.b + mirror_sign * kJumpJointBThrustSign *
-                                          kJumpThrustTorque,
-                           -kJointTorqueLimit, kJointTorqueLimit);
-            torque.d =
-                std::clamp(torque.d + mirror_sign * kJumpJointDThrustSign *
-                                          kJumpThrustTorque,
-                           -kJointTorqueLimit, kJointTorqueLimit);
+            const double mirror_sign = static_cast<double>(
+                config_.leg_hardware(side == Side::kRight).kinematic_branch);
+            torque.b = std::clamp(
+                torque.b + mirror_sign * kJumpJointBThrustSign *
+                               config_.jump_thrust_torque,
+                -config_.joint_torque_limit, config_.joint_torque_limit);
+            torque.d = std::clamp(
+                torque.d + mirror_sign * kJumpJointDThrustSign *
+                               config_.jump_thrust_torque,
+                -config_.joint_torque_limit, config_.joint_torque_limit);
         }
         if (input.leg.left.length >= kJumpThrustExitLegLength &&
             input.leg.right.length >= kJumpThrustExitLegLength) {

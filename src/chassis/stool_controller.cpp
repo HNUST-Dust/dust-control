@@ -17,12 +17,18 @@
 #include "chassis_config.h"
 
 namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kJointVelocityFilterCutoffHz = 35.0;
+constexpr double kReadyThetaToleranceDeg = 5.0;
+constexpr double kLegLengthReferenceRate = 1.2;
+constexpr double kSwingStartLengthTolerance = 0.05;
+}  // namespace
+
+namespace {
 
 using namespace modules::chassis_config;
 constexpr double kReadyThetaTolerance = kReadyThetaToleranceDeg * kDegToRad;
 constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
-constexpr double kLegAngleOffset[2] = {kLeftLegAngleOffset,
-                                       kRightLegAngleOffset};
 
 }  // namespace
 
@@ -101,15 +107,16 @@ void StoolController::UpdatePoseTarget(const StoolControllerInput &input) {
     const double bounded_dt = std::clamp(input.dt, 0.0005, 0.01);
     const double maximum_length_step = kLegLengthReferenceRate * bounded_dt;
     for (size_t side = 0U; side < input.leg.size(); ++side) {
-        leg_length_reference_[side] +=
-            std::clamp(kStoolTargetLegLength - leg_length_reference_[side],
-                       -maximum_length_step, maximum_length_step);
+        leg_length_reference_[side] += std::clamp(
+            config_.stool_target_leg_length - leg_length_reference_[side],
+            -maximum_length_step, maximum_length_step);
     }
 
     if (!swing_active_) {
         swing_active_ = std::all_of(
-            input.leg.begin(), input.leg.end(), [](const LegKinematics &leg) {
-                return std::abs(leg.length - kStoolTargetLegLength) <=
+            input.leg.begin(), input.leg.end(),
+            [this](const LegKinematics &leg) {
+                return std::abs(leg.length - config_.stool_target_leg_length) <=
                        kSwingStartLengthTolerance;
             });
     }
@@ -136,7 +143,7 @@ void StoolController::UpdatePoseTarget(const StoolControllerInput &input) {
         double target_phi1 = 0.0;
         double target_phi2 = 0.0;
         if (!InverseKinematics(target_hx, target_hz, kBranch[side], seed_phi1,
-                               seed_phi2, target_phi1, target_phi2)) {
+                               seed_phi2, target_phi1, target_phi2, config_)) {
             continue;
         }
 
@@ -149,8 +156,10 @@ void StoolController::UpdatePoseTarget(const StoolControllerInput &input) {
 double StoolController::RawKinematicAngle(uint8_t side,
                                           double normalized_angle) {
     return side == 0U
-               ? std::remainder(kLegAngleOffset[0] - normalized_angle, kTwoPi)
-               : std::remainder(normalized_angle + kLegAngleOffset[1], kTwoPi);
+               ? std::remainder(
+                     config_.left_leg_angle_offset - normalized_angle, kTwoPi)
+               : std::remainder(
+                     normalized_angle + config_.right_leg_angle_offset, kTwoPi);
 }
 
 double StoolController::ComputeJointTorque(uint8_t index, double target,
@@ -164,21 +173,21 @@ double StoolController::ComputeJointTorque(uint8_t index, double target,
     JointPidState &pid = joint_pid_[index];
     const double bounded_dt = std::clamp(dt, 0.0005, 0.01);
     const double position_error = std::remainder(target - position, kTwoPi);
-    pid.position_integral =
-        std::clamp(pid.position_integral + position_error * bounded_dt,
-                   -kJointPositionMaxSpeed, kJointPositionMaxSpeed);
-    const double speed_target =
-        std::clamp(kJointPositionKp * position_error +
-                       kJointPositionKi * pid.position_integral,
-                   -kJointPositionMaxSpeed, kJointPositionMaxSpeed);
+    pid.position_integral = std::clamp(
+        pid.position_integral + position_error * bounded_dt,
+        -config_.joint_position_max_speed, config_.joint_position_max_speed);
+    const double speed_target = std::clamp(
+        config_.joint_position_kp * position_error +
+            kJointPositionKi * pid.position_integral,
+        -config_.joint_position_max_speed, config_.joint_position_max_speed);
 
     const double speed_error = speed_target - velocity;
     pid.speed_integral =
         std::clamp(pid.speed_integral + speed_error * bounded_dt,
                    -kJointIntegralTorqueLimit, kJointIntegralTorqueLimit);
-    return std::clamp(
-        kJointSpeedKp * speed_error + kJointSpeedKi * pid.speed_integral,
-        -kJointTorqueMax, kJointTorqueMax);
+    return std::clamp(config_.joint_speed_kp * speed_error +
+                          kJointSpeedKi * pid.speed_integral,
+                      -kJointTorqueMax, kJointTorqueMax);
 }
 
 }  // namespace modules

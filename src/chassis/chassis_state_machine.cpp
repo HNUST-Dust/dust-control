@@ -6,6 +6,11 @@
 
 #include "chassis_config.h"
 
+namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr uint32_t kJumpCooldownMs = 3000;
+}  // namespace
+
 namespace modules {
 
 ChassisStateTransition ChassisStateMachine::Update(
@@ -53,7 +58,7 @@ ChassisStateTransition ChassisStateMachine::Update(
 
     if (transition.changed && transition.from == ChassisControlState::kJump) {
         jump_cooldown_remaining_s_ =
-            static_cast<double>(chassis_config::kJumpCooldownMs) * 0.001;
+            static_cast<double>(kJumpCooldownMs) * 0.001;
     }
 
     if (transition.changed &&
@@ -99,7 +104,7 @@ void ChassisStateMachine::UpdateSafetyLatches(const ChassisCycleInput &input) {
         state_ != ChassisControlState::kRecovery && !recovery_required_) {
         const double pitch_deg = static_cast<double>(input.imu.pitch_deg);
         if (!tilt_fault_latched_ &&
-            std::abs(pitch_deg) >= chassis_config::kTiltCutoffDeg) {
+            std::abs(pitch_deg) >= config_.tilt_cutoff_deg) {
             tilt_fault_latched_ = true;
         }
     }

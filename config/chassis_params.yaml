@@ -1,0 +1,62 @@
+# 机构标定、主要控制调参及工作限值；启动时加载，修改后重启生效。
+schema_version: 2
+mechanics:
+  # 连杆角 = 电机反馈角 + 安装零点偏移。
+  joint_b_zero_offset_rad: 0.0
+  joint_d_zero_offset_rad: 3.141592653589793
+  wheel_reduction: 15.764705882352942
+  wheel_radius_m: 0.058
+  half_wheel_track_m: 0.215
+  robot_mass_kg: 12.054
+  leg_geometry_m:
+    ab: 0.0945
+    bc: 0.1125
+    cd: 0.116
+    ad: 0.09
+    ag: 0.21
+    gh: 0.25
+balance:
+  theta_bias_deg: 5.0
+  remote_deadband: 0.05
+  min_leg_length_m: 0.15
+  max_leg_length_m: 0.33
+  max_body_speed_mps: 1.6
+  body_acceleration_limit_mps2: 0.8
+  max_turn_wheel_speed_mps: 2.7
+  turn_acceleration_limit_mps2: 1.5
+  turn_torque_limit_nm: 1.2
+  roll_compensation_kp_n_per_rad: 80.0
+  roll_compensation_force_limit_n: 20.0
+stool:
+  target_leg_length_m: 0.15
+  joint_position_kp: 20.0
+  joint_position_max_speed_rad_s: 44.0
+  joint_speed_kp: 4.0
+gas_spring:
+  # 每侧气弹簧标称推力；上下安装点采用模型中的有符号坐标。
+  left_spring_force_n: 300.0
+  right_spring_force_n: 300.0
+  left_spring_upper_offset_m: 0.05
+  right_spring_upper_offset_m: -0.05
+  spring_lower_distance_m: 0.05
+support_force_estimator:
+  wheel_mass_kg: 0.6
+flight:
+  airborne_push_force_n: 80.0
+jump:
+  thrust_torque_nm: 30.0
+vmc:
+  leg_length_kp: 600.0
+  leg_length_ki: 100.0
+  leg_length_kd: 120.0
+  integral_force_limit_n: 60.0
+  force_limit_n: 200.0
+actuator:
+  joint_torque_limit_nm: 54.0
+safety:
+  tilt_cutoff_deg: 75.0
+hardware:
+  left:
+    leg_angle_offset_rad: -0.036063
+  right:
+    leg_angle_offset_rad: -3.12101

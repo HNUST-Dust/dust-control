@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "chassis_config.h"
 #include "leg_kinematics.h"
 
 namespace modules {
@@ -30,7 +31,7 @@ struct LegVmcOutput {
  * @return 经过积分和限幅后的轴向力积分项。
  */
 double UpdateLegLengthIntegral(double integral_force, double length_error,
-                               double dt);
+                               double dt, const ChassisConfig& config = {});
 /**
  * @brief 将期望轴向力和髋部力矩映射为关节力矩。
  * @param[in] leg 腿部运动学输入或输出状态。
@@ -42,9 +43,10 @@ double UpdateLegLengthIntegral(double integral_force, double length_error,
  * @param target_leg_length_rate 目标腿长变化率，单位为米每秒。
  * @return 左右主动关节的目标力矩。
  */
-LegVmcOutput ComputeLegVmc(const LegKinematics &leg, double target_leg_length,
+LegVmcOutput ComputeLegVmc(const LegKinematics& leg, double target_leg_length,
                            double support_feedforward, double integral_force,
                            double leg_angle_torque, double filtered_leg_speed,
-                           double target_leg_length_rate);
+                           double target_leg_length_rate,
+                           const ChassisConfig& config = {});
 
 }  // namespace modules

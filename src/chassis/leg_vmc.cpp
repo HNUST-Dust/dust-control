@@ -17,6 +17,14 @@
 #include "chassis_config.h"
 
 namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kRetractFeedforward = 10.0;
+constexpr double kRetractFeedforwardDeadband = 0.003;
+constexpr double kExtendVelocityFeedforward = 60.0;
+constexpr double kVelocityFeedforwardDeadband = 0.005;
+}  // namespace
+
+namespace {
 
 using namespace modules::chassis_config;
 
@@ -25,15 +33,17 @@ using namespace modules::chassis_config;
 namespace modules {
 
 double UpdateLegLengthIntegral(double integral_force, double length_error,
-                               double dt) {
-    return std::clamp(integral_force + kLegLengthKi * length_error * dt,
-                      -kIntegralForceLimit, kIntegralForceLimit);
+                               double dt, const ChassisConfig& config) {
+    return std::clamp(integral_force + config.leg_length_ki * length_error * dt,
+                      -config.integral_force_limit,
+                      config.integral_force_limit);
 }
 
-LegVmcOutput ComputeLegVmc(const LegKinematics &leg, double target_leg_length,
+LegVmcOutput ComputeLegVmc(const LegKinematics& leg, double target_leg_length,
                            double support_feedforward, double integral_force,
                            double leg_angle_torque, double filtered_leg_speed,
-                           double target_leg_length_rate) {
+                           double target_leg_length_rate,
+                           const ChassisConfig& config) {
     const double length_error = target_leg_length - leg.length;
     const double retract_feedforward =
         length_error < -kRetractFeedforwardDeadband ? -kRetractFeedforward
@@ -45,10 +55,10 @@ LegVmcOutput ComputeLegVmc(const LegKinematics &leg, double target_leg_length,
 
     LegVmcOutput output = {};
     output.axial_force = std::clamp(
-        kLegLengthKp * length_error - kLegLengthKd * filtered_leg_speed +
-            support_feedforward + integral_force + retract_feedforward +
-            velocity_feedforward,
-        -kForceLimit, kForceLimit);
+        config.leg_length_kp * length_error -
+            config.leg_length_kd * filtered_leg_speed + support_feedforward +
+            integral_force + retract_feedforward + velocity_feedforward,
+        -config.force_limit, config.force_limit);
     const double radial_x = leg.hx / leg.length;
     const double radial_z = leg.hz / leg.length;
     const double tangential_force = leg_angle_torque / leg.length;

@@ -26,29 +26,32 @@ constexpr double kMinLegLength = 1.0e-4;
 namespace modules {
 
 bool ForwardKinematics(double phi1, double phi2, int branch, double &hx,
-                       double &hz) {
+                       double &hz, const ChassisConfig &config) {
     // 公开 FK/IK 接口仍使用电机角；安装偏移仅在此应用一次，
     // 确保数值雅可比与 IK 迭代共用同一映射。
-    const double link_d = JointDLinkAngle(phi1);
-    const double link_b = JointBLinkAngle(phi2);
-    const double bx = kLengthAB * std::cos(link_b);
-    const double bz = -kLengthAB * std::sin(link_b);
-    const double dx = kLengthAD * std::cos(link_d);
-    const double dz = -kLengthAD * std::sin(link_d);
-    const double gx = kLengthAG * std::cos(link_d);
-    const double gz = -kLengthAG * std::sin(link_d);
+    const double link_d = JointDLinkAngle(phi1, config);
+    const double link_b = JointBLinkAngle(phi2, config);
+    const double bx = config.length_ab * std::cos(link_b);
+    const double bz = -config.length_ab * std::sin(link_b);
+    const double dx = config.length_ad * std::cos(link_d);
+    const double dz = -config.length_ad * std::sin(link_d);
+    const double gx = config.length_ag * std::cos(link_d);
+    const double gz = -config.length_ag * std::sin(link_d);
 
     const double dbx = dx - bx;
     const double dbz = dz - bz;
     const double distance = std::hypot(dbx, dbz);
-    if (distance > kLengthBC + kLengthCD - 1e-9 || distance < 1e-9) {
+    if (distance > config.length_bc + config.length_cd - 1e-9 ||
+        distance < 1e-9) {
         return false;
     }
 
     const double a =
-        (kLengthBC * kLengthBC - kLengthCD * kLengthCD + distance * distance) /
+        (config.length_bc * config.length_bc -
+         config.length_cd * config.length_cd + distance * distance) /
         (2.0 * distance);
-    const double h = std::sqrt(std::fmax(0.0, kLengthBC * kLengthBC - a * a));
+    const double h =
+        std::sqrt(std::fmax(0.0, config.length_bc * config.length_bc - a * a));
     const double px = bx + a * dbx / distance;
     const double pz = bz + a * dbz / distance;
     const double cx =
@@ -63,14 +66,14 @@ bool ForwardKinematics(double phi1, double phi2, int branch, double &hx,
         return false;
     }
 
-    hx = gx + kLengthGH * dcx / dc_length;
-    hz = gz + kLengthGH * dcz / dc_length;
+    hx = gx + config.length_gh * dcx / dc_length;
+    hz = gz + config.length_gh * dcz / dc_length;
     return true;
 }
 
 bool InverseKinematics(double target_hx, double target_hz, int branch,
                        double seed_phi1, double seed_phi2, double &phi1,
-                       double &phi2) {
+                       double &phi2, const ChassisConfig &config) {
     if (!std::isfinite(target_hx) || !std::isfinite(target_hz) ||
         !std::isfinite(seed_phi1) || !std::isfinite(seed_phi2)) {
         return false;
@@ -87,8 +90,8 @@ bool InverseKinematics(double target_hx, double target_hz, int branch,
         double hx = 0.0;
         double hz = 0.0;
         double jacobian[2][2] = {};
-        if (!ForwardKinematics(phi1, phi2, branch, hx, hz) ||
-            !NumericalJacobian(phi1, phi2, branch, jacobian)) {
+        if (!ForwardKinematics(phi1, phi2, branch, hx, hz, config) ||
+            !NumericalJacobian(phi1, phi2, branch, jacobian, config)) {
             return false;
         }
 
@@ -119,29 +122,29 @@ bool InverseKinematics(double target_hx, double target_hz, int branch,
 
     double hx = 0.0;
     double hz = 0.0;
-    return ForwardKinematics(phi1, phi2, branch, hx, hz) &&
+    return ForwardKinematics(phi1, phi2, branch, hx, hz, config) &&
            std::hypot(target_hx - hx, target_hz - hz) <= 5e-4;
 }
 
 bool NumericalJacobian(double phi1, double phi2, int branch,
-                       double jacobian[2][2]) {
+                       double jacobian[2][2], const ChassisConfig &config) {
     double hx_plus;
     double hz_plus;
     double hx_minus;
     double hz_minus;
-    if (!ForwardKinematics(phi1 + kJacobianStep, phi2, branch, hx_plus,
-                           hz_plus) ||
+    if (!ForwardKinematics(phi1 + kJacobianStep, phi2, branch, hx_plus, hz_plus,
+                           config) ||
         !ForwardKinematics(phi1 - kJacobianStep, phi2, branch, hx_minus,
-                           hz_minus)) {
+                           hz_minus, config)) {
         return false;
     }
 
     jacobian[0][0] = (hx_plus - hx_minus) / (2.0 * kJacobianStep);
     jacobian[1][0] = (hz_plus - hz_minus) / (2.0 * kJacobianStep);
-    if (!ForwardKinematics(phi1, phi2 + kJacobianStep, branch, hx_plus,
-                           hz_plus) ||
+    if (!ForwardKinematics(phi1, phi2 + kJacobianStep, branch, hx_plus, hz_plus,
+                           config) ||
         !ForwardKinematics(phi1, phi2 - kJacobianStep, branch, hx_minus,
-                           hz_minus)) {
+                           hz_minus, config)) {
         return false;
     }
 
@@ -151,9 +154,10 @@ bool NumericalJacobian(double phi1, double phi2, int branch,
 }
 
 bool ComputeLegKinematics(double phi1, double phi2, double dphi1, double dphi2,
-                          int branch, LegKinematics &leg) {
-    if (!ForwardKinematics(phi1, phi2, branch, leg.hx, leg.hz) ||
-        !NumericalJacobian(phi1, phi2, branch, leg.jacobian)) {
+                          int branch, LegKinematics &leg,
+                          const ChassisConfig &config) {
+    if (!ForwardKinematics(phi1, phi2, branch, leg.hx, leg.hz, config) ||
+        !NumericalJacobian(phi1, phi2, branch, leg.jacobian, config)) {
         return false;
     }
 

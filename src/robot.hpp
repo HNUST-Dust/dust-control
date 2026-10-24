@@ -25,6 +25,7 @@ class Robot {
 
    private:
     Options options_;
+    modules::ChassisConfig chassis_config_;
     devices::MotorConfig motors_;
     devices::ImuConfig imu_;
     devices::RemoteConfig remote_;

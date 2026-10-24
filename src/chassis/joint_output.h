@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "chassis_config.h"
 #include "gas_spring_model.h"
 
 namespace modules {
@@ -11,7 +12,8 @@ namespace modules {
 // 由执行器在选择控制器后、提交设备目标前调用一次。
 inline void PrepareJointOutput(ChassisControlState state,
                                const ChassisCycleInput &input,
-                               ChassisControlOutput &output) {
+                               ChassisControlOutput &output,
+                               const ChassisConfig &config = {}) {
     using namespace chassis_config;
     bool active_state = false;
     switch (state) {
@@ -35,15 +37,15 @@ inline void PrepareJointOutput(ChassisControlState state,
 
     const bool position_control = state == ChassisControlState::kRecovery ||
                                   state == ChassisControlState::kClimbStairs;
-    const double limit = position_control
-                             ? std::min(kJointTorqueLimit, kJointTorqueMax)
-                             : kJointTorqueLimit;
+    const double limit =
+        position_control ? std::min(config.joint_torque_limit, kJointTorqueMax)
+                         : config.joint_torque_limit;
     for (Side side : {Side::kLeft, Side::kRight}) {
         const JointPair<double> compensation =
             state == ChassisControlState::kJump &&
                     output.bypass_gas_spring_compensation
                 ? JointPair<double>{}
-                : ConfiguredGasSpringCompensation(side, input);
+                : ConfiguredGasSpringCompensation(side, input, config);
         JointPair<double> &command = output.joint_torque.Get(side);
         for (Joint joint : {Joint::kB, Joint::kD}) {
             double &torque = command.Get(joint);

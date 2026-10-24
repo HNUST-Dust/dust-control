@@ -8,6 +8,8 @@
 #ifndef WBR_CONTROL_CORE_LEG_KINEMATICS_H_
 #define WBR_CONTROL_CORE_LEG_KINEMATICS_H_
 
+#include "chassis_config.h"
+
 namespace modules {
 
 /** @brief 五连杆腿部末端位姿、速度和雅可比矩阵。 */
@@ -32,7 +34,7 @@ struct LegKinematics {
  * @return 几何解有效时返回 `true`，否则返回 `false`。
  */
 bool ForwardKinematics(double phi1, double phi2, int branch, double &hx,
-                       double &hz);
+                       double &hz, const ChassisConfig &config = {});
 /**
  * @brief 由目标末端位置求解连续的关节角。
  *
@@ -50,7 +52,7 @@ bool ForwardKinematics(double phi1, double phi2, int branch, double &hx,
  */
 bool InverseKinematics(double target_hx, double target_hz, int branch,
                        double seed_phi1, double seed_phi2, double &phi1,
-                       double &phi2);
+                       double &phi2, const ChassisConfig &config = {});
 /**
  * @brief 数值计算关节角到末端位置的雅可比矩阵。
  * @param phi1 D 电机角（未加安装零偏），单位为弧度。
@@ -60,7 +62,7 @@ bool InverseKinematics(double target_hx, double target_hz, int branch,
  * @return 矩阵计算成功时返回 `true`。
  */
 bool NumericalJacobian(double phi1, double phi2, int branch,
-                       double jacobian[2][2]);
+                       double jacobian[2][2], const ChassisConfig &config = {});
 /**
  * @brief 计算腿部末端位置、速度和雅可比矩阵。
  * @param phi1 D 电机角（未加安装零偏），单位为弧度。
@@ -72,7 +74,8 @@ bool NumericalJacobian(double phi1, double phi2, int branch,
  * @return 全部运动学量有效时返回 `true`。
  */
 bool ComputeLegKinematics(double phi1, double phi2, double dphi1, double dphi2,
-                          int branch, LegKinematics &leg);
+                          int branch, LegKinematics &leg,
+                          const ChassisConfig &config = {});
 }  // namespace modules
 
 #endif  // WBR_CONTROL_CORE_LEG_KINEMATICS_H_

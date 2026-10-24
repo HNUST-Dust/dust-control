@@ -16,6 +16,13 @@
 #include "chassis_config.h"
 
 namespace {
+// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
+constexpr double kProcessNoise = 0.1;
+constexpr double kSpeedMeasurementNoise = 100.0;
+constexpr double kAccelerationMeasurementNoise = 1000000000000.0;
+}  // namespace
+
+namespace {
 
 using StateVector = Eigen::Matrix<double, 2, 1>;
 using StateMatrix = Eigen::Matrix<double, 2, 2>;

@@ -39,7 +39,8 @@ class ChassisRuntime {
                    const devices::MotorConfig& motors,
                    modules::InputDeadlines deadlines,
                    ChassisDevices devices = {},
-                   wbr::host::TelemetryPublisher* telemetry = nullptr);
+                   wbr::host::TelemetryPublisher* telemetry = nullptr,
+                   modules::ChassisConfig config = {});
     ~ChassisRuntime();
     void Start();
     // 只停止并回收本模块线程，不停止借用的 USB 或遥测资源。
@@ -60,6 +61,7 @@ class ChassisRuntime {
 
    private:
     void Run();
+    const modules::ChassisConfig config_;
     ChassisRuntimeOptions options_;
     ChassisDevices devices_;
     wbr::host::TelemetryPublisher* telemetry_;

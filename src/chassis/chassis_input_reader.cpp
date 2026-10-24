@@ -89,7 +89,8 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     input.leg = {};
     SidePair<bool> leg_valid;
     const auto update_leg_kinematics = [&](Side side) {
-        const LegHardwareMap &hardware = kLegHardware.Get(side);
+        const LegHardwareMap &hardware =
+            config_.leg_hardware(side == Side::kRight);
         const auto &feedback = joints.Get(side);
         LegKinematics &leg = input.leg.Get(side);
         bool &valid = leg_valid.Get(side);
@@ -99,7 +100,7 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
         valid = ComputeLegKinematics(
             feedback.d.position_rad, feedback.b.position_rad,
             feedback.d.velocity_rad_s, feedback.b.velocity_rad_s,
-            hardware.kinematic_branch, leg);
+            hardware.kinematic_branch, leg, config_);
         if (valid) {
             leg.angle =
                 hardware.leg_coordinate_sign *

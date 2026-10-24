@@ -2,6 +2,7 @@
 #pragma once
 
 #include "balance_controller.h"
+#include "chassis_config.h"
 #include "chassis_types.h"
 #include "flight_controller.h"
 
@@ -25,6 +26,8 @@ struct JumpControllerOutput {
 
 class JumpController {
    public:
+    explicit JumpController(ChassisConfig config = {})
+        : config_(config), airborne_controller_(config) {}
     void Reset();
     JumpControllerOutput Update(const ChassisCycleInput &input,
                                 BalanceController &balance);
@@ -33,6 +36,7 @@ class JumpController {
     }
 
    private:
+    const ChassisConfig config_;
     void EnterPhase(JumpPhase phase, const ChassisCycleInput &input);
     void ComputeAttitudeControl(const ChassisCycleInput &input,
                                 double actuator[4]) const;

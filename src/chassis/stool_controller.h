@@ -14,6 +14,7 @@
 #include <array>
 #include <cstdint>
 
+#include "chassis_config.h"
 #include "leg_kinematics.h"
 
 namespace modules {
@@ -43,6 +44,7 @@ struct StoolControllerOutput {
 /** @brief 维持机器人凳式姿态稳定的控制器。 */
 class StoolController {
    public:
+    explicit StoolController(ChassisConfig config = {}) : config_(config) {}
     /**
      * @brief 清空内部状态并恢复到初始条件。
      */
@@ -55,6 +57,7 @@ class StoolController {
     StoolControllerOutput Update(const StoolControllerInput &input);
 
    private:
+    const ChassisConfig config_;
     /** @brief 单个关节 PID 控制器的积分与历史误差。 */
     struct JointPidState {
         double position_integral =
@@ -79,7 +82,7 @@ class StoolController {
      * @param normalized_angle 去除安装方向后的归一化关节角，单位为弧度。
      * @return 考虑左右安装方向后的原始机构角，单位为弧度。
      */
-    static double RawKinematicAngle(uint8_t side, double normalized_angle);
+    double RawKinematicAngle(uint8_t side, double normalized_angle);
     /**
      * @brief 计算单个关节的 PID 目标力矩。
      * @param index 关节在控制器数组中的索引。

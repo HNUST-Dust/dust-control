@@ -333,6 +333,23 @@ int main() {
         CHECK(std::isfinite(output.joint_torque.left.b));
     }
 
+    // 动态电机配置提供轮力矩预算，平衡控制器不能继续使用编译期默认预算。
+    modules::BalanceController no_turn(0.0);
+    modules::BalanceController configured_turn(2.0);
+    input.remote.chassis_x = 0;
+    input.remote.chassis_rotate = .5;
+    input.remote.run = input.requested_enable = true;
+    input.theta.left = input.theta.right =
+        modules::ChassisConfig{}.theta_balance_bias();
+    modules::ChassisControlOutput disabled_turn{}, enabled_turn{};
+    for (unsigned tick = 0; tick < 500; ++tick) {
+        no_turn.Update(input, disabled_turn);
+        configured_turn.Update(input, enabled_turn);
+    }
+    CHECK(std::abs(enabled_turn.allocated_turn_torque) > 0);
+    CHECK(std::abs(enabled_turn.allocated_turn_torque) <= 2.0);
+    CHECK(disabled_turn.allocated_turn_torque == 0);
+
     std::cout
         << "Session framing, disabled output, stale input, UART gaps, HI91 "
            "CRC, clock wrap and real control math passed\n";

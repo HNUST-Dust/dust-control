@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
 #include "balance_controller.h"
+#include "chassis_config.h"
 #include "chassis_input_reader.h"
 #include "chassis_output_policy.h"
 #include "chassis_state_machine.h"
@@ -14,8 +15,22 @@ namespace modules {
 // 控制周期的同步执行入口，不依赖线程、USB、RTOS、全局通道或遥测。
 class ChassisController {
    public:
-    explicit ChassisController(InputDeadlines deadlines = {})
-        : input_reader_(deadlines) {}
+    explicit ChassisController(
+        InputDeadlines deadlines = {},
+        double wheel_torque_limit = chassis_config::kWheelTorqueLimit,
+        ChassisConfig config = {})
+        : config_(config),
+          recovery_controller_(config),
+          climb_stairs_controller_(config),
+          balance_controller_(wheel_torque_limit, config),
+          input_reader_(deadlines, config),
+          support_force_estimator_(config),
+          flight_controller_(config),
+          jump_controller_(config),
+          state_machine_(config),
+          output_policy_(config) {
+        ValidateChassisConfig(config_);
+    }
     // 按需向调用方同步复制本周期输入，控制核心内不执行遥测 I/O。
     ChassisControlOutput Tick(const ControllerInputs &, uint64_t now_us,
                               bool operator_permission = false,
@@ -25,6 +40,7 @@ class ChassisController {
     }
 
    private:
+    const ChassisConfig config_;
     void UpdateControlState(const ChassisCycleInput &);
     void ComputeControlOutput(const ChassisCycleInput &,
                               const ChassisSupportForceEstimate &,

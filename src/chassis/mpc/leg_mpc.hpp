@@ -17,8 +17,8 @@ class LegMpc {
     using Input = Eigen::Matrix<double, kInputDimension, 1>;
 
     struct Parameters {
-        // 这些底盘常量需与参考工程的配置保持一致：
-        // src/chassis/defaults/chassis_params.yaml。
+        // 独立实验模型的默认值；调用方通过 Parameters 显式设置当前机器人模型。
+        // 此模块不自行读取整机启动配置。
         double mass_kg = 12.054;
         double roll_inertia_kg_m2 = 0.113303628;
         double half_track_m = 0.215;

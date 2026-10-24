@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "chassis_config.h"
 #include "chassis_types.h"
 
 namespace modules {
@@ -44,6 +45,7 @@ struct ChassisStateTransition {
 /** 保存故障锁存和动作进度，决定底盘运行状态转换。 */
 class ChassisStateMachine {
    public:
+    explicit ChassisStateMachine(ChassisConfig config = {}) : config_(config) {}
     ChassisStateTransition Update(const ChassisCycleInput &input);
     void MarkRecoveryCompleted() {
         recovery_completed_ = true;
@@ -98,6 +100,7 @@ class ChassisStateMachine {
     }
 
    private:
+    const ChassisConfig config_;
     ChassisControlState DetermineNextState(
         const ChassisCycleInput &input, ChassisTransitionReason &reason) const;
     void UpdateSafetyLatches(const ChassisCycleInput &input);
