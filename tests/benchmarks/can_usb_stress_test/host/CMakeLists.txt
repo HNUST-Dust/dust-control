@@ -7,14 +7,14 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 set(WBR_COMPANION_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." CACHE PATH
     "dust-control source tree")
-if(NOT EXISTS "${WBR_COMPANION_DIR}/modules/runtime/realtime_loop.cpp")
+if(NOT EXISTS "${WBR_COMPANION_DIR}/src/chassis/runtime/realtime_loop.cpp")
   message(FATAL_ERROR "Set WBR_COMPANION_DIR to the dust-control checkout")
 endif()
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED IMPORTED_TARGET libusb-1.0)
-add_executable(can_usb_host_rt main.cpp usb_benchmark.cpp event_waiter.cpp "${WBR_COMPANION_DIR}/modules/runtime/realtime_loop.cpp")
-target_include_directories(can_usb_host_rt PRIVATE "${WBR_COMPANION_DIR}/include")
+add_executable(can_usb_host_rt main.cpp usb_benchmark.cpp event_waiter.cpp "${WBR_COMPANION_DIR}/src/chassis/runtime/realtime_loop.cpp")
+target_include_directories(can_usb_host_rt PRIVATE "${WBR_COMPANION_DIR}/src")
 target_link_libraries(can_usb_host_rt PRIVATE Threads::Threads PkgConfig::LIBUSB)
 target_compile_options(can_usb_host_rt PRIVATE -Wall -Wextra -Wpedantic -Werror)
 enable_testing()
@@ -45,8 +45,8 @@ target_compile_options(control_latency_test PRIVATE -Wall -Wextra -Wpedantic -We
 add_test(NAME control_latency_identity_contract COMMAND control_latency_test)
 
 add_executable(control_latency_report_test control_latency_report_test.cpp
-  "${WBR_COMPANION_DIR}/modules/runtime/realtime_loop.cpp")
-target_include_directories(control_latency_report_test PRIVATE "${WBR_COMPANION_DIR}/include")
+  "${WBR_COMPANION_DIR}/src/chassis/runtime/realtime_loop.cpp")
+target_include_directories(control_latency_report_test PRIVATE "${WBR_COMPANION_DIR}/src")
 target_link_libraries(control_latency_report_test PRIVATE Threads::Threads)
 target_compile_options(control_latency_report_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME control_latency_measurement_contract COMMAND control_latency_report_test)
@@ -60,8 +60,8 @@ add_test(NAME control_timeline_wrap_and_order
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/control_timeline_test.py)
 
 add_executable(can_usb_rmcs_host_rt rmcs_style_main.cpp rmcs_style_benchmark.cpp
-  event_waiter.cpp "${WBR_COMPANION_DIR}/modules/runtime/realtime_loop.cpp")
-target_include_directories(can_usb_rmcs_host_rt PRIVATE "${WBR_COMPANION_DIR}/include")
+  event_waiter.cpp "${WBR_COMPANION_DIR}/src/chassis/runtime/realtime_loop.cpp")
+target_include_directories(can_usb_rmcs_host_rt PRIVATE "${WBR_COMPANION_DIR}/src")
 target_link_libraries(can_usb_rmcs_host_rt PRIVATE Threads::Threads PkgConfig::LIBUSB)
 target_compile_options(can_usb_rmcs_host_rt PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
