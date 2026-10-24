@@ -1,13 +1,20 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "sbus_decoder.hpp"
 
-#include <remote_input_params_generated.h>
-
 #include <algorithm>
 
 #include "hardware/remote/wfly_sbus_protocol.h"
 
 namespace dust::devices {
+namespace {
+// 当前 WFLY 遥控器的固定标定，开关阈值独立于摇杆归一化。
+constexpr float kSbusMid = 1024.0F;
+constexpr float kSbusScale = 670.0F;
+constexpr uint16_t kSwitchLowMidThreshold = 689;
+constexpr uint16_t kSwitchMidHighThreshold = 1359;
+constexpr uint64_t kFrameLostTimeoutUs = 1000000;
+}  // namespace
+
 void SbusDecoder::Reset() {
     stream_ = {};
     latest_ = {};
@@ -34,10 +41,7 @@ void SbusDecoder::Consume(std::span<const uint8_t> bytes, uint64_t receive_us) {
 
 bool SbusDecoder::PollTimeout(uint64_t now_us) {
     if (!timeout_pending() || now_us < lost_start_us_ ||
-        now_us - lost_start_us_ <
-            uint64_t(modules::remote_input_params::
-                         kRemoteInputWflyFrameLostTimeoutMs) *
-                1000) {
+        now_us - lost_start_us_ < kFrameLostTimeoutUs) {
         return false;
     }
     latest_ = {};
@@ -76,20 +80,12 @@ void SbusDecoder::DecodeFrame(uint64_t receive_us) {
     msg::RemoteInputState remote{};
     remote.source = msg::kRemoteInputWfly;
     auto normalized = [](uint16_t value) {
-        return std::clamp(
-            (float(value) -
-             modules::remote_input_params::kRemoteInputWflySbusMid) /
-                modules::remote_input_params::kRemoteInputWflySbusScale,
-            -1.0F, 1.0F);
+        return std::clamp((float(value) - kSbusMid) / kSbusScale, -1.0F, 1.0F);
     };
     auto position = [](uint16_t value) {
-        return value < modules::remote_input_params::
-                           kRemoteInputWflySwitchLowMidThreshold
-                   ? 0
-               : value > modules::remote_input_params::
-                             kRemoteInputWflySwitchMidHighThreshold
-                   ? 2
-                   : 1;
+        return value < kSwitchLowMidThreshold    ? 0
+               : value > kSwitchMidHighThreshold ? 2
+                                                 : 1;
     };
     const auto ch4 = position(decoded.msg[4]);
     const auto ch5 = position(decoded.msg[5]);

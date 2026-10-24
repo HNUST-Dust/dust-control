@@ -1,14 +1,16 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "hi91_decoder.hpp"
 
-#include <hi91_imu_params_generated.h>
-
 #include <algorithm>
 #include <cmath>
 
 #include "hardware/imu/hi91_protocol.h"
 
 namespace dust::devices {
+namespace {
+constexpr double kMaximumValidPitchDeg = 100.0;
+}  // namespace
+
 namespace {
 uint16_t Read16(const uint8_t* bytes) {
     return uint16_t(bytes[0]) | (uint16_t(bytes[1]) << 8);
@@ -71,8 +73,7 @@ void Hi91Decoder::DecodeFrames(uint64_t sample_us) {
             continue;
         }
         if (!std::isfinite(decoded.pitch_deg) ||
-            std::abs(decoded.pitch_deg) >
-                modules::hi91_imu_params::kHi91MaximumValidPitchDeg ||
+            std::abs(decoded.pitch_deg) > kMaximumValidPitchDeg ||
             !std::isfinite(decoded.roll_deg) ||
             !std::isfinite(decoded.yaw_deg)) {
             time_guard_.Reject();
