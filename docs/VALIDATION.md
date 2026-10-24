@@ -1,5 +1,87 @@
 # 初次重构验证记录（2026-10-22）
 
+## 遥控固定标定与参数生成移除（2026-10-25）
+
+- 删除 remote_input_params.yaml/schema，中心 1024、量程 670、开关阈值
+  689/1359 直接归 SbusDecoder 私有常量，类型、比较边界和丢帧策略保持不变。
+- 删除最后的参数头生成入口 cmake/Parameters.cmake、generate_params.py 及相关
+  构建依赖；Python3/PyYAML 仅作为项目回归依赖，ROS 自身代码生成依赖不受影响。
+  遥控 freshness 仍从 sensors_params.yaml 加载，不与标定或丢帧策略合并。
+- 剩余 71 项 YAML 均为启动配置。三种构建通过，根目录 build 21/21、
+  development（含 MPC）23/23、无 ROS/Foxglove 静态构建 19/19 测试通过。
+  默认平衡 fixture 输出逐字节一致，格式、依赖边界和 diff 空白检查通过。
+  全部为离线/mock 验证。
+
+## 电机编译期 schema 与生成依赖清理（2026-10-25）
+
+- 删除 motor_config.schema.yaml 与 motors_params_generated.h 生成；电机 YAML
+  只在启动时解析和校验，版本仍为 3。内建接线归 motor_map.h，期限与方向归
+  MotorConfig，默认换算归当前 DJI 型号定义；运行配置仍覆盖实例默认值。
+- 底盘默认轮力矩预算与 MotorConfig 共用同一换算基线；核对 40 项旧默认值与
+  型号参数一致。移除电机、IMU、底盘的参数生成依赖及无用生成目录传播，
+  遥测的 Foxglove schema 使用自身私有生成目录。仅遥控保留参数头生成。
+- 三种构建通过：根目录 build 21/21、development（含 MPC）23/23、无 ROS/
+  Foxglove 静态构建 19/19 测试通过；71/71 头文件独立检查通过。
+  默认平衡 fixture 输出逐字节一致，三个 MCU 协议头一致，格式、依赖边界和
+  diff 空白检查通过。全部验证为离线/mock。
+
+## 底盘运行配置（2026-10-25）
+
+- chassis_params.yaml 移至 config，保留版本 2 的 44 项字段；删除编译期 schema
+  和参数头生成，清理已知构建目录中的旧生成头。脚本与 launch 通过原配置目录
+  自动加载三个 YAML，显式配置缺少任一文件时启动失败。
+- ChassisConfig 以只读实例副本传入控制器、输入运动学、VMC、气弹簧补偿、
+  输出策略和指令仲裁；无全局可变参数。启动加载与 YAML 依赖留在底盘运行层，
+  数值校验位于纯控制库。未指定配置目录时使用代码内建基线。
+- 回归验证非默认几何/零偏、VMC 增益、弹簧关闭、关节限幅、倾角保护和
+  实际队列指令换算，以及调用方修改后配置副本稳定、多个配置实例隔离。
+  非法文件/字段、重复字段、非有限数、零尺寸、范围倒置与版本均在启动前拒绝。
+- 根目录 build 21/21、development（含 MPC）23/23、无 ROS/Foxglove 静态构建
+  19/19 测试通过；71/71 头文件独立检查通过。44 项内建默认值与 YAML 一致，
+  默认平衡 fixture 输出逐字节一致，三个 MCU 协议头一致。格式、依赖和 diff
+  空白检查通过；全部为离线/mock 验证。
+
+## YAML 参数削减与代码归属（2026-10-25）
+
+- YAML 参数从 202 项缩减至 75 项（不含 schema_version）：底盘 44、遥控 4、
+  电机 25、传感器期限 2。迁回代码 118 项、推导 3 项、删除无使用者项 6 项。
+- 稳定算法参数直接归各控制器、估计器、VMC 与输出策略的现有 .cpp；共用
+  物理量、坐标约定、关节控制限值和周期归现有 chassis_config.h。
+  未保留新增的 defaults 头文件。遥控开关阈值仍作为独立标定项。
+- HI91 单参数 YAML/schema 移除，有效性阈值归 Decoder；SBUS frame_lost
+  策略保持原值并归 Decoder。控制默认 dt 从实际周期常量推导。
+- DJI 限幅与 DM MIT 量程归电机型号定义，轮反馈 ID 从槽位推导。电机启动
+  配置为版本 3；底盘与遥控编译期 YAML 为版本 2，旧字段严格拒绝。
+- 148 个有效底盘常量与 40 个电机参数核对一致，平衡 fixture 输出逐字节一致。
+  三个 MCU 共享协议头保持一致；仅离线/mock 验证。
+- 最终布局根目录 build 21/21、development（含 MPC）23/23、无 ROS/Foxglove
+  静态构建 19/19 测试通过；独立 benchmark 13/13 测试通过。
+  71/71 头文件独立语法检查、格式、依赖边界和 diff 空白检查通过。
+
+## 剩余 YAML 按模块归属（2026-10-25）
+
+- 移除 src/chassis/defaults：底盘参数与 schema 移至 src/chassis，遥控参数与
+  schema 移至 src/hardware/remote，HI91 参数与 schema 移至 src/hardware/imu。
+  更新参数生成依赖、MPC 注释和文档引用；参数值及生成头文件接口不变。
+- 三种构建通过；development 23/23、无 ROS/Foxglove 静态构建 19/19 测试通过。
+  根目录 20 项首次通过，ROS mock 首次传感器流超时，单独重跑通过。
+- 遥控与 HI91 YAML/schema 内容未变，底盘生成参数头与迁移前一致；平衡 fixture
+  输出逐字节一致，格式、依赖边界和 diff 空白检查通过。全部为离线/mock 验证。
+
+## 电机 YAML 归属整理（2026-10-25）
+
+- 电机映射、期限、轮输出方向、DJI 电流换算与限幅、DM MIT 编解码量程统一到
+  config/motors_params.yaml；内建默认头也从该文件生成。删除底盘中的电机默认
+  YAML、对应 schema 和全局 motor_range.hpp，schema 归电机模块维护。
+- 电机配置版本为 2，完整配置在启动时校验并注入 Encoder/Decoder；底盘通过
+  数值接收轮力矩预算。几何标定、反馈坐标方向和关节控制力矩上限仍属于底盘。
+- 回归覆盖方向、电流限幅、MIT 量程覆盖、非有限数、非法量程、旧版本拒绝，
+  以及平衡控制使用运行时轮力矩预算。默认平衡 fixture 输出逐字节一致，
+  三个 MCU 共享协议头保持一致。验证仅为离线/mock。
+- 根目录 build 21/21、development（含 MPC）23/23、无 ROS/Foxglove 静态构建
+  19/19、独立 benchmark 13/13 测试通过；69/69 头文件独立检查、格式、依赖
+  与 diff 空白检查通过。
+
 ## 运行职责分散验证（2026-10-25）
 
 - 删除 src/runtime 和集中式 ControlRuntime。底盘线程、外部运动指令与仲裁归属

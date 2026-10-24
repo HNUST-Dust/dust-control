@@ -1,6 +1,6 @@
 # 模块边界与运行规则
 
-`dust_chassis` 依赖公共物理量模型、Eigen、生成参数和只读运行配置；不依赖设备
+`dust_chassis` 依赖公共物理量模型、Eigen、代码常量和只读运行配置；不依赖设备
 协议、USB、EtherCAT、Foxglove 或 Linux 线程。设备目录拥有电机反馈、执行器目标、
 遥控状态和 IMU 样本的被动数据定义；底盘仅引用这些头文件，不链接设备实现。
 `src/chassis/controller_inputs.h` 汇总底盘输入，不携带 CAN 字节。
@@ -101,21 +101,29 @@ EtherCAT 实现、专用协议/安全策略、应用和测试仅在 `dev/wbr_inf
 
 ## 启动配置
 
-配置由使用模块拥有：`hardware/motors/motor_config.*` 校验电机地址、槽位和期限，
+配置由使用模块拥有：`hardware/motors/motor_config.*` 校验电机地址、槽位、期限、
+输出方向和电流换算，
 `hardware/imu/imu_config.*` 与 `hardware/remote/remote_config.*` 分别校验 HI91 和
 遥控期限。`hardware/config_yaml.hpp` 仅提供共用的 YAML 字段和数值校验函数，
-不保存配置。YAML 解析仅在三个设备模块的启动加载函数中执行。
+不保存配置。YAML 解析仅在设备模块与底盘各自的启动加载函数中执行。
 
-Robot 构造时协调加载两个 YAML；全部校验成功后保存本实例的配置，
+Robot 构造时协调加载三个 YAML；全部校验成功后保存本实例的配置，
 再允许创建控制器、Encoder、UsbLink 和线程。配置通过构造参数复制给使用者：
-MotorEncoder 与 MotorFeedbackDecoder 使用相同的电机映射，UsbLink 用同一配置
-检查网关通道；HI91 将自身期限用于时间恢复。底盘只接收 InputDeadlines 数值，
-不依赖 YAML 或设备配置加载实现。
+MotorEncoder 与 MotorFeedbackDecoder 使用相同的电机映射和固定型号量程，UsbLink 用同一配置
+检查网关通道；HI91 将自身期限用于时间恢复。底盘接收 InputDeadlines、轮力矩预算与 ChassisConfig 数值对象，
+不依赖 YAML 或设备配置加载实现。底盘自己的启动加载器在 chassis_config_loading.cpp，
+链接到 dust_chassis_runtime；数值校验在纯控制库的 chassis_config.cpp。
 
 不存在进程级全局配置、Freshness()/Addresses() 访问或单次加载标志。
 每个设备实例持有只读配置副本；Reset 不修改配置，不提供运行中重载接口。
 不同配置的实例可同时存在，后续加载失败不会影响已存在对象。
-`src/chassis/defaults` 保存其余编译期参数；日常调试入口仅为 `config` 中两个 YAML。
+电机内建值直接归 MotorConfig、motor_map.h 与型号定义，电机 YAML 不生成参数头，
+不再保留电机 schema；启动校验统一在 motor_config.cpp。硬件不读取底盘协议常量。
+底盘运行配置为 `config/chassis_params.yaml`，无编译期生成头或 schema；
+遥控固定中心、量程、开关阈值与丢帧策略直接归 SbusDecoder，不再生成参数头。稳定参数直接归所属控制器或
+估计器的 .cpp，实际共用项归现有 chassis_config.h；HI91 有效性阈值与 SBUS 丢帧策略归 Decoder。
+电机协议限幅与 MIT 量程分别由 dji_model.hpp、dm_model.hpp 维护，
+轮反馈 ID 按槽位推导。日常调试入口为 `config` 中三个 YAML。
 
 ## 数据与资源接口
 

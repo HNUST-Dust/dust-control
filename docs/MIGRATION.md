@@ -10,7 +10,7 @@
 | `chassis_controller/control` | `src/chassis` |
 | `chassis_controller/runtime` | `src/main.cpp`、`src/hardware/usb`、`src/telemetry` |
 | `chassis_controller/include` | 按职责归入 `src/hardware/motors、src/hardware/remote、src/hardware/imu、src/hardware/referee`、`src/chassis`、`src/hardware/usb` 等目录，与实现相邻 |
-| `chassis_controller/config` | 内部默认值在 `src/chassis/defaults`；启动配置在 `config` |
+| `chassis_controller/config` | 遥控固定标定和其他稳定默认值归使用模块代码；底盘、电机、传感器启动配置在 `config` |
 | `chassis_controller/telemetry` | `tools/foxglove` |
 | `src/leg_mpc.cpp` | `src/chassis/mpc` |
 | `src/mpc_link.cpp` | 旧 MPC Link 协议已移除 |

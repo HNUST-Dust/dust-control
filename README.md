@@ -82,11 +82,12 @@ ctest --preset development
 | `src/concurrency/` | 有界线程间快照与优先级继承锁 |
 | `src/telemetry/` | 有界队列、非实时序列化、Foxglove 服务 |
 | `config/` | 电机映射与传感器 freshness 的启动时配置，各硬件模块负责加载和校验 |
-| `src/chassis/defaults/` | 内部编译期参数和 schema |
+| `config/chassis_params.yaml` | 底盘启动配置，修改后重启生效 |
+| `src/chassis/chassis_config.h` | 底盘共享物理常量、坐标约定和周期 |
 | `tests/` | 各模块自动回归，不链接进生产应用 |
 | `tools/foxglove/` | 遥测消息定义、曲线布局与使用说明 |
 | `tests/benchmarks/` | 独立性能研究工具，默认不编译 |
-| `cmake/`、`scripts/` | 依赖、参数生成和统一构建运行入口 |
+| `cmake/`、`scripts/` | 依赖和统一构建运行入口 |
 
 阅读 [模块边界](docs/ARCHITECTURE.md)、[迁移记录](docs/MIGRATION.md)、
 [MPC 开发](docs/MPC.md)、[Foxglove 使用](tools/foxglove/README.md)。

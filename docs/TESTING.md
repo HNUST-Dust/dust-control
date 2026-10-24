@@ -4,7 +4,8 @@
 开发：`./scripts/test.sh`，启用 MPC、开发应用和控制回归。
 无 SDK：`./scripts/test.sh headless`，保持 MPC 回归但不下载 Foxglove。
 
-Python3 / PyYAML 是参数生成依赖。额外的 WebSocket 测试客户端可单独安装：
+Python3 / PyYAML 用于自动回归，生产代码不再生成 YAML 参数头。
+额外的 WebSocket 测试客户端可单独安装：
 
 ```bash
 python3 -m venv --system-site-packages .cache/test-venv
@@ -30,7 +31,13 @@ EtherCAT 构建和回归只在 `dev/wbr_infantry_ethercat` 执行。共享 realt
 测试独立放在 `tests/runtime`，不依赖下位机通讯方案。
 
 `configuration.startup_loading` 验证实际路由、每电机阈值、HI91/遥控微秒边界、
-非法配置启动失败、失败不影响已有设备、构造配置副本、独立实例共存与 HI91 恢复阈值隔离。
+轮输出方向、电流换算与限幅、固定型号 MIT 编解码量程、旧协议字段拒绝、非法配置启动失败、失败不影响已有设备、构造配置副本、独立实例共存与 HI91 恢复阈值隔离。
 
 `chassis.runtime_lifecycle` 验证底盘可独立离线运行、禁止重复启动，以及 Stop/析构
 不会停止借用的 USB 发送器；USB 会话只能由其所有者停止，停止后不能重新启动。
+
+`chassis.contracts` 同时验证运行时注入的轮力矩预算用于转向分配。
+
+底盘配置回归覆盖运行时几何与零偏、VMC 增益、气弹簧开关、关节限幅、
+倾角保护和指令换算的实际效果，以及构造副本隔离、缺失文件/字段、未知字段、
+重复字段、非有限数、零尺寸、范围倒置与版本拒绝。底盘 YAML 不参与参数头生成。
