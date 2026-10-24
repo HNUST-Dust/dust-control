@@ -16,13 +16,9 @@ EtherCAT 分支默认构建 `ethercat-development` 预设，启用已有 MPC/Eth
 EtherCAT 实现、头文件、应用、工具和测试仅在开发分支保留，正式 USB 分支已移除
 相应代码与构建入口。`v0.1` 仍保留发布当时的源码快照，不随本次分支清理变化。
 
-## CI/CD
+## CI
 
 分支 push 和 PR 执行 USB 正式配置、完整开发配置、无 SDK 配置三组构建/测试。
 USB CI 预设开启测试但关闭 MPC 开发模块，直接覆盖正式路径。
-推送 `v*` tag 后，全部测试通过才执行 production 构建和打包，并创建 GitHub Release。
-发布步骤要求 tag 提交属于 `wbr_infantry` 历史，并有 `docs/releases/<tag>.md` 说明。
-Release 包含 Linux x86_64 程序、Foxglove 布局/schema、许可证、构建版本信息及 SHA256。
-
-发布自动化使用 GitHub 仓库自带的临时 GITHUB_TOKEN，不保存个人 token。
-CI/CD 发布可下载产物，不自动连接或启动机器人。
+源码通过 Git 同步，目标主机本地构建。CI 不再生成 dist 压缩包或自动发布二进制 Release。
+已有版本 tag 和发布记录保留历史含义。
