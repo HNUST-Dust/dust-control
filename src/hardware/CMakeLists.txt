@@ -1,0 +1,5 @@
+add_subdirectory(motors)
+add_subdirectory(remote)
+add_subdirectory(imu)
+add_subdirectory(referee)
+add_subdirectory(usb)

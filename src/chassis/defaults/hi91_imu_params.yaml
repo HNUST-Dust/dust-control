@@ -1,0 +1,3 @@
+schema_version: 1
+hi91_imu:
+  maximum_valid_pitch_deg: 100.0

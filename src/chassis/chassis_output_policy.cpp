@@ -1,0 +1,90 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "chassis_output_policy.h"
+
+#include "chassis_config.h"
+#include "joint_output.h"
+
+namespace modules {
+namespace cfg = chassis_config;
+namespace {
+void SetJointTargets(dust::devices::MotorTargets& targets,
+                     dust::devices::MotorMode mode,
+                     const SidePair<JointPair<double>>& torque = {}) {
+    targets[2] = {mode, torque.left.b};
+    targets[3] = {mode, torque.left.d};
+    targets[4] = {mode, torque.right.b};
+    targets[5] = {mode, torque.right.d};
+}
+
+void SetWheelTargets(dust::devices::MotorTargets& targets,
+                     const SidePair<double>& torque = {}) {
+    targets[0] = {dust::devices::MotorMode::kTorque, torque.left};
+    targets[1] = {dust::devices::MotorMode::kTorque, torque.right};
+}
+}  // namespace
+
+bool ChassisOutputPolicy::arm_complete() const {
+    return dm_arm_ticks_ >= cfg::kDmArmTicks;
+}
+
+bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
+                                const ChassisCycleInput& input,
+                                ChassisControlOutput& output) {
+    PrepareJointOutput(state, input, output);
+    auto& targets = output.motor_targets;
+    targets = {};
+    switch (state) {
+        case ChassisControlState::kDisabled:
+        case ChassisControlState::kSafetyStop:
+        case ChassisControlState::kActionFault:
+        case ChassisControlState::kTiltFault:
+            if ((loop_ticks % 100U) == 0U) {
+                SetJointTargets(targets, dust::devices::MotorMode::kDisable);
+            }
+            if ((loop_ticks % 10U) == 0U) {
+                SetWheelTargets(targets);
+            }
+            dm_arm_ticks_ = 0U;
+            return true;
+
+        case ChassisControlState::kDmArming:
+            if ((loop_ticks % cfg::kDmModePeriodTicks) == 0U) {
+                SetJointTargets(targets,
+                                dm_arm_ticks_ < cfg::kDmClearTicks
+                                    ? dust::devices::MotorMode::kClearError
+                                    : dust::devices::MotorMode::kEnable);
+            }
+            SetWheelTargets(targets);
+            if (dm_arm_ticks_ < cfg::kDmArmTicks) {
+                ++dm_arm_ticks_;
+            }
+            return true;
+
+        case ChassisControlState::kWaitingFeedback:
+            SetJointTargets(targets, dust::devices::MotorMode::kTorque);
+            SetWheelTargets(targets);
+            return true;
+
+        case ChassisControlState::kRecovery:
+        case ChassisControlState::kClimbStairs:
+            SetJointTargets(targets, dust::devices::MotorMode::kTorque,
+                            output.joint_torque);
+            SetWheelTargets(targets);
+            return false;
+
+        case ChassisControlState::kBalance:
+        case ChassisControlState::kFlight:
+        case ChassisControlState::kJump:
+            SetJointTargets(targets, dust::devices::MotorMode::kTorque,
+                            output.joint_torque);
+            SetWheelTargets(targets, output.physical_wheel_torque);
+            return false;
+    }
+
+    return true;
+}
+
+}  // namespace modules

@@ -90,9 +90,14 @@ async def check():
             # SDK background threads inherit the worker's non-RT CPU affinity.
             tasks = list(Path(f'/proc/{proc.pid}/task').iterdir())
             assert len(tasks) > 2
+            control_threads = 0
             for task in tasks:
                 if int(task.name) == proc.pid:
                     continue
+                if (task / 'comm').read_text().strip() == 'dust-chassis':
+                    control_threads += 1
+                    assert __import__('os').sched_getscheduler(int(task.name)) == 0
+                    continue  # 独立控制线程在 --no-rt 下不限制 CPU。
                 status = (task / 'status').read_text()
                 cpulist = next(line.split(':', 1)[1].strip() for line in status.splitlines()
                                if line.startswith('Cpus_allowed_list:'))
@@ -102,6 +107,7 @@ async def check():
                     allowed.update(range(int(ends[0]), int(ends[-1]) + 1))
                 assert 3 not in allowed, (task.name, cpulist)
                 assert __import__('os').sched_getscheduler(int(task.name)) == 0
+            assert control_threads == 1
         finally:
             await ws.close()
         proc.terminate()

@@ -45,4 +45,4 @@ with tempfile.TemporaryDirectory() as temp:
     run(controller,'--config',str(config_dir),'--simulate','--no-rt','--seconds','.1')
     missing=root/'absent'
     run(controller,'--config',str(missing),'--simulate','--no-rt',ok=False)
-print('Configuration loading, strict validation, atomic failure and startup-only checks passed')
+print('Module configuration loading, strict validation, atomic startup failure and instance isolation passed')
