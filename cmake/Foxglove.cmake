@@ -12,3 +12,6 @@ if(NOT DUST_FOXGLOVE_SDK_DIR)
 endif()
 find_package(foxglove-sdk CONFIG REQUIRED HINTS "${DUST_FOXGLOVE_SDK_DIR}")
 foxglove_sdk_add_cpp_library(foxglove_cpp TYPE STATIC)
+# Keep third-party wrapper commands out of the project database. Otherwise
+# clangd can infer their include paths/C++ standard for standalone project headers.
+set_target_properties(foxglove_cpp PROPERTIES EXPORT_COMPILE_COMMANDS OFF)
