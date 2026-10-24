@@ -1,40 +1,34 @@
-# Motor CAN wiring. Physical controllers/pins/bitrates remain in board DTS.
-schema_version: 1
-
+# 接线、输出方向、电流换算与反馈期限；固定协议规格由电机型号定义维护。
+schema_version: 3
 left_wheel:
+  command_sign: -1.0
   freshness_deadline_us: 3000
   bus: 3
-  command_id: 0x200
-  feedback_id: 0x201
   command_slot: 0
-
 right_wheel:
+  command_sign: 1.0
   freshness_deadline_us: 3000
   bus: 2
-  command_id: 0x200
-  feedback_id: 0x201
   command_slot: 0
-
 left_joint_b:
   freshness_deadline_us: 3000
   bus: 3
-  command_id: 0x000
-  feedback_id: 0x010
-
+  command_id: 0
+  feedback_id: 16
 left_joint_d:
   freshness_deadline_us: 3000
   bus: 3
-  command_id: 0x003
-  feedback_id: 0x013
-
+  command_id: 3
+  feedback_id: 19
 right_joint_b:
   freshness_deadline_us: 3000
   bus: 2
-  command_id: 0x001
-  feedback_id: 0x011
-
+  command_id: 1
+  feedback_id: 17
 right_joint_d:
   freshness_deadline_us: 3000
   bus: 2
-  command_id: 0x002
-  feedback_id: 0x012
+  command_id: 2
+  feedback_id: 18
+dji:
+  current_per_nm: 3450.0

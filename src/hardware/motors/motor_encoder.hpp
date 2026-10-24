@@ -11,7 +11,9 @@ namespace dust::devices {
 // 成功返回本周期 CAN 帧；无效目标返回 nullopt，不输出部分批次。
 class MotorEncoder {
    public:
-    explicit MotorEncoder(MotorConfig config = {}) : config_(config) {}
+    explicit MotorEncoder(MotorConfig config = {}) : config_(config) {
+        ValidateMotorConfig(config_);
+    }
     std::optional<CanTransmitBatch> Encode(const MotorTargets& targets) const;
 
    private:

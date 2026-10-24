@@ -10,7 +10,6 @@
 #include "hardware/motors/motor_encoder.hpp"
 #include "hardware/motors/motor_feedback.hpp"
 #include "hardware/motors/motor_map.h"
-#include "hardware/motors/motor_range.hpp"
 
 namespace {
 std::array<uint8_t, 8> EncodeTarget(unsigned index,
@@ -27,12 +26,10 @@ std::array<uint8_t, 8> EncodeTarget(unsigned index,
 }  // namespace
 
 int main() {
-    using namespace modules;
-    using namespace modules::chassis_params;
     using namespace dust::devices;
+    const MotorConfig config;
     for (unsigned index = 0; index < 2; ++index) {
-        const double sign =
-            index == 0 ? kLeftWheelCommandSign : kRightWheelCommandSign;
+        const double sign = config.wheel_command_sign[index];
         for (double torque : {0.0, 0.123, -0.456, 1e6, -1e6,
                               std::numeric_limits<double>::quiet_NaN()}) {
             const auto bytes = EncodeTarget(
@@ -41,9 +38,9 @@ int main() {
             const double requested = sign * torque;
             const double current =
                 std::isfinite(requested)
-                    ? std::clamp(requested * kDjiCurrentPerNm,
-                                 -double(kDjiProtocolCurrentLimit),
-                                 double(kDjiProtocolCurrentLimit))
+                    ? std::clamp(requested * config.dji_current_per_nm,
+                                 -double(config.dji_protocol_current_limit),
+                                 double(config.dji_protocol_current_limit))
                     : 0.0;
             const auto encoded = static_cast<int16_t>(current);
             int16_t currents[4]{};
@@ -74,7 +71,7 @@ int main() {
             protocols::DmMitCommand command{};
             command.torque = float(torque);
             std::array<uint8_t, 8> expected{};
-            assert(protocols::PackDmMitCommand(&command, &kDmRange,
+            assert(protocols::PackDmMitCommand(&command, &config.dm_range,
                                                expected.data()) == 0);
             assert(bytes == expected);
         }
@@ -85,11 +82,11 @@ int main() {
     const auto feedback = DecodeMotorFeedback(2, raw, 8, 12345);
     assert(feedback.valid && feedback.precise_timestamp_us == 12345);
     assert(feedback.position_rad ==
-           protocols::DmFeedbackPosition(decoded, kDmRange));
+           protocols::DmFeedbackPosition(decoded, config.dm_range));
     assert(feedback.velocity_rad_s ==
-           protocols::DmFeedbackVelocity(decoded, kDmRange));
+           protocols::DmFeedbackVelocity(decoded, config.dm_range));
     assert(feedback.torque_nm ==
-           protocols::DmFeedbackTorque(decoded, kDmRange));
+           protocols::DmFeedbackTorque(decoded, config.dm_range));
     assert(feedback.enabled == (decoded.control_status == 1));
     const auto wheel = DecodeMotorFeedback(0, raw, 8, 100);
     assert(wheel.valid && wheel.speed_rpm == 0x123);

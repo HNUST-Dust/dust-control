@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
 
-#include <motors_params_generated.h>
-
 #include <array>
 #include <cstdint>
+
+#include "dji_model.hpp"
 
 namespace platform::motor_map {
 
@@ -16,25 +16,15 @@ struct MotorAddress {
     uint8_t command_slot;  // DJI 组帧索引，DM MIT 关节不使用。
 };
 
-inline constexpr MotorAddress kLeftWheel = {
-    motors_params::kLeftWheelBus, motors_params::kLeftWheelCommandId,
-    motors_params::kLeftWheelFeedbackId, motors_params::kLeftWheelCommandSlot};
-inline constexpr MotorAddress kRightWheel = {
-    motors_params::kRightWheelBus, motors_params::kRightWheelCommandId,
-    motors_params::kRightWheelFeedbackId,
-    motors_params::kRightWheelCommandSlot};
-inline constexpr MotorAddress kLeftJointB = {
-    motors_params::kLeftJointBBus, motors_params::kLeftJointBCommandId,
-    motors_params::kLeftJointBFeedbackId, 0U};
-inline constexpr MotorAddress kLeftJointD = {
-    motors_params::kLeftJointDBus, motors_params::kLeftJointDCommandId,
-    motors_params::kLeftJointDFeedbackId, 0U};
-inline constexpr MotorAddress kRightJointB = {
-    motors_params::kRightJointBBus, motors_params::kRightJointBCommandId,
-    motors_params::kRightJointBFeedbackId, 0U};
-inline constexpr MotorAddress kRightJointD = {
-    motors_params::kRightJointDBus, motors_params::kRightJointDCommandId,
-    motors_params::kRightJointDFeedbackId, 0U};
+// 未指定运行配置时使用的接线基线；显式 YAML 在启动时覆盖实例映射。
+inline constexpr MotorAddress kLeftWheel = {3, motor_model::kDjiCommandId,
+                                            motor_model::DjiFeedbackId(0), 0};
+inline constexpr MotorAddress kRightWheel = {2, motor_model::kDjiCommandId,
+                                             motor_model::DjiFeedbackId(0), 0};
+inline constexpr MotorAddress kLeftJointB = {3, 0x000, 0x010, 0};
+inline constexpr MotorAddress kLeftJointD = {3, 0x003, 0x013, 0};
+inline constexpr MotorAddress kRightJointB = {2, 0x001, 0x011, 0};
+inline constexpr MotorAddress kRightJointD = {2, 0x002, 0x012, 0};
 
 inline constexpr std::array<MotorAddress, 6> kDefaultMotors = {
     kLeftWheel,  kRightWheel,  kLeftJointB,

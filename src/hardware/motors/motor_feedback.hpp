@@ -13,12 +13,15 @@
 namespace dust::devices {
 // 输入字节仅在调用期间借用，返回值拥有自己的物理量。
 MotorFeedback DecodeMotorFeedback(unsigned index, const uint8_t* bytes,
-                                  size_t size, uint64_t sample_us);
+                                  size_t size, uint64_t sample_us,
+                                  const MotorConfig& config = {});
 
 // Read 可跨线程调用；CAN 路由与解码由接收线程独占，不依赖 USB 格式。
 class MotorFeedbackDecoder {
    public:
-    explicit MotorFeedbackDecoder(MotorConfig config = {}) : config_(config) {}
+    explicit MotorFeedbackDecoder(MotorConfig config = {}) : config_(config) {
+        ValidateMotorConfig(config_);
+    }
     void Reset() {
         latest_ = {};
         published_.Publish(latest_);
