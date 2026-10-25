@@ -30,5 +30,5 @@ endif()
 # 业务运行依赖设备和观测；纯控制算法 dust_chassis 继续独立。
 add_library(dust_chassis_runtime chassis_runtime.cpp chassis_config_loading.cpp)
 target_link_libraries(dust_chassis_runtime PRIVATE yaml-cpp)
-target_link_libraries(dust_chassis_runtime PUBLIC dust_chassis dust_usb dust_telemetry)
+target_link_libraries(dust_chassis_runtime PUBLIC dust_chassis dust_usb)
 target_compile_options(dust_chassis_runtime PRIVATE -Wall -Wextra -Wpedantic -Werror)

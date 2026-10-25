@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <thread>
 
+#include "../support/motor_fixture.hpp"
 #include "chassis/chassis_runtime.hpp"
 #include "chassis/runtime/realtime_loop.hpp"
 #include "hardware/usb/usb_session.hpp"
@@ -11,20 +12,21 @@
 int main() {
     using namespace dust::chassis;
     ChassisRuntimeOptions options;
-    options.realtime = false;
-    options.seconds = .01;
+    options.thread.realtime = false;
     ChassisRuntime offline(options, {}, {});
     offline.Start();
     const auto deadline =
         std::chrono::steady_clock::now() + std::chrono::seconds(1);
-    while (!offline.finished() && std::chrono::steady_clock::now() < deadline) {
+    dust::chassis::ChassisObservation sample;
+    bool observed = false;
+    while (!(observed = offline.TakeObservation(sample)) &&
+           !offline.finished() && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    assert(offline.finished());
+    assert(observed && sample.simulated);
     offline.Stop();
+    assert(offline.finished());
     assert(offline.error().empty());
-    wbr::host::TelemetrySample sample;
-    assert(offline.TakeObservation(sample) && sample.simulated);
     bool rejected = false;
     try {
         offline.Start();
@@ -35,11 +37,15 @@ int main() {
 
     wbr::host::UsbOptions usb_options;
     usb_options.realtime = false;
-    wbr::host::UsbSession usb(usb_options, {}, {});
+    wbr::host::UsbSession usb(usb_options, dust::test::MotorFixture(), {});
     const auto& link = usb.link();
     {
-        ChassisDevices devices{&link.motor_decoder(), &link.sbus_decoder(),
-                               &link.hi91_decoder(), &usb.transmitter()};
+        ChassisDevices devices;
+        devices.motor_adapters.push_back({"base", &link.motor_decoder(),
+                                          &usb.transmitter(),
+                                          dust::test::MotorFixture()});
+        devices.remote = &link.sbus_decoder();
+        devices.imu = &link.hi91_decoder();
         ChassisRuntime chassis(options, {}, {}, devices);
         chassis.Stop();
     }

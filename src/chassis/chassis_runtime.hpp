@@ -3,11 +3,12 @@
 #include <atomic>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "chassis_controller.h"
-#include "hardware/motors/motor_encoder.hpp"
-#include "motion_command.hpp"
-#include "telemetry/telemetry.hpp"
+#include "chassis_observation.hpp"
+#include "concurrency/thread.hpp"
+#include "hardware/motors/motor_protocol.hpp"
 
 namespace dust::devices {
 class MotorFeedbackDecoder;
@@ -19,19 +20,24 @@ class UsbTransmitter;
 }
 namespace dust::chassis {
 struct ChassisRuntimeOptions {
-    bool realtime = true;
-    int cpu = 3;
-    int priority = 80;
+    concurrency::ThreadOptions thread{true, 3, 80};
     bool enable_output = false;
-    double seconds = 0;
-    MotionCommandOptions commands;
+    // 借用整机启动许可；为空时由独立调用者直接管理输出策略。
+    const std::atomic<bool>* startup_ready = nullptr;
 };
-// 全部为空表示离线；硬件运行要求四个借用接口同时存在并长于底盘线程寿命。
+// 借用本板设备和发送器，motors 仅包含本板电机；借用对象须长于底盘线程寿命。
+struct ChassisMotorAdapter {
+    std::string name;
+    const devices::MotorFeedbackDecoder* feedback = nullptr;
+    wbr::host::UsbTransmitter* transmitter = nullptr;
+    devices::MotorConfig motors;
+    // Robot 在握手和发送线程就绪后置 true；独立调用者可省略。
+    const std::atomic<bool>* started = nullptr;
+};
 struct ChassisDevices {
-    const devices::MotorFeedbackDecoder* motors = nullptr;
+    std::vector<ChassisMotorAdapter> motor_adapters;
     const devices::SbusDecoder* remote = nullptr;
     const devices::Hi91Decoder* imu = nullptr;
-    wbr::host::UsbTransmitter* transmitter = nullptr;
 };
 class ChassisRuntime {
    public:
@@ -39,11 +45,10 @@ class ChassisRuntime {
                    const devices::MotorConfig& motors,
                    modules::InputDeadlines deadlines,
                    ChassisDevices devices = {},
-                   wbr::host::TelemetryPublisher* telemetry = nullptr,
                    modules::ChassisConfig config = {});
     ~ChassisRuntime();
     void Start();
-    // 只停止并回收本模块线程，不停止借用的 USB 或遥测资源。
+    // 只停止并回收本模块线程，不停止借用的 USB 资源。
     void Stop();
     bool finished() const {
         return finished_.load();
@@ -52,10 +57,8 @@ class ChassisRuntime {
     const std::string& error() const {
         return error_;
     }
-    MotionCommandQueue& commands() {
-        return commands_;
-    }
-    bool TakeObservation(wbr::host::TelemetrySample& sample) {
+    // 单个非实时消费者复制一条观测；队列为空时立即返回 false。
+    bool TakeObservation(ChassisObservation& sample) {
         return observations_.Pop(sample);
     }
 
@@ -64,11 +67,9 @@ class ChassisRuntime {
     const modules::ChassisConfig config_;
     ChassisRuntimeOptions options_;
     ChassisDevices devices_;
-    wbr::host::TelemetryPublisher* telemetry_;
-    devices::MotorEncoder encoder_;
+    std::vector<devices::MotorEncoder> encoders_;
     modules::ChassisController controller_;
-    MotionCommandQueue commands_;
-    wbr::host::TelemetryQueue observations_;
+    ChassisObservationQueue observations_;
     std::atomic<bool> stop_{false};
     std::atomic<bool> finished_{false};
     std::thread worker_;

@@ -6,81 +6,63 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "chassis_telemetry.hpp"
+
 namespace dust::ros {
 namespace {
 constexpr double kStandardGravityMps2 = 9.80665;
-constexpr auto kPublicationPeriod = std::chrono::milliseconds(20);
+constexpr auto kPublicationPeriod = std::chrono::milliseconds(1);
 }  // namespace
 
 DustControlNode::DustControlNode(const rclcpp::NodeOptions& options)
-    : Node("dust_control", options), options_(DeclareStartupOptions()) {
+    : Node("dust_control", options) {
     // 所有 ROS 实体先于实时控制线程创建；回调不执行 USB 或电机操作。
-    robot_ = std::make_unique<app::Robot>(options_);
-    velocity_subscription_ = create_subscription<geometry_msgs::msg::Twist>(
-        "~/cmd_vel", rclcpp::QoS(1),
-        [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) {
-            ReceiveVelocityCommand(*msg);
-        });
-    motion_subscription_ =
-        create_subscription<dust_control::msg::MotionCommand>(
-            "~/motion_command", rclcpp::QoS(1),
-            [this](dust_control::msg::MotionCommand::ConstSharedPtr msg) {
-                ReceiveMotionCommand(*msg);
-            });
+    robot_ = std::make_unique<app::Robot>(DeclareConfigurationDirectory());
     imu_publisher_ = create_publisher<sensor_msgs::msg::Imu>(
         "~/imu", rclcpp::SensorDataQoS());
     joints_publisher_ = create_publisher<sensor_msgs::msg::JointState>(
         "~/joint_states", rclcpp::SensorDataQoS());
     status_publisher_ = create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
         "~/status", rclcpp::QoS(1));
+    telemetry_publisher_ =
+        create_publisher<dust_control::msg::ChassisTelemetry>(
+            "~/chassis/telemetry", rclcpp::QoS(rclcpp::KeepLast(1))
+                                       .best_effort()
+                                       .durability_volatile());
     publication_timer_ = create_wall_timer(kPublicationPeriod,
                                            [this] { PublishObservations(); });
+    auxiliary_timer_ = create_wall_timer(std::chrono::milliseconds(10), [this] {
+        PublishAuxiliaryObservations();
+    });
     lifecycle_timer_ = create_wall_timer(std::chrono::milliseconds(5),
                                          [this] { CheckModuleStatus(); });
     robot_->Start();
 }
 
-app::Options DustControlNode::DeclareStartupOptions() {
-    app::Options options;
-    rcl_interfaces::msg::ParameterDescriptor startup;
-    startup.read_only = true;
-    startup.description = "Startup-only control configuration";
-    options.simulate = declare_parameter("simulate", false, startup);
-    options.enable_output = declare_parameter("enable_output", false, startup);
-    options.usb.realtime = declare_parameter("realtime", true, startup);
-    options.control_cpu = declare_parameter("control_cpu", 3, startup);
-    options.usb.cpu = declare_parameter("usb_cpu", 3, startup);
-    options.usb.priority = declare_parameter("priority", 80, startup);
-    options.usb.strict_hi91_crc =
-        declare_parameter("strict_hi91_crc", false, startup);
-    options.config_directory =
-        declare_parameter<std::string>("config_directory", "", startup);
-    options.usb.serial =
-        declare_parameter<std::string>("usb_serial", "", startup);
-    options.usb.product =
-        declare_parameter<std::string>("usb_product", "dust-hpm6750", startup);
-    const auto pid = declare_parameter<int>("usb_pid", -1, startup);
-    if (pid < -1 || pid > 65535) {
-        throw std::runtime_error("usb_pid must be -1 or 0..65535");
+std::string DustControlNode::DeclareConfigurationDirectory() {
+    const auto& overrides =
+        get_node_parameters_interface()->get_parameter_overrides();
+    for (const auto* legacy :
+         {"simulate", "enable_output", "realtime", "run_seconds",
+          "command_source", "command_timeout_ms", "control_cpu", "usb_cpu",
+          "priority", "strict_hi91_crc", "usb_serial", "usb_product",
+          "usb_pid"}) {
+        if (overrides.contains(legacy)) {
+            throw std::invalid_argument(
+                std::string("Unsupported startup parameter: ") + legacy +
+                "; use config_directory and robot.yaml");
+        }
     }
-    if (pid >= 0) {
-        options.usb.pid = uint16_t(pid);
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+    descriptor.read_only = true;
+    descriptor.description =
+        "Directory containing robot.yaml and module configuration";
+    const auto directory =
+        declare_parameter<std::string>("config_directory", "", descriptor);
+    if (directory.empty()) {
+        throw std::invalid_argument("Missing config_directory");
     }
-    options.seconds = declare_parameter("run_seconds", 0.0, startup);
-    options.foxglove_port = declare_parameter("foxglove_port", 0, startup);
-    const auto source =
-        declare_parameter<std::string>("command_source", "remote", startup);
-    if (source != "remote" && source != "ros") {
-        throw std::runtime_error("command_source must be remote or ros");
-    }
-    options.ros_commands = source == "ros";
-    const auto timeout_ms =
-        declare_parameter("command_timeout_ms", 200, startup);
-    if (timeout_ms <= 0 || timeout_ms > 10000) {
-        throw std::runtime_error("command_timeout_ms must be 1..10000");
-    }
-    options.command_timeout_ns = uint64_t(timeout_ms) * 1000000;
-    return options;
+    return directory;
 }
 
 DustControlNode::~DustControlNode() {
@@ -97,36 +79,6 @@ std::string DustControlNode::runtime_error() const {
     return robot_ && robot_->finished() ? robot_->error() : std::string{};
 }
 
-void DustControlNode::ReceiveVelocityCommand(
-    const geometry_msgs::msg::Twist& command) {
-    if (command.linear.y != 0 || command.linear.z != 0 ||
-        command.angular.x != 0 || command.angular.y != 0) {
-        ++rejected_command_count_;
-        return;
-    }
-    SubmitMotionCommand(command.linear.x, command.angular.z, 0);
-}
-
-void DustControlNode::ReceiveMotionCommand(
-    const dust_control::msg::MotionCommand& command) {
-    if (!command.header.frame_id.empty() &&
-        command.header.frame_id != "base_link") {
-        ++rejected_command_count_;
-        return;
-    }
-    SubmitMotionCommand(command.forward_velocity_m_s, command.yaw_rate_rad_s,
-                        command.leg_length_rate_m_s);
-}
-
-void DustControlNode::SubmitMotionCommand(double forward, double yaw,
-                                          double leg_rate) {
-    if (!options_.ros_commands ||
-        !robot_->chassis().commands().Push(
-            {forward, yaw, leg_rate, wbr::realtime::MonotonicTimeNs()})) {
-        ++rejected_command_count_;
-    }
-}
-
 void DustControlNode::CheckModuleStatus() {
     if (robot_->finished()) {
         if (!robot_->error().empty()) {
@@ -137,31 +89,56 @@ void DustControlNode::CheckModuleStatus() {
 }
 
 void DustControlNode::PublishObservations() {
-    if (robot_->finished()) {
+    if (robot_->finished() || !robot_->configuration().chassis.enabled) {
         return;
     }
-    wbr::host::TelemetrySample sample;
+    chassis::ChassisObservation sample;
     bool available = false;
-    while (robot_->chassis().TakeObservation(sample)) {
+    // 限定消费次数，防止生产者持续写入时占满 ROS executor。
+    for (size_t count = 0;
+         count < chassis::ChassisObservationQueue::kCapacity &&
+         robot_->chassis().TakeObservation(sample);
+         ++count) {
         available = true;
+        latest_observation_ = sample;
+        have_observation_ = true;
     }
-    if (!available) {
+    // 空队列不重复发布新鲜样本；源停更时继续告知观测已经失效。
+    const auto monotonic_ns = wbr::realtime::MonotonicTimeNs();
+    if (have_observation_ &&
+        (available ||
+         monotonic_ns - latest_observation_.monotonic_ns > 200000000)) {
+        telemetry_publisher_->publish(
+            MakeChassisTelemetry(latest_observation_, now(), monotonic_ns));
+    }
+}
+
+void DustControlNode::PublishAuxiliaryObservations() {
+    if (robot_->finished() || !have_observation_) {
         return;
     }
     const auto stamp = now();
-    PublishStatusReport(sample, stamp);
-    PublishImuSample(sample.input, stamp);
-    PublishJointStates(sample.input, stamp);
+    const auto monotonic_ns = wbr::realtime::MonotonicTimeNs();
+    if (monotonic_ns - last_status_ns_ >= 20000000) {
+        PublishStatusReport(latest_observation_, stamp);
+        last_status_ns_ = monotonic_ns;
+    }
+    PublishImuSample(latest_observation_.input, stamp);
+    PublishJointStates(latest_observation_.input, stamp);
 }
 
 void DustControlNode::PublishStatusReport(
-    const wbr::host::TelemetrySample& sample, const rclcpp::Time& stamp) {
+    const chassis::ChassisObservation& sample, const rclcpp::Time& stamp) {
     diagnostic_msgs::msg::DiagnosticArray status;
     status.header.stamp = stamp;
     diagnostic_msgs::msg::DiagnosticStatus diagnostic;
     diagnostic.name = get_fully_qualified_name();
     diagnostic.hardware_id =
-        options_.simulate ? "simulation" : options_.usb.product;
+        robot_->configuration().execution.simulate
+            ? "simulation"
+            : robot_->configuration()
+                  .adapters.at(robot_->configuration().chassis.adapter)
+                  .usb.product;
     diagnostic.level = sample.input.feedback_valid && sample.input.imu_fresh &&
                                sample.input.remote_fresh
                            ? diagnostic_msgs::msg::DiagnosticStatus::OK
@@ -178,8 +155,6 @@ void DustControlNode::PublishStatusReport(
     append_value("control_state", std::to_string(unsigned(sample.state)));
     append_value("output_requested",
                  sample.input.requested_enable ? "true" : "false");
-    append_value("command_source", options_.ros_commands ? "ros" : "remote");
-    append_value("rejected_commands", std::to_string(rejected_command_count_));
     append_value("motor_stale_mask",
                  std::to_string(sample.input.motor_stale_mask));
     append_value("imu_fresh", sample.input.imu_fresh ? "true" : "false");

@@ -2,8 +2,7 @@
 #pragma once
 #include <cstdint>
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
-#include <dust_control/msg/motion_command.hpp>
-#include <geometry_msgs/msg/twist.hpp>
+#include <dust_control/msg/chassis_telemetry.hpp>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -23,27 +22,24 @@ class DustControlNode : public rclcpp::Node {
     std::string runtime_error() const;
 
    private:
-    app::Options DeclareStartupOptions();
-    void ReceiveVelocityCommand(const geometry_msgs::msg::Twist& command);
-    void ReceiveMotionCommand(const dust_control::msg::MotionCommand& command);
-    void SubmitMotionCommand(double forward_m_s, double yaw_rad_s,
-                             double leg_rate_m_s);
+    std::string DeclareConfigurationDirectory();
 
     void CheckModuleStatus();
     void PublishObservations();
-    void PublishStatusReport(const wbr::host::TelemetrySample& sample,
+    void PublishAuxiliaryObservations();
+    void PublishStatusReport(const chassis::ChassisObservation& sample,
                              const rclcpp::Time& stamp);
     void PublishImuSample(const modules::ChassisCycleInput& input,
                           const rclcpp::Time& stamp);
     void PublishJointStates(const modules::ChassisCycleInput& input,
                             const rclcpp::Time& stamp);
 
-    app::Options options_;
+    // 发布回调独占缓存；源停更后继续发布失效状态。
+    chassis::ChassisObservation latest_observation_{};
+    bool have_observation_ = false;
+    rclcpp::Publisher<dust_control::msg::ChassisTelemetry>::SharedPtr
+        telemetry_publisher_;
     std::unique_ptr<app::Robot> robot_;
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr
-        velocity_subscription_;
-    rclcpp::Subscription<dust_control::msg::MotionCommand>::SharedPtr
-        motion_subscription_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr
         joints_publisher_;
@@ -51,8 +47,9 @@ class DustControlNode : public rclcpp::Node {
         status_publisher_;
     rclcpp::TimerBase::SharedPtr publication_timer_;
     rclcpp::TimerBase::SharedPtr lifecycle_timer_;
-    // 默认互斥回调组独占订阅、发布和以下统计，不由控制线程修改。
+    rclcpp::TimerBase::SharedPtr auxiliary_timer_;
+    uint64_t last_status_ns_ = 0;
+    // 默认互斥回调组独占发布和以下统计，不由控制线程修改。
     uint32_t last_imu_sequence_ = 0;
-    uint64_t rejected_command_count_ = 0;
 };
 }  // namespace dust::ros

@@ -18,6 +18,7 @@ static_assert(kDmClearTicks < kDmArmTicks);
 namespace modules {
 namespace cfg = chassis_config;
 namespace {
+// 目标槽位与反馈顺序一致；编码器从 YAML 加载的配置取得 CAN 总线及 ID。
 void SetJointTargets(dust::devices::MotorTargets& targets,
                      dust::devices::MotorMode mode,
                      const SidePair<JointPair<double>>& torque = {}) {

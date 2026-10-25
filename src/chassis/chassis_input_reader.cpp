@@ -15,6 +15,8 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
                               double dt, bool arm_complete) {
     input.dt = dt;
 
+    // 内部反馈槽位固定为：左轮、右轮、左 B/D、右 B/D，与 YAML 排列无关。
+    // CAN 总线及 ID 由设备层按 YAML 路由，控制层只读取物理反馈。
     const auto &motors = sources.motors;
     const SidePair<JointPair<dust::devices::MotorFeedback>> joints = {
         {motors[2], motors[3]}, {motors[4], motors[5]}};
@@ -66,24 +68,13 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     for (unsigned i = 0; i < motors.size(); ++i) {
         input.motor_feedback_age_us[i] = frame_age_us(motors[i]);
     }
-    const bool motor_fresh[] = {
-        input.motor_feedback_age_us[0] <= deadlines_.motors[0],
-        input.motor_feedback_age_us[1] <= deadlines_.motors[1],
-        input.motor_feedback_age_us[2] <= deadlines_.motors[2],
-        input.motor_feedback_age_us[3] <= deadlines_.motors[3],
-        input.motor_feedback_age_us[4] <= deadlines_.motors[4],
-        input.motor_feedback_age_us[5] <= deadlines_.motors[5],
-    };
-
     input.motor_stale_mask = 0U;
-    bool motors_fresh = true;
-    for (uint8_t i = 0U; i < sizeof(motor_fresh) / sizeof(motor_fresh[0]);
-         ++i) {
-        if (!motor_fresh[i]) {
-            input.motor_stale_mask |= static_cast<uint8_t>((1U << i));
-            motors_fresh = false;
+    for (size_t i = 0; i < motors.size(); ++i) {
+        if (input.motor_feedback_age_us[i] > deadlines_.motors[i]) {
+            input.motor_stale_mask |= static_cast<uint8_t>(1U << i);
         }
     }
+    const bool motors_fresh = input.motor_stale_mask == 0;
 
     // 正运动学输出统一采用校准后的左右腿坐标。
     input.leg = {};

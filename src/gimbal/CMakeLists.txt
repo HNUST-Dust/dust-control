@@ -1,0 +1,5 @@
+add_library(dust_gimbal gimbal_runtime.cpp)
+target_link_libraries(dust_gimbal PUBLIC dust_headers Threads::Threads dust_usb)
+target_link_libraries(dust_gimbal PRIVATE dust_realtime)
+target_compile_options(dust_gimbal PRIVATE -Wall -Wextra -Wpedantic -Werror)
+add_library(dust::gimbal ALIAS dust_gimbal)

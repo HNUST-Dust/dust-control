@@ -1,100 +1,144 @@
-"""ROS graph, command validation, startup-only parameters and clean shutdown; no USB."""
+"""ROS observation-only graph, YAML execution, immutable path and clean shutdown."""
+import math
 import os
+from pathlib import Path
 import signal
 import subprocess
 import sys
 import time
 
+import yaml
 import rclpy
 from diagnostic_msgs.msg import DiagnosticArray
-from geometry_msgs.msg import Twist
+from dust_control.msg import ChassisTelemetry
 from rclpy.parameter import Parameter
 from rcl_interfaces.srv import SetParameters
-from dust_control.msg import MotionCommand
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from startup_support import configuration, run_for
 
 binary = sys.argv[1]
 namespace = f"/dust_test_{os.getpid()}"
 rclpy.init()
 observer = rclpy.create_node("dust_test_observer")
-received = []
+received, telemetry = [], []
+telemetry_subscription = observer.create_subscription(
+    ChassisTelemetry,
+    namespace + "/dust_control/chassis/telemetry",
+    telemetry.append,
+    QoSProfile(
+        depth=1,
+        reliability=ReliabilityPolicy.BEST_EFFORT,
+        durability=DurabilityPolicy.VOLATILE,
+    ),
+)
 subscription = observer.create_subscription(
-    DiagnosticArray, namespace + "/dust_control/status", received.append, 1)
-velocity = observer.create_publisher(Twist, namespace + "/dust_control/cmd_vel", 1)
-motion = observer.create_publisher(MotionCommand, namespace + "/dust_control/motion_command", 1)
-process = subprocess.Popen([
-    binary, "--ros-args", "-r", "__ns:=" + namespace,
-    "-p", "simulate:=true", "-p", "realtime:=false",
-    "-p", "command_source:=ros", "-p", "run_seconds:=0.0",
-], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-try:
-    deadline = time.monotonic() + 8
-    while not received and time.monotonic() < deadline and process.poll() is None:
-        rclpy.spin_once(observer, timeout_sec=0.05)
-    assert received, (process.poll(), "No ROS status received")
-    status = received[-1].status[0]
-    values = {entry.key: entry.value for entry in status.values}
-    assert values["output_requested"] == "false"
-    assert values["command_source"] == "ros"
-    assert status.hardware_id == "simulation"
-    # Reliable, depth-one command endpoints are discoverable and reject bad axes/frames.
-    deadline = time.monotonic() + 3
-    while (velocity.get_subscription_count() == 0 or motion.get_subscription_count() == 0) and time.monotonic() < deadline:
-        rclpy.spin_once(observer, timeout_sec=0.05)
-    assert velocity.get_subscription_count() == 1 and motion.get_subscription_count() == 1
-    invalid = Twist()
-    invalid.linear.y = 1.0
-    velocity.publish(invalid)
-    invalid_motion = MotionCommand()
-    invalid_motion.header.frame_id = "map"
-    motion.publish(invalid_motion)
-    deadline = time.monotonic() + 3
-    while time.monotonic() < deadline:
-        rclpy.spin_once(observer, timeout_sec=0.05)
-        values = {entry.key: entry.value for entry in received[-1].status[0].values}
-        if int(values["rejected_commands"]) >= 2:
-            break
-    assert int(values["rejected_commands"]) >= 2
-    client = observer.create_client(SetParameters, namespace + "/dust_control/set_parameters")
-    assert client.wait_for_service(timeout_sec=3)
-    request = SetParameters.Request()
-    request.parameters = [Parameter("enable_output", value=True).to_parameter_msg()]
-    future = client.call_async(request)
-    rclpy.spin_until_future_complete(observer, future, timeout_sec=3)
-    assert future.done() and not future.result().results[0].successful
-    process.send_signal(signal.SIGINT)
-    stdout, stderr = process.communicate(timeout=5)
-    assert process.returncode == 0, (stdout, stderr)
-    assert "Stopped;" in stdout and "output=disabled" in stdout
-finally:
-    if process.poll() is None:
-        process.terminate()
-        process.communicate(timeout=5)
-    observer.destroy_node()
-    rclpy.shutdown()
+    DiagnosticArray, namespace + "/dust_control/status", received.append, 1
+)
 
-for params, message in (
-    (["simulate:=true", "enable_output:=true"], "Simulation cannot enable"),
-    (["command_source:=invalid"], "command_source"),
-    (["command_timeout_ms:=0"], "command_timeout_ms"),
-):
-    args = [binary, "--ros-args", "-p", "realtime:=false"]
-    for param in params:
-        args += ["-p", param]
-    result = subprocess.run(args, capture_output=True, text=True, timeout=5)
-    assert result.returncode == 1 and message in result.stderr, result
-print("ROS graph, custom commands, read-only parameters, shutdown and invalid startup passed")
+with configuration() as config:
+    command = [binary, "--ros-args", "-p", "config_directory:=" + str(config)]
+    process = subprocess.Popen(
+        command + ["-r", "__ns:=" + namespace],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 8
+        while (
+            (not received or not telemetry)
+            and time.monotonic() < deadline
+            and process.poll() is None
+        ):
+            rclpy.spin_once(observer, timeout_sec=0.05)
+        assert received and telemetry, (process.poll(), "No ROS observations received")
+        observation = telemetry[-1]
+        assert observation.version == 1 and observation.sequence > 0
+        assert observation.simulated and observation.source_connected
+        assert not observation.imu_fresh and math.isnan(observation.pitch_deg)
+        assert not observation.left_leg_fresh and math.isnan(observation.left_length_m)
+        status = received[-1].status[0]
+        values = {entry.key: entry.value for entry in status.values}
+        assert (
+            values["output_requested"] == "false" and status.hardware_id == "simulation"
+        )
+        subscriptions = observer.get_subscriber_names_and_types_by_node(
+            "dust_control", namespace
+        )
+        assert not any(
+            name.endswith(("/cmd_vel", "/motion_command")) for name, _ in subscriptions
+        )
+        client = observer.create_client(
+            SetParameters, namespace + "/dust_control/set_parameters"
+        )
+        assert client.wait_for_service(timeout_sec=3)
+        request = SetParameters.Request()
+        request.parameters = [
+            Parameter("config_directory", value="/other").to_parameter_msg()
+        ]
+        future = client.call_async(request)
+        rclpy.spin_until_future_complete(observer, future, timeout_sec=3)
+        assert future.done() and not future.result().results[0].successful
+        process.send_signal(signal.SIGINT)
+        stdout, stderr = process.communicate(timeout=5)
+        assert process.returncode == 0, (stdout, stderr)
+        assert "Stopped;" in stdout and "output=disabled" in stdout
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+        observer.destroy_node()
+        rclpy.shutdown()
+
+    for param in (
+        "simulate:=true",
+        "enable_output:=true",
+        "realtime:=false",
+        "run_seconds:=1",
+        "command_source:=ros",
+        "command_timeout_ms:=200",
+        "usb_serial:=obsolete",
+    ):
+        result = subprocess.run(
+            command + ["-p", param], capture_output=True, text=True, timeout=5
+        )
+        assert result.returncode == 1 and "robot.yaml" in result.stderr, result
+
+    document = yaml.safe_load((config / "robot.yaml").read_text())
+    document["execution"]["enable_output"] = True
+    (config / "robot.yaml").write_text(yaml.safe_dump(document))
+    result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+    assert result.returncode == 1 and "Simulation cannot enable" in result.stderr
+    document["execution"]["enable_output"] = False
+    document["modules"]["chassis"]["enabled"] = False
+    document["modules"]["gimbal"]["enabled"] = False
+    document["modules"]["ui"]["adapter"] = None
+    (config / "robot.yaml").write_text(yaml.safe_dump(document))
+    result = run_for(command)
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert "Chassis: 1 kHz" not in result.stdout
 
 if len(sys.argv) > 2:
-    backend = sys.argv[2]
     for disconnect in (False, True):
-        environment = dict(os.environ, LD_PRELOAD=backend, WBR_MOCK_REQUIRE_PREPOST="1")
+        environment = dict(
+            os.environ, LD_PRELOAD=sys.argv[2], WBR_MOCK_REQUIRE_PREPOST="1"
+        )
         if disconnect:
             environment["WBR_MOCK_DISCONNECT"] = "1"
-        result = subprocess.run([
-            binary, "--ros-args", "-p", "realtime:=false", "-p", "run_seconds:=0.3",
-        ], env=environment, capture_output=True, text=True, timeout=5)
-        assert result.returncode == int(disconnect), (result.stdout, result.stderr)
+        with configuration(simulate=False) as config:
+            result = run_for(
+                [binary, "--ros-args", "-p", "config_directory:=" + str(config)],
+                env=environment,
+                seconds=0.5,
+            )
+        assert result.returncode == int(disconnect), (
+            result.returncode,
+            result.stdout,
+            result.stderr,
+        )
         assert "Bridge capabilities=" in result.stdout
         if not disconnect:
             assert "output=disabled" in result.stdout and "Stopped;" in result.stdout
-    print("ROS node USB mock handshake, control and disconnect propagation passed")
+print("ROS observation-only graph, YAML startup, shutdown and USB faults passed")

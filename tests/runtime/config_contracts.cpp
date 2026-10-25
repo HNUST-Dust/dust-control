@@ -5,10 +5,10 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "../support/motor_fixture.hpp"
 #include "../support/usb_report_fixture.hpp"
 #include "chassis_input_reader.h"
-#include "command_arbiter.hpp"
-#include "hardware/motors/motor_encoder.hpp"
+#include "hardware/motors/motor_protocol.hpp"
 #include "joint_output.h"
 #include "leg_vmc.h"
 #include "robot.hpp"
@@ -52,18 +52,6 @@ void CheckChassisConfiguration(const modules::ChassisConfig& config) {
     const auto default_vmc = ComputeLegVmc(leg, .21, 0, 0, 0, 0, 0);
     Check(std::abs(vmc.axial_force - 9) < 1e-10);
     Check(std::abs(default_vmc.axial_force - 6) < 1e-10);
-    Check(std::abs(
-              dust::chassis::ToRemoteAxis(.4, config.max_body_speed, config) -
-              .55) < 1e-10);
-    dust::chassis::MotionCommandQueue commands;
-    dust::chassis::MotionCommand latest;
-    Check(commands.Push({.4, 2.0, 0, 1000}));
-    ControllerInputs command_input{};
-    command_input.remote.robot_enable = true;
-    dust::chassis::ApplyMotionCommand(command_input, latest, {true, 10000},
-                                      commands, 1001, config);
-    Check(std::abs(command_input.remote.chassis_x - .55) < 1e-6);
-    Check(std::abs(command_input.remote.chassis_rotate + .55) < 1e-6);
     ChassisControlOutput output{};
     output.joint_control_active = true;
     output.joint_torque = {{100, -100}, {100, -100}};
@@ -87,17 +75,13 @@ int main(int argc, char** argv) {
     try {
         using namespace dust::devices;
         // 不同 runtime 配置可独立存在；失败加载不能改动已存在的设备。
-        MotorEncoder default_encoder;
+        MotorEncoder default_encoder(dust::test::MotorFixture());
         wbr::host::UartReceiveQueue default_store;
         dust::test::UsbReportFixture default_decoder(default_store);
         if (argc == 3) {
-            dust::app::Options bad;
-            bad.config_directory = argv[2];
-            bad.simulate = true;
-            bad.usb.realtime = false;
             bool rejected = false;
             try {
-                dust::app::Robot invalid(bad);
+                dust::app::Robot invalid{std::string(argv[2])};
             } catch (const std::exception&) {
                 rejected = true;
             }
@@ -113,7 +97,13 @@ int main(int argc, char** argv) {
             LoadImuConfig((directory / "sensors_params.yaml").string());
         const auto remote =
             LoadRemoteConfig((directory / "sensors_params.yaml").string());
-        Check(motors.wheel_torque_limit_nm() == 2.0);
+        Check(motors.protocols[0] == MotorProtocol::kDji);
+        Check(motors.protocols[2] == MotorProtocol::kDm);
+        Check(motors.addresses[2].bus == 3 &&
+              motors.addresses[2].command_id == 0 &&
+              motors.addresses[2].feedback_id == 0x10);
+        Check(std::abs(motors.wheel_torque_limit_nm() - 16384.0 / 3450.0) <
+              1e-12);
         Check(motors.wheel_command_sign[0] == 1 &&
               motors.wheel_command_sign[1] == -1);
         Check(motors.dm_range.p_max == 12.56637F &&
@@ -135,8 +125,8 @@ int main(int argc, char** argv) {
               encoded->frames[0].bytes[1] == 0);
         Check(encoded->frames[0].bytes[2] != 0 ||
               encoded->frames[0].bytes[3] != 0);
-        Check(encoded->frames[0].bytes[2] == 0x20 &&
-              encoded->frames[0].bytes[3] == 0x00);
+        Check(encoded->frames[0].bytes[2] == 0x0d &&
+              encoded->frames[0].bytes[3] == 0x7a);
         targets[0].torque_nm = 1000;
         const auto limited = encoder.Encode(targets);
         Check(limited && limited->frames[0].bytes[2] == 0x40 &&
@@ -200,12 +190,8 @@ int main(int argc, char** argv) {
         reader.Read(source, input, 11502, .001, false);
         Check(!input.remote_fresh);
         // 多个不同配置的 runtime 构造互不排斥，不再有进程级单次加载状态。
-        dust::app::Options options;
-        options.config_directory = argv[1];
-        options.simulate = true;
-        options.usb.realtime = false;
-        dust::app::Robot first(options);
-        dust::app::Robot second(options);
+        dust::app::Robot first{std::string(argv[1])};
+        dust::app::Robot second{std::string(argv[1])};
         std::cout << "Module configuration, independent instances, CAN mapping "
                      "and freshness boundaries passed\n";
     } catch (const std::exception& error) {
