@@ -10,7 +10,7 @@
         }                                             \
     } while (false)
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     // 与固件一致使用静态存储，避免将记录器放在小容量栈上。
     static ControlLatencyRecorder recorder;
     auto command = StreamCommand(0, 0, 0);

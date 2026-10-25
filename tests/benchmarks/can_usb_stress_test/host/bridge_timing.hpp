@@ -4,7 +4,7 @@
 
 #include "bridge_packet.hpp"
 
-namespace bridge_wire {
+namespace dust_control::benchmarks::bridge_wire {
 constexpr uint32_t kTimingQueryMagic = 0x31514d54;  // TMQ1
 constexpr uint32_t kTimingReplyMagic = 0x31524d54;  // TMR1
 constexpr uint32_t kTimingUnavailable = 1U << 31;
@@ -98,4 +98,4 @@ inline bool ValidTiming(const Packet &packet, uint32_t sequence) {
 
     return true;
 }
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

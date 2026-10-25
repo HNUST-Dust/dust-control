@@ -2,7 +2,7 @@
 #pragma once
 #include "bridge_packet.hpp"
 
-namespace bridge_wire {
+namespace dust_control::benchmarks::bridge_wire {
 constexpr uint32_t kStreamCommand = 0x31444d43;  // CMD1
 constexpr uint32_t kStreamAck =
     0x314b4341;  // ACK1：仅表示提交，不代表电机响应。
@@ -117,4 +117,4 @@ struct FeedbackMailbox {
         return packet;
     }
 };
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

@@ -2,7 +2,7 @@
 #pragma once
 #include "bridge_packet.hpp"
 
-namespace bridge_wire {
+namespace dust_control::benchmarks::bridge_wire {
 // 每条总线由唯一所有者维护，线程需防止与 ISR 并发访问。
 // 此对象不依赖 RTOS，匹配与超时规则可在主机测试。
 struct FeedbackObservation {
@@ -52,4 +52,4 @@ struct FeedbackObservation {
         return true;
     }
 };
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

@@ -10,7 +10,7 @@
         }                                             \
     } while (false)
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     CHECK(SampleTiming(0) && SampleTiming(1) && !SampleTiming(2) &&
           !SampleTiming(63));
     CHECK(SampleTiming(64) && SampleTiming(65));

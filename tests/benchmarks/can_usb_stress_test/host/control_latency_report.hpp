@@ -12,15 +12,15 @@
 
 #include "control_latency.hpp"
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 // 采集完成后以普通优先级生成报告，必须匹配准确的 CAN 接收时间戳，
 // 不能替换为任意后续 USB 报文。未导出的反馈计为未匹配，避免低估延迟。
 template <class Commands, class Feedback>
 bool WriteControlLatencyReport(const Commands &commands,
                                const Feedback &feedback,
                                const std::string &result_path) {
-    using namespace bridge_wire;
-    namespace rt = wbr::realtime;
+    using namespace dust_control::benchmarks::bridge_wire;
+    namespace rt = dust_control::realtime;
     constexpr const char *names[] = {"left_wheel",    "left_joint_b",
                                      "left_joint_d",  "right_wheel",
                                      "right_joint_b", "right_joint_d"};
@@ -322,4 +322,4 @@ bool WriteControlLatencyReport(const Commands &commands,
     json.flush();
     return pass && bool(csv) && bool(json);
 }
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

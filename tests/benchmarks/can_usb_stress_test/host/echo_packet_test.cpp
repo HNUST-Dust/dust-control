@@ -9,7 +9,8 @@ int main() {
     // 后接恰好 52 字节的载荷，数值依次为 17..68。
     const unsigned char header[] = {0x53, 0x52, 0x54, 0x53, 17, 0,
                                     0,    0,    0,    8,    0,  0};
-    const auto packet = stress_host::EncodePacket(17, 2048);
+    const auto packet =
+        dust_control::benchmarks::stress_host::EncodePacket(17, 2048);
     if (!std::equal(std::begin(header), std::end(header), packet.begin())) {
         return 1;
     }
@@ -20,9 +21,12 @@ int main() {
         }
     }
 
-    const auto wrapped = stress_host::EncodePacket(0xffffffffU, 0x12345678U);
-    if (stress_host::ReadU32(wrapped.data() + 4) != 0xffffffffU ||
-        stress_host::ReadU32(wrapped.data() + 8) != 0x12345678U ||
+    const auto wrapped = dust_control::benchmarks::stress_host::EncodePacket(
+        0xffffffffU, 0x12345678U);
+    if (dust_control::benchmarks::stress_host::ReadU32(wrapped.data() + 4) !=
+            0xffffffffU ||
+        dust_control::benchmarks::stress_host::ReadU32(wrapped.data() + 8) !=
+            0x12345678U ||
         wrapped[12] != 255) {
         return 3;
     }

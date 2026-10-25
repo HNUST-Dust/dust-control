@@ -13,7 +13,7 @@
     } while (false)
 
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     unsigned permutations = 0;
     for (unsigned order = 0; order < 6; ++order) {
         unsigned seen = 0;

@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 using Packet = std::array<unsigned char, 64>;
 constexpr std::uint32_t kMagic = 0x53545253;
 inline std::uint32_t ReadU32(const unsigned char *bytes) {
@@ -30,4 +30,4 @@ inline Packet EncodePacket(std::uint32_t sequence,
 
     return packet;
 }
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

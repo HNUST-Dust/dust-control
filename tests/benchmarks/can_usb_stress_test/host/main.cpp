@@ -11,10 +11,11 @@
 
 #include "usb_benchmark.hpp"
 
-namespace rt = wbr::realtime;
+namespace rt = dust_control::realtime;
 namespace {
-stress_host::BenchmarkOptions ParseOptions(int argc, char **argv) {
-    stress_host::BenchmarkOptions options;
+dust_control::benchmarks::stress_host::BenchmarkOptions ParseOptions(
+    int argc, char **argv) {
+    dust_control::benchmarks::stress_host::BenchmarkOptions options;
     for (int index = 1; index < argc; ++index) {
         const std::string key = argv[index];
         if (key == "--right-first") {
@@ -126,7 +127,7 @@ std::string IsolatedCpus() {
 int main(int argc, char **argv) {
     try {
         const auto options = ParseOptions(argc, argv);
-        stress_host::UsbBenchmark benchmark(options);
+        dust_control::benchmarks::stress_host::UsbBenchmark benchmark(options);
         std::string error;
         if (options.realtime &&
             !rt::ConfigureCurrentThread(options.cpu, options.priority, error)) {
@@ -148,8 +149,12 @@ int main(int argc, char **argv) {
             std::cerr << "Cannot open USB session\n";
             return 1;
         }
-        std::signal(SIGINT, stress_host::UsbBenchmark::RequestStop);
-        std::signal(SIGTERM, stress_host::UsbBenchmark::RequestStop);
+        std::signal(
+            SIGINT,
+            dust_control::benchmarks::stress_host::UsbBenchmark::RequestStop);
+        std::signal(
+            SIGTERM,
+            dust_control::benchmarks::stress_host::UsbBenchmark::RequestStop);
         benchmark.Run();
         // 报告和文件 I/O 不能以 FIFO 优先级执行。
         sched_param normal{};

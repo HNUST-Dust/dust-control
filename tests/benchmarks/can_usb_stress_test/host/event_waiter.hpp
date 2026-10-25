@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 
 struct WaitResult {
     int error = 0;  // 负 errno；-EINTR 由调用者处理停止信号。
@@ -32,4 +32,4 @@ class EventWaiter {
     std::vector<pollfd> sources_;
 };
 
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

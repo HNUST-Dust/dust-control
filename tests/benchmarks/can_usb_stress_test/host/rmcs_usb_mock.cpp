@@ -16,7 +16,7 @@ struct libusb_context {};
 struct libusb_device {};
 struct libusb_device_handle {};
 namespace {
-using bridge_wire::Packet;
+using dust_control::benchmarks::bridge_wire::Packet;
 struct Mock {
     std::mutex queue_mutex, event_mutex;
     std::condition_variable ready;
@@ -24,7 +24,9 @@ struct Mock {
     std::deque<libusb_transfer *> outputs;
     std::deque<libusb_transfer *> cancelled;
     std::deque<Packet> replies;
-    std::unique_ptr<bridge_wire::ControlLatencyRecorder> recorder;
+    std::unique_ptr<
+        dust_control::benchmarks::bridge_wire::ControlLatencyRecorder>
+        recorder;
     uint32_t commands[2]{}, feedback_sequence = 0;
     static uint32_t Now() {
         return uint32_t(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -36,31 +38,45 @@ struct Mock {
                  uint32_t out_us) {
         recorder->Stage(request, group, out_us);
         Packet ack{};
-        bridge_wire::WriteU32(ack.data(), bridge_wire::kStreamAck);
-        bridge_wire::WriteU32(ack.data() + 4,
-                              bridge_wire::ReadU32(request.data() + 4));
-        bridge_wire::WriteU32(ack.data() + 12, out_us);
-        bridge_wire::WriteU32(ack.data() + 20, 2);
-        bridge_wire::WriteU32(ack.data() + 24, bridge_wire::kControlReply);
+        dust_control::benchmarks::bridge_wire::WriteU32(
+            ack.data(), dust_control::benchmarks::bridge_wire::kStreamAck);
+        dust_control::benchmarks::bridge_wire::WriteU32(
+            ack.data() + 4,
+            dust_control::benchmarks::bridge_wire::ReadU32(request.data() + 4));
+        dust_control::benchmarks::bridge_wire::WriteU32(ack.data() + 12,
+                                                        out_us);
+        dust_control::benchmarks::bridge_wire::WriteU32(ack.data() + 20, 2);
+        dust_control::benchmarks::bridge_wire::WriteU32(
+            ack.data() + 24,
+            dust_control::benchmarks::bridge_wire::kControlReply);
         if (merged) {
-            bridge_wire::WriteU32(ack.data() + 28,
-                                  bridge_wire::kMergedControlCapability);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                ack.data() + 28, dust_control::benchmarks::bridge_wire::
+                                     kMergedControlCapability);
         }
         replies.push_back(ack);
         Packet feedback{};
-        bridge_wire::WriteU32(feedback.data(), bridge_wire::kStreamFeedback);
-        bridge_wire::WriteU32(feedback.data() + 4, feedback_sequence++);
-        bridge_wire::WriteU32(feedback.data() + 8, 3);
-        bridge_wire::WriteU32(feedback.data() + 12, out_us + 4);
+        dust_control::benchmarks::bridge_wire::WriteU32(
+            feedback.data(),
+            dust_control::benchmarks::bridge_wire::kStreamFeedback);
+        dust_control::benchmarks::bridge_wire::WriteU32(feedback.data() + 4,
+                                                        feedback_sequence++);
+        dust_control::benchmarks::bridge_wire::WriteU32(feedback.data() + 8, 3);
+        dust_control::benchmarks::bridge_wire::WriteU32(feedback.data() + 12,
+                                                        out_us + 4);
         for (unsigned i = 0; i < 3; ++i) {
             recorder->Driver(group * 3 + i, out_us + 1);
             recorder->HardwareStart(group * 3 + i, out_us + 1);
             recorder->BatchDone(group * 3 + i, out_us + 2);
             recorder->Receive(group * 3 + i, out_us + 3);
-            const auto &layout = bridge_wire::kLayout[group][i];
-            auto *frame = feedback.data() + bridge_wire::FrameOffset(i);
-            bridge_wire::SetAddress(frame, layout.bus, layout.feedback_id, 8);
-            bridge_wire::WriteU32(frame + 12, out_us + 3);
+            const auto &layout =
+                dust_control::benchmarks::bridge_wire::kLayout[group][i];
+            auto *frame = feedback.data() +
+                          dust_control::benchmarks::bridge_wire::FrameOffset(i);
+            dust_control::benchmarks::bridge_wire::SetAddress(
+                frame, layout.bus, layout.feedback_id, 8);
+            dust_control::benchmarks::bridge_wire::WriteU32(frame + 12,
+                                                            out_us + 3);
         }
         replies.push_back(feedback);
         ++commands[group];
@@ -71,85 +87,123 @@ struct Mock {
         const int length = transfer->length;
         Packet request{};
         std::copy_n(transfer->buffer, 64, request.begin());
-        const auto magic = bridge_wire::ReadU32(request.data());
-        if (magic == bridge_wire::kMergedCapabilityQuery) {
+        const auto magic =
+            dust_control::benchmarks::bridge_wire::ReadU32(request.data());
+        if (magic ==
+            dust_control::benchmarks::bridge_wire::kMergedCapabilityQuery) {
             Packet response{};
-            bridge_wire::WriteU32(response.data(),
-                                  bridge_wire::kMergedCapabilityReply);
-            bridge_wire::WriteU32(response.data() + 4,
-                                  bridge_wire::ReadU32(request.data() + 4));
-            bridge_wire::WriteU32(response.data() + 8,
-                                  bridge_wire::kMergedControlCapability);
-            bridge_wire::WriteU32(
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data(),
+                dust_control::benchmarks::bridge_wire::kMergedCapabilityReply);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 4,
+                dust_control::benchmarks::bridge_wire::ReadU32(request.data() +
+                                                               4));
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 8, dust_control::benchmarks::bridge_wire::
+                                         kMergedControlCapability);
+            dust_control::benchmarks::bridge_wire::WriteU32(
                 response.data() + 12,
                 std::getenv("RMCS_MOCK_CAPACITY_64") ? 64 : 128);
-            bridge_wire::WriteU32(response.data() + 16, 64);
-            bridge_wire::WriteU32(response.data() + 24,
-                                  bridge_wire::kProfileReply);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 16, 64);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 24,
+                dust_control::benchmarks::bridge_wire::kProfileReply);
             if (!std::getenv("RMCS_MOCK_NO_HARDWARE")) {
-                bridge_wire::WriteU32(response.data() + 20,
-                                      bridge_wire::kHardwareReply);
+                dust_control::benchmarks::bridge_wire::WriteU32(
+                    response.data() + 20,
+                    dust_control::benchmarks::bridge_wire::kHardwareReply);
             }
             replies.push_back(response);
-        } else if (magic == bridge_wire::kProfileQuery) {
+        } else if (magic ==
+                   dust_control::benchmarks::bridge_wire::kProfileQuery) {
             Packet response = request;
-            bridge_wire::WriteU32(response.data(), bridge_wire::kProfileReply);
-            const auto order = bridge_wire::ReadU32(request.data() + 8);
-            const auto fast = bridge_wire::ReadU32(request.data() + 12);
-            bridge_wire::WriteU32(response.data() + 16,
-                                  (!bridge_wire::ValidProfile(order, fast) ||
-                                   commands[0] || commands[1])
-                                      ? 1
-                                      : 0);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data(),
+                dust_control::benchmarks::bridge_wire::kProfileReply);
+            const auto order = dust_control::benchmarks::bridge_wire::ReadU32(
+                request.data() + 8);
+            const auto fast = dust_control::benchmarks::bridge_wire::ReadU32(
+                request.data() + 12);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 16,
+                (!dust_control::benchmarks::bridge_wire::ValidProfile(order,
+                                                                      fast) ||
+                 commands[0] || commands[1])
+                    ? 1
+                    : 0);
             replies.push_back(response);
-        } else if (magic == bridge_wire::kControlCommand) {
+        } else if (magic ==
+                   dust_control::benchmarks::bridge_wire::kControlCommand) {
             if (length == 128) {
                 if (std::getenv("RMCS_MOCK_CAPACITY_64")) {
                     std::abort();
                 }
-                bridge_wire::MergedControl raw{};
+                dust_control::benchmarks::bridge_wire::MergedControl raw{};
                 std::copy_n(transfer->buffer, 128, raw.begin());
                 Packet groups[2]{};
-                if (!bridge_wire::SplitMergedControl(raw, groups)) {
+                if (!dust_control::benchmarks::bridge_wire::SplitMergedControl(
+                        raw, groups)) {
                     std::abort();
                 }
                 Command(groups[0], 0, true, receive_us);
                 Command(groups[1], 1, true, receive_us);
             } else {
                 const auto bus = request[16];
-                Command(request, bus == bridge_wire::kLayout[0][0].bus ? 0 : 1,
-                        false, receive_us);
+                Command(
+                    request,
+                    bus == dust_control::benchmarks::bridge_wire::kLayout[0][0]
+                                .bus
+                        ? 0
+                        : 1,
+                    false, receive_us);
             }
-        } else if (magic == bridge_wire::kHardwareQuery) {
+        } else if (magic ==
+                   dust_control::benchmarks::bridge_wire::kHardwareQuery) {
             if (std::getenv("RMCS_MOCK_NO_HARDWARE")) {
                 std::abort();
             }
             replies.push_back(recorder->QueryHardware(
-                bridge_wire::ReadU32(request.data() + 4)));
-        } else if (magic == bridge_wire::kControlQuery) {
+                dust_control::benchmarks::bridge_wire::ReadU32(request.data() +
+                                                               4)));
+        } else if (magic ==
+                   dust_control::benchmarks::bridge_wire::kControlQuery) {
             replies.push_back(
-                recorder->Query(bridge_wire::ReadU32(request.data() + 4)));
-        } else if (magic == bridge_wire::kStreamStatsQuery) {
-            const auto page = bridge_wire::ReadU32(request.data() + 8);
+                recorder->Query(dust_control::benchmarks::bridge_wire::ReadU32(
+                    request.data() + 4)));
+        } else if (magic ==
+                   dust_control::benchmarks::bridge_wire::kStreamStatsQuery) {
+            const auto page = dust_control::benchmarks::bridge_wire::ReadU32(
+                request.data() + 8);
             Packet response{};
-            bridge_wire::WriteU32(response.data(),
-                                  bridge_wire::kStreamStatsReply);
-            bridge_wire::WriteU32(response.data() + 4,
-                                  bridge_wire::ReadU32(request.data() + 4));
-            bridge_wire::WriteU32(response.data() + 8, page);
-            bridge_wire::WriteU32(response.data() + 12, commands[0] * 1000);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data(),
+                dust_control::benchmarks::bridge_wire::kStreamStatsReply);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 4,
+                dust_control::benchmarks::bridge_wire::ReadU32(request.data() +
+                                                               4));
+            dust_control::benchmarks::bridge_wire::WriteU32(response.data() + 8,
+                                                            page);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                response.data() + 12, commands[0] * 1000);
             if (page < 2) {
                 for (unsigned i = 0; i < 3; ++i) {
-                    bridge_wire::WriteU32(response.data() + 16 + i * 16,
-                                          commands[page]);
-                    bridge_wire::WriteU32(response.data() + 20 + i * 16,
-                                          commands[page]);
+                    dust_control::benchmarks::bridge_wire::WriteU32(
+                        response.data() + 16 + i * 16, commands[page]);
+                    dust_control::benchmarks::bridge_wire::WriteU32(
+                        response.data() + 20 + i * 16, commands[page]);
                 }
             } else {
-                bridge_wire::WriteU32(response.data() + 24, commands[page - 2]);
-                bridge_wire::WriteU32(response.data() + 36, commands[page - 2]);
-                bridge_wire::WriteU32(response.data() + 40,
-                                      bridge_wire::kLayout[page - 2][0].bus);
+                dust_control::benchmarks::bridge_wire::WriteU32(
+                    response.data() + 24, commands[page - 2]);
+                dust_control::benchmarks::bridge_wire::WriteU32(
+                    response.data() + 36, commands[page - 2]);
+                dust_control::benchmarks::bridge_wire::WriteU32(
+                    response.data() + 40,
+                    dust_control::benchmarks::bridge_wire::kLayout[page - 2][0]
+                        .bus);
             }
             replies.push_back(response);
         } else {
@@ -163,7 +217,8 @@ libusb_device device;
 }  // namespace
 extern "C" {
 int LIBUSB_CALL libusb_init(libusb_context **out) {
-    mock.recorder = std::make_unique<bridge_wire::ControlLatencyRecorder>();
+    mock.recorder = std::make_unique<
+        dust_control::benchmarks::bridge_wire::ControlLatencyRecorder>();
     mock.commands[0] = mock.commands[1] = mock.feedback_sequence = 0;
     *out = &context;
     return 0;
@@ -222,7 +277,7 @@ int LIBUSB_CALL libusb_get_active_config_descriptor(
     static libusb_interface_descriptor alt{};
     alt.bNumEndpoints = 2;
     alt.endpoint = endpoints;
-    static libusb_interface interface{};
+    static libusb_interface interface {};
     interface.altsetting = &alt;
     interface.num_altsetting = 1;
     auto *config = new libusb_config_descriptor{};

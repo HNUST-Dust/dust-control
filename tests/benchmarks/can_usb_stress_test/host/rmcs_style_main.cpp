@@ -9,7 +9,7 @@
 #include "rmcs_style_benchmark.hpp"
 int main(int argc, char **argv) {
     try {
-        stress_host::RmcsStyleOptions options;
+        dust_control::benchmarks::stress_host::RmcsStyleOptions options;
         for (int i = 1; i < argc; ++i) {
             const std::string key = argv[i];
             if (key == "--fast-ingress") {
@@ -40,7 +40,8 @@ int main(int argc, char **argv) {
             if (key == "--can-order") {
                 bool found = false;
                 for (unsigned order = 0; order < 6; ++order) {
-                    if (value == bridge_wire::kCanOrderNames[order]) {
+                    if (value == dust_control::benchmarks::bridge_wire::
+                                     kCanOrderNames[order]) {
                         options.can_order = order;
                         found = true;
                         break;
@@ -74,9 +75,13 @@ int main(int argc, char **argv) {
             options.usb_priority < 1 || options.usb_priority > 99) {
             throw std::runtime_error("Invalid duration, CPU or priority");
         }
-        std::signal(SIGINT, stress_host::RequestRmcsStyleStop);
-        std::signal(SIGTERM, stress_host::RequestRmcsStyleStop);
-        return stress_host::RunRmcsStyle(options);
+        std::signal(
+            SIGINT,
+            dust_control::benchmarks::stress_host::RequestRmcsStyleStop);
+        std::signal(
+            SIGTERM,
+            dust_control::benchmarks::stress_host::RequestRmcsStyleStop);
+        return dust_control::benchmarks::stress_host::RunRmcsStyle(options);
     } catch (const std::exception &e) {
         std::cerr << e.what() << '\n';
         return 1;

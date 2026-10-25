@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 // 在每个标称 1 ms 控制周期内提供可选的有界采样窗口。
 // 等待期间仍处理 USB；反馈缺失不能超过绝对期限，也不能额外插入命令周期。
 class FeedbackGate {
@@ -70,4 +70,4 @@ class FeedbackGate {
     uint64_t deadline_ns_ = 0;
     uint64_t wakeup_late_ns_ = 0;
 };
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

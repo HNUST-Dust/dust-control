@@ -7,7 +7,7 @@
 #include <mutex>
 #include <stdexcept>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 // 使用优先级继承锁保护短时缓存，USB 负责更新。
 // 控制线程复制六电机快照后先释放锁，再计算或提交 USB；
 // 原始状态和两个时间戳必须一起复制。
@@ -60,4 +60,4 @@ class RmcsLatestState {
     pthread_mutex_t mutex_{};
     Snapshot motors_{};
 };
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

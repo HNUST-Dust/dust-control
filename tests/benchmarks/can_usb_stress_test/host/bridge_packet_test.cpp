@@ -10,7 +10,7 @@
         }                                             \
     } while (false)
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     const auto request = EncodeRequest(17, 123, 0);
     const unsigned char header[] = {0x43, 0x41, 0x4e, 0x31, 17, 0,
                                     0,    0,    123,  0,    0,  0};

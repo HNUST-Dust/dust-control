@@ -10,7 +10,7 @@
         }                                             \
     } while (false)
 int main() {
-    stress_host::FeedbackGate gate;
+    dust_control::benchmarks::stress_host::FeedbackGate gate;
     gate.Begin(1000000, 1010000, 200);
     CHECK(gate.Evaluate(1010000, {0, 0}, {false, false}, {1010000, 1010000})
               .send);  // 启动时不等待。
@@ -45,7 +45,7 @@ int main() {
     gate.Begin(5000000, 5000000, 0);  // 严格基线模式不等待。
     CHECK(
         gate.Evaluate(5000000, {0, 51}, {true, true}, {5000000, 5000000}).send);
-    stress_host::FeedbackGate zero;
+    dust_control::benchmarks::stress_host::FeedbackGate zero;
     zero.Begin(1, 1, 200);
     zero.Commit({0, 0}, {false, false});
     zero.Begin(1000000, 1000000, 200);

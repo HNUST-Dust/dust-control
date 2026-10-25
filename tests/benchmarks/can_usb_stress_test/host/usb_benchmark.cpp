@@ -30,8 +30,8 @@
 #include "event_waiter.hpp"
 #include "feedback_gate.hpp"
 
-namespace stress_host {
-namespace rt = wbr::realtime;
+namespace dust_control::benchmarks::stress_host {
+namespace rt = dust_control::realtime;
 namespace {
 constexpr unsigned kOutWindow = 8;
 constexpr unsigned kInWindow = 4;
@@ -364,13 +364,17 @@ class UsbBenchmark::Impl {
             if (record.bridge_status != 0) {
                 ++bridge_failures;
             }
-            busy_replies += (record.bridge_status & bridge_wire::kBusy) != 0;
+            busy_replies += (record.bridge_status &
+                             dust_control::benchmarks::bridge_wire::kBusy) != 0;
             missing_replies +=
-                (record.bridge_status & bridge_wire::kMissingMask) != 0;
+                (record.bridge_status &
+                 dust_control::benchmarks::bridge_wire::kMissingMask) != 0;
             stopped_replies +=
-                (record.bridge_status & bridge_wire::kStopped) != 0;
+                (record.bridge_status &
+                 dust_control::benchmarks::bridge_wire::kStopped) != 0;
             invalid_replies +=
-                (record.bridge_status & bridge_wire::kInvalid) != 0;
+                (record.bridge_status &
+                 dust_control::benchmarks::bridge_wire::kInvalid) != 0;
             if (!record.in_complete_ns || record.bridge_status != 0) {
                 continue;
             }
@@ -380,8 +384,12 @@ class UsbBenchmark::Impl {
                 uint32_t latest = 0;
                 for (unsigned i = 0; i < 3; ++i) {
                     latest = std::max(
-                        latest, ReadU32(record.reply.data() +
-                                        bridge_wire::FrameOffset(i) + 12));
+                        latest,
+                        ReadU32(
+                            record.reply.data() +
+                            dust_control::benchmarks::bridge_wire::FrameOffset(
+                                i) +
+                            12));
                 }
                 device_waits.push_back(uint64_t(latest) * 1000);
             }
@@ -412,7 +420,7 @@ class UsbBenchmark::Impl {
             rate >= (options_.can_bridge ? 1980 : 990);
         const bool pass = transport_pass && bridge_failures == 0 &&
                           (!options_.can_bridge || cycle_rate >= 990);
-        using bridge_wire::TimePoint;
+        using dust_control::benchmarks::bridge_wire::TimePoint;
         struct Segment {
             const char *name;
             TimePoint start;
@@ -450,12 +458,14 @@ class UsbBenchmark::Impl {
         unsigned incomplete_timings = 0;
         for (const auto &record : records_) {
             if (!options_.can_bridge ||
-                !bridge_wire::SampleTiming(record.sequence)) {
+                !dust_control::benchmarks::bridge_wire::SampleTiming(
+                    record.sequence)) {
                 continue;
             }
             ++expected_timings;
-            if (!record.has_timing || (ReadU32(record.timing.data() + 8) &
-                                       bridge_wire::kTimingUnavailable)) {
+            if (!record.has_timing ||
+                (ReadU32(record.timing.data() + 8) &
+                 dust_control::benchmarks::bridge_wire::kTimingUnavailable)) {
                 ++unavailable_timings;
                 continue;
             }
@@ -465,9 +475,9 @@ class UsbBenchmark::Impl {
             bool complete = true;
             for (unsigned i = 0; i < static_cast<unsigned>(TimePoint::kCount);
                  ++i) {
-                complete &= bridge_wire::GetTime(record.timing,
-                                                 static_cast<TimePoint>(i)) !=
-                            bridge_wire::kUnsetTime;
+                complete &= dust_control::benchmarks::bridge_wire::GetTime(
+                                record.timing, static_cast<TimePoint>(i)) !=
+                            dust_control::benchmarks::bridge_wire::kUnsetTime;
             }
             if (!complete) {
                 ++incomplete_timings;
@@ -475,14 +485,17 @@ class UsbBenchmark::Impl {
             }
             ++valid_timings;
             for (unsigned i = 0; i < segment_values.size(); ++i) {
-                const auto start = segments[i].from_out
-                                       ? 0
-                                       : bridge_wire::GetTime(
-                                             record.timing, segments[i].start);
-                const auto end =
-                    bridge_wire::GetTime(record.timing, segments[i].end);
-                if (start != bridge_wire::kUnsetTime &&
-                    end != bridge_wire::kUnsetTime && end >= start) {
+                const auto start =
+                    segments[i].from_out
+                        ? 0
+                        : dust_control::benchmarks::bridge_wire::GetTime(
+                              record.timing, segments[i].start);
+                const auto end = dust_control::benchmarks::bridge_wire::GetTime(
+                    record.timing, segments[i].end);
+                if (start !=
+                        dust_control::benchmarks::bridge_wire::kUnsetTime &&
+                    end != dust_control::benchmarks::bridge_wire::kUnsetTime &&
+                    end >= start) {
                     segment_values[i].push_back(int64_t(end - start) * 1000);
                 }
             }
@@ -621,14 +634,18 @@ class UsbBenchmark::Impl {
                 for (unsigned i = 0; i < 3; ++i) {
                     csv << ','
                         << ReadU32(record.reply.data() +
-                                   bridge_wire::FrameOffset(i) + 12);
+                                   dust_control::benchmarks::bridge_wire::
+                                       FrameOffset(i) +
+                                   12);
                 }
                 constexpr char hex[] = "0123456789abcdef";
                 for (unsigned i = 0; i < 3; ++i) {
                     csv << ',';
                     for (unsigned j = 0; j < 8; ++j) {
                         const auto v =
-                            record.reply[bridge_wire::FrameOffset(i) + 4 + j];
+                            record.reply[dust_control::benchmarks::bridge_wire::
+                                             FrameOffset(i) +
+                                         4 + j];
                         csv << hex[v >> 4] << hex[v & 15];
                     }
                 }
@@ -640,9 +657,11 @@ class UsbBenchmark::Impl {
                      i < static_cast<unsigned>(TimePoint::kCount); ++i) {
                     csv << ',';
                     if (record.has_timing) {
-                        const auto value = bridge_wire::GetTime(
-                            record.timing, static_cast<TimePoint>(i));
-                        if (value != bridge_wire::kUnsetTime) {
+                        const auto value =
+                            dust_control::benchmarks::bridge_wire::GetTime(
+                                record.timing, static_cast<TimePoint>(i));
+                        if (value !=
+                            dust_control::benchmarks::bridge_wire::kUnsetTime) {
                             csv << value;
                         }
                     }
@@ -701,7 +720,7 @@ class UsbBenchmark::Impl {
     struct OutSlot {
         Impl *owner = nullptr;
         libusb_transfer *transfer = nullptr;
-        stress_host::Packet packet{};
+        dust_control::benchmarks::stress_host::Packet packet{};
         std::size_t record_index = 0;
         unsigned query_group = 0;
         bool active = false;
@@ -713,7 +732,7 @@ class UsbBenchmark::Impl {
     struct InSlot {
         Impl *owner = nullptr;
         libusb_transfer *transfer = nullptr;
-        stress_host::Packet packet{};
+        dust_control::benchmarks::stress_host::Packet packet{};
         bool pending = false;
     };
 
@@ -797,13 +816,17 @@ class UsbBenchmark::Impl {
         const auto sequence = static_cast<std::uint32_t>(records_.size());
         slot.packet =
             options_.can_stream
-                ? bridge_wire::StreamCommand(sequence, last_rtt_us_, group)
+                ? dust_control::benchmarks::bridge_wire::StreamCommand(
+                      sequence, last_rtt_us_, group)
             : options_.can_bridge
-                ? bridge_wire::EncodeRequest(sequence, last_rtt_us_, group)
-                : stress_host::EncodePacket(sequence, last_rtt_us_);
+                ? dust_control::benchmarks::bridge_wire::EncodeRequest(
+                      sequence, last_rtt_us_, group)
+                : dust_control::benchmarks::stress_host::EncodePacket(
+                      sequence, last_rtt_us_);
         if (options_.control_latency) {
-            bridge_wire::WriteU32(slot.packet.data(),
-                                  bridge_wire::kControlCommand);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                slot.packet.data(),
+                dust_control::benchmarks::bridge_wire::kControlCommand);
             uint32_t mask = 0;
             for (unsigned i = 0; i < 3; ++i) {
                 const unsigned motor = group * 3 + i;
@@ -811,11 +834,14 @@ class UsbBenchmark::Impl {
                     continue;
                 }
                 mask |= 1U << i;
-                bridge_wire::WriteU32(
-                    slot.packet.data() + bridge_wire::FrameOffset(i) + 12,
+                dust_control::benchmarks::bridge_wire::WriteU32(
+                    slot.packet.data() +
+                        dust_control::benchmarks::bridge_wire::FrameOffset(i) +
+                        12,
                     latest_feedback_us_[motor]);
             }
-            bridge_wire::WriteU32(slot.packet.data() + 12, mask);
+            dust_control::benchmarks::bridge_wire::WriteU32(
+                slot.packet.data() + 12, mask);
         }
         slot.record_index = records_.size();
         slot.active = true;
@@ -831,10 +857,14 @@ class UsbBenchmark::Impl {
                             {}});
         if (options_.control_latency) {
             auto &record = records_.back();
-            record.origin_mask = bridge_wire::ReadU32(slot.packet.data() + 12);
+            record.origin_mask = dust_control::benchmarks::bridge_wire::ReadU32(
+                slot.packet.data() + 12);
             for (unsigned i = 0; i < 3; ++i) {
-                record.origin_us[i] = bridge_wire::ReadU32(
-                    slot.packet.data() + bridge_wire::FrameOffset(i) + 12);
+                record.origin_us[i] =
+                    dust_control::benchmarks::bridge_wire::ReadU32(
+                        slot.packet.data() +
+                        dust_control::benchmarks::bridge_wire::FrameOffset(i) +
+                        12);
                 record.origin_host_ns[i] =
                     latest_feedback_host_ns_[group * 3 + i];
             }
@@ -889,8 +919,10 @@ class UsbBenchmark::Impl {
         }
         const auto arrival_ns = rt::MonotonicTimeNs();
         if (self.options_.can_stream &&
-            ReadU32(input.packet.data()) == bridge_wire::kStreamFeedback) {
-            if (!bridge_wire::ValidFeedback(input.packet)) {
+            ReadU32(input.packet.data()) ==
+                dust_control::benchmarks::bridge_wire::kStreamFeedback) {
+            if (!dust_control::benchmarks::bridge_wire::ValidFeedback(
+                    input.packet)) {
                 self.Fail("Invalid streaming feedback");
                 return;
             }
@@ -912,12 +944,14 @@ class UsbBenchmark::Impl {
                         return;
                     }
                     const auto *frame =
-                        input.packet.data() + bridge_wire::FrameOffset(i);
+                        input.packet.data() +
+                        dust_control::benchmarks::bridge_wire::FrameOffset(i);
                     FeedbackRecord record{
                         arrival_ns,
                         packet_sequence,
                         static_cast<uint32_t>(
-                            bridge_wire::FeedbackMotor(frame)),
+                            dust_control::benchmarks::bridge_wire::
+                                FeedbackMotor(frame)),
                         ReadU32(input.packet.data() + 12),
                         ReadU32(frame + 12),
                         {}};
@@ -931,16 +965,19 @@ class UsbBenchmark::Impl {
             self.SubmitIn(input);
             return;
         }
-        const auto sequence = stress_host::ReadU32(input.packet.data() + 4);
+        const auto sequence = dust_control::benchmarks::stress_host::ReadU32(
+            input.packet.data() + 4);
         auto found = std::find_if(
             self.out_.begin(), self.out_.end(), [&](const auto &slot) {
                 return slot.active && !slot.reply_done &&
                        self.records_[slot.record_index].sequence == sequence;
             });
         if (self.dumping_ && self.options_.control_latency &&
-            ReadU32(input.packet.data()) == bridge_wire::kControlReply) {
+            ReadU32(input.packet.data()) ==
+                dust_control::benchmarks::bridge_wire::kControlReply) {
             if (found == self.out_.end() ||
-                !bridge_wire::ValidControlReply(input.packet, sequence)) {
+                !dust_control::benchmarks::bridge_wire::ValidControlReply(
+                    input.packet, sequence)) {
                 self.Fail("Control timing protocol/sequence mismatch");
                 return;
             }
@@ -955,8 +992,8 @@ class UsbBenchmark::Impl {
         }
         if (self.dumping_ && self.options_.can_stream) {
             if (found == self.out_.end() ||
-                !bridge_wire::ValidStreamStats(input.packet, sequence,
-                                               found->query_group)) {
+                !dust_control::benchmarks::bridge_wire::ValidStreamStats(
+                    input.packet, sequence, found->query_group)) {
                 self.Fail("Stream final statistics protocol/sequence mismatch");
                 return;
             }
@@ -970,13 +1007,14 @@ class UsbBenchmark::Impl {
         }
         if (self.dumping_) {
             if (found == self.out_.end() ||
-                !bridge_wire::ValidTiming(input.packet, sequence)) {
+                !dust_control::benchmarks::bridge_wire::ValidTiming(
+                    input.packet, sequence)) {
                 self.Fail("Timing reply protocol/sequence mismatch");
                 return;
             }
             auto &record = self.records_[found->record_index];
             if (!(ReadU32(input.packet.data() + 8) &
-                  bridge_wire::kTimingUnavailable) &&
+                  dust_control::benchmarks::bridge_wire::kTimingUnavailable) &&
                 (ReadU32(input.packet.data() + 8) != record.bridge_status ||
                  ReadU32(input.packet.data() + 12) !=
                      ReadU32(record.reply.data() + 12))) {
@@ -994,8 +1032,9 @@ class UsbBenchmark::Impl {
         if (found == self.out_.end() ||
             (self.options_.can_bridge
                  ? !(self.options_.can_stream
-                         ? bridge_wire::ValidAck(input.packet)
-                         : bridge_wire::ValidateReply(
+                         ? dust_control::benchmarks::bridge_wire::ValidAck(
+                               input.packet)
+                         : dust_control::benchmarks::bridge_wire::ValidateReply(
                                input.packet,
                                self.records_[found->record_index].group))
                  : found->packet != input.packet)) {
@@ -1004,7 +1043,8 @@ class UsbBenchmark::Impl {
             return;
         }
         if (self.options_.control_latency &&
-            ReadU32(input.packet.data() + 24) != bridge_wire::kControlReply) {
+            ReadU32(input.packet.data() + 24) !=
+                dust_control::benchmarks::bridge_wire::kControlReply) {
             self.Fail(
                 "Firmware lacks control latency support; flash updated Bulk "
                 "firmware");
@@ -1109,7 +1149,8 @@ class UsbBenchmark::Impl {
             const unsigned group = motor / 3;
             const unsigned item = motor % 3;
             const auto *data =
-                stream_stats_[group].data() + bridge_wire::FrameOffset(item);
+                stream_stats_[group].data() +
+                dust_control::benchmarks::bridge_wire::FrameOffset(item);
             const uint32_t complete = ReadU32(data);
             const uint32_t rx = ReadU32(data + 4);
             const uint32_t coalesced = ReadU32(data + 8);
@@ -1155,14 +1196,16 @@ class UsbBenchmark::Impl {
                 completed[i] = ReadU32(packet.data() + 28 + i * 4);
                 submitted_frames += uint64_t(i + 1) * submitted[i];
                 completed_frames += uint64_t(i + 1) * completed[i];
-                motor_frames += ReadU32(stream_stats_[group].data() +
-                                        bridge_wire::FrameOffset(i));
+                motor_frames += ReadU32(
+                    stream_stats_[group].data() +
+                    dust_control::benchmarks::bridge_wire::FrameOffset(i));
             }
             batching_pass &= submitted[0] == 0 && submitted[1] == 0 &&
                              submitted[2] > 0 && submitted[2] == completed[2] &&
                              submitted_frames == completed_frames &&
                              completed_frames == motor_frames;
-            const auto bus = bridge_wire::kLayout[group][0].bus;
+            const auto bus =
+                dust_control::benchmarks::bridge_wire::kLayout[group][0].bus;
             std::cout << "bus=" << unsigned(bus)
                       << " driver batches(1/2/3)=" << submitted[0] << '/'
                       << submitted[1] << '/' << submitted[2]
@@ -1207,17 +1250,20 @@ class UsbBenchmark::Impl {
                   << std::endl;
         dumping_ = true;
         event_waiter_.Stop();
-        if (records_.size() < bridge_wire::kStreamStatsPages) {
+        if (records_.size() <
+            dust_control::benchmarks::bridge_wire::kStreamStatsPages) {
             Fail("No complete control cycle to query counters");
             return;
         }
-        for (unsigned group = 0; group < bridge_wire::kStreamStatsPages;
+        for (unsigned group = 0;
+             group < dust_control::benchmarks::bridge_wire::kStreamStatsPages;
              ++group) {
             auto &slot = out_[group];
             slot.record_index = group;
             slot.query_group = group;
-            slot.packet = bridge_wire::StreamStatsQuery(
-                records_[slot.record_index].sequence, group);
+            slot.packet =
+                dust_control::benchmarks::bridge_wire::StreamStatsQuery(
+                    records_[slot.record_index].sequence, group);
             slot.active = true;
             slot.out_done = slot.reply_done = false;
             ++active_slots_;
@@ -1260,18 +1306,20 @@ class UsbBenchmark::Impl {
                     continue;
                 }
                 while (next < records_.size() &&
-                       !bridge_wire::SampleTiming(records_[next].sequence)) {
+                       !dust_control::benchmarks::bridge_wire::SampleTiming(
+                           records_[next].sequence)) {
                     ++next;
                 }
                 if (next == records_.size()) {
                     break;
                 }
                 slot.record_index = next++;
-                slot.packet = options_.control_latency
-                                  ? bridge_wire::ControlQuery(
-                                        records_[slot.record_index].sequence)
-                                  : bridge_wire::TimingQuery(
-                                        records_[slot.record_index].sequence);
+                slot.packet =
+                    options_.control_latency
+                        ? dust_control::benchmarks::bridge_wire::ControlQuery(
+                              records_[slot.record_index].sequence)
+                        : dust_control::benchmarks::bridge_wire::TimingQuery(
+                              records_[slot.record_index].sequence);
                 slot.active = true;
                 slot.out_done = slot.reply_done = false;
                 ++active_slots_;
@@ -1399,8 +1447,10 @@ class UsbBenchmark::Impl {
     uint64_t feedback_packets_ = 0;
     uint64_t feedback_sequence_gaps_ = 0;
     uint32_t last_feedback_packet_ = 0;
-    std::array<Packet, bridge_wire::kStreamStatsPages> stream_stats_{};
-    std::array<bool, bridge_wire::kStreamStatsPages> stream_stats_present_{};
+    std::array<Packet, dust_control::benchmarks::bridge_wire::kStreamStatsPages>
+        stream_stats_{};
+    std::array<bool, dust_control::benchmarks::bridge_wire::kStreamStatsPages>
+        stream_stats_present_{};
     bool bulk_ = false;
     unsigned in_mps_ = 0;
     unsigned out_mps_ = 0;
@@ -1427,4 +1477,4 @@ bool UsbBenchmark::WriteResults() {
 void UsbBenchmark::RequestStop(int) {
     stop_requested = 1;
 }
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

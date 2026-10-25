@@ -19,7 +19,7 @@ int main() {
         return 1;
     }
 
-    stress_host::EventWaiter io_wait;
+    dust_control::benchmarks::stress_host::EventWaiter io_wait;
     if (!io_wait.Prepare({{pipe_fds[0], POLLIN, 0}}) ||
         !io_wait.Arm(NowNs() + 10000000000ULL, 1000000)) {
         return 2;
@@ -40,7 +40,7 @@ int main() {
     close(pipe_fds[0]);
     close(pipe_fds[1]);
 
-    stress_host::EventWaiter timer_wait;
+    dust_control::benchmarks::stress_host::EventWaiter timer_wait;
     if (!timer_wait.Prepare({}) ||
         !timer_wait.Arm(NowNs() - 5000000, 1000000)) {
         return 5;

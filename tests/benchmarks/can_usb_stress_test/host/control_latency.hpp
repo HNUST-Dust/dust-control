@@ -3,7 +3,7 @@
 #include "bridge_stream.hpp"
 #include "bridge_timing.hpp"
 
-namespace bridge_wire {
+namespace dust_control::benchmarks::bridge_wire {
 constexpr uint32_t kControlCommand = 0x32444d43;  // CMD2：原始反馈时间戳。
 constexpr uint32_t kControlQuery = 0x31514c43;   // CLQ1
 constexpr uint32_t kControlReply = 0x31524c43;   // CLR1
@@ -176,4 +176,4 @@ struct ControlLatencyRecorder {
         return p;
     }
 };
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

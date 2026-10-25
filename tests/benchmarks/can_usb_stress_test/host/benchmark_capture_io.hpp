@@ -6,7 +6,7 @@
 
 #include "benchmark_records.hpp"
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 inline bool WriteCaptureCsv(const std::vector<Record> &records,
                             const std::vector<FeedbackRecord> &feedback_records,
                             const std::string &csv_path) {
@@ -52,4 +52,4 @@ inline bool WriteCaptureCsv(const std::vector<Record> &records,
     feedback.flush();
     return bool(commands) && bool(feedback);
 }
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

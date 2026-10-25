@@ -5,11 +5,12 @@
 #include <iostream>
 #include <thread>
 int main() {
-    stress_host::RmcsLatestState cache;
+    dust_control::benchmarks::stress_host::RmcsLatestState cache;
     std::atomic<bool> done{false};
     std::thread usb([&] {
         for (uint32_t i = 1; i < 50000; ++i) {
-            stress_host::RmcsLatestState::Motor sample{};
+            dust_control::benchmarks::stress_host::RmcsLatestState::Motor
+                sample{};
             sample.valid = true;
             sample.received_us = i;
             sample.host_ns = uint64_t(i) * 1000 + 7;

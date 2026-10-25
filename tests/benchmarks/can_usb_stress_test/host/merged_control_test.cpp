@@ -10,7 +10,7 @@
         }                                             \
     } while (false)
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     auto capability = MergedCapabilityQuery(99);
     CHECK(!SupportsMergedControl(capability));
     WriteU32(capability.data(), kMergedCapabilityReply);

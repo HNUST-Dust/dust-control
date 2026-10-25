@@ -2,10 +2,10 @@
 #pragma once
 #include "echo_packet.hpp"
 
-namespace bridge_wire {
-using stress_host::Packet;
-using stress_host::ReadU32;
-using stress_host::WriteU32;
+namespace dust_control::benchmarks::bridge_wire {
+using dust_control::benchmarks::stress_host::Packet;
+using dust_control::benchmarks::stress_host::ReadU32;
+using dust_control::benchmarks::stress_host::WriteU32;
 constexpr uint32_t kRequestMagic = 0x314e4143;  // CAN1
 constexpr uint32_t kReplyMagic = 0x324e4143;    // CAN2
 constexpr uint32_t kBusy = 1U << 8;
@@ -33,11 +33,16 @@ inline void SetAddress(unsigned char *p, uint8_t bus, uint16_t id,
 // 头部依次为 magic、主机序列号、前次 RTT/请求或状态/回复、MCU OUT 接收时间。
 // 随后为三条记录：bus/u8、dlc/u8、CAN id/u16、原始数据[8]、
 // OUT 后反馈时间/us/u32。回复等待三帧批次后的反馈齐全，否则标记缺失位。
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire
 
 #include "bridge_layout.hpp"
 
-namespace bridge_wire {
+// 外部生成的布局保留原命名空间，只在基准边界导入数据。
+namespace dust_control::benchmarks::bridge_wire {
+using ::bridge_wire::kLayout;
+}  // namespace dust_control::benchmarks::bridge_wire
+
+namespace dust_control::benchmarks::bridge_wire {
 inline Packet EncodeRequest(uint32_t sequence, uint32_t previous_rtt_us,
                             unsigned group) {
     Packet packet{};
@@ -87,4 +92,4 @@ inline bool ValidateReply(const Packet &packet, unsigned group) {
 
     return true;
 }
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

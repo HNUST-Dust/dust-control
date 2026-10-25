@@ -24,10 +24,10 @@
 #include "merged_control.hpp"
 #include "rmcs_style_state.hpp"
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 namespace {
-namespace rt = wbr::realtime;
-using bridge_wire::MergedControl;
+namespace rt = dust_control::realtime;
+using dust_control::benchmarks::bridge_wire::MergedControl;
 constexpr uint64_t kPeriodNs = 1000000;
 volatile std::sig_atomic_t stop_requested = 0;
 
@@ -58,10 +58,14 @@ class RmcsStyleBenchmark {
         }
         {
             Packet capability{};
-            if (!Query(bridge_wire::MergedCapabilityQuery(0xffffffe0U),
-                       bridge_wire::kMergedCapabilityReply, capability) ||
+            if (!Query(dust_control::benchmarks::bridge_wire::
+                           MergedCapabilityQuery(0xffffffe0U),
+                       dust_control::benchmarks::bridge_wire::
+                           kMergedCapabilityReply,
+                       capability) ||
                 (!options_.split_out &&
-                 !bridge_wire::SupportsMergedControl(capability))) {
+                 !dust_control::benchmarks::bridge_wire::SupportsMergedControl(
+                     capability))) {
                 Fail(
                     "Merged OUT unsupported: flash the merged-capable test "
                     "firmware");
@@ -70,17 +74,19 @@ class RmcsStyleBenchmark {
                 return 1;
             }
             const bool profile_supported =
-                ReadU32(capability.data() + 24) == bridge_wire::kProfileReply;
+                ReadU32(capability.data() + 24) ==
+                dust_control::benchmarks::bridge_wire::kProfileReply;
             if (profile_supported) {
                 Packet reply{};
                 constexpr uint32_t sequence = 0xffffffd0U;
-                if (!Query(
-                        bridge_wire::ProfileQuery(sequence, options_.can_order,
-                                                  options_.fast_ingress),
-                        bridge_wire::kProfileReply, reply) ||
-                    !bridge_wire::ValidProfileReply(reply, sequence,
-                                                    options_.can_order,
-                                                    options_.fast_ingress)) {
+                if (!Query(dust_control::benchmarks::bridge_wire::ProfileQuery(
+                               sequence, options_.can_order,
+                               options_.fast_ingress),
+                           dust_control::benchmarks::bridge_wire::kProfileReply,
+                           reply) ||
+                    !dust_control::benchmarks::bridge_wire::ValidProfileReply(
+                        reply, sequence, options_.can_order,
+                        options_.fast_ingress)) {
                     Fail("MCU rejected CAN/ingress profile");
                     CloseUsb();
                     std::cerr << failure_ << '\n';
@@ -96,7 +102,8 @@ class RmcsStyleBenchmark {
                 return 1;
             }
             hardware_timing_supported_ =
-                ReadU32(capability.data() + 20) == bridge_wire::kHardwareReply;
+                ReadU32(capability.data() + 20) ==
+                dust_control::benchmarks::bridge_wire::kHardwareReply;
         }
         std::cout << "RMCS-style: control cpu=" << sched_getcpu()
                   << " priority=" << (options_.realtime ? options_.priority : 0)
@@ -112,7 +119,8 @@ class RmcsStyleBenchmark {
                      "on USB completion, without waiting for ACK or feedback"
                   << std::endl;
         std::cout << "CAN batch order="
-                  << bridge_wire::kCanOrderNames[options_.can_order]
+                  << dust_control::benchmarks::bridge_wire::kCanOrderNames
+                         [options_.can_order]
                   << " ingress="
                   << (options_.fast_ingress ? "fast" : "baseline") << std::endl;
         Capture();
@@ -318,9 +326,9 @@ class RmcsStyleBenchmark {
         }
         const auto arrival = rt::MonotonicTimeNs();
         const auto magic = ReadU32(input.data.data());
-        if (magic == bridge_wire::kStreamFeedback) {
+        if (magic == dust_control::benchmarks::bridge_wire::kStreamFeedback) {
             self.ReceiveFeedback(input.data, arrival);
-        } else if (magic == bridge_wire::kStreamAck) {
+        } else if (magic == dust_control::benchmarks::bridge_wire::kStreamAck) {
             self.ReceiveAck(input.data, arrival);
         } else {
             self.ReceiveQuery(input.data);
@@ -331,7 +339,7 @@ class RmcsStyleBenchmark {
     }
 
     void ReceiveFeedback(const Packet &packet, uint64_t arrival) {
-        if (!bridge_wire::ValidFeedback(packet)) {
+        if (!dust_control::benchmarks::bridge_wire::ValidFeedback(packet)) {
             Fail("Invalid feedback packet");
             return;
         }
@@ -344,8 +352,11 @@ class RmcsStyleBenchmark {
         last_feedback_ = seq;
         ++feedback_packets_;
         for (unsigned i = 0; i < ReadU32(packet.data() + 8); ++i) {
-            const auto *frame = packet.data() + bridge_wire::FrameOffset(i);
-            const auto motor = unsigned(bridge_wire::FeedbackMotor(frame));
+            const auto *frame =
+                packet.data() +
+                dust_control::benchmarks::bridge_wire::FrameOffset(i);
+            const auto motor = unsigned(
+                dust_control::benchmarks::bridge_wire::FeedbackMotor(frame));
             if (feedback_.size() == feedback_.capacity()) {
                 Fail("Feedback capacity exhausted");
                 return;
@@ -364,15 +375,16 @@ class RmcsStyleBenchmark {
 
     void ReceiveAck(const Packet &packet, uint64_t arrival) {
         const auto seq = ReadU32(packet.data() + 4);
-        if (!bridge_wire::ValidAck(packet) ||
+        if (!dust_control::benchmarks::bridge_wire::ValidAck(packet) ||
             seq >= published_.load(std::memory_order_acquire)) {
             Fail("Invalid command ACK or sequence");
             return;
         }
-        if (ReadU32(packet.data() + 24) != bridge_wire::kControlReply ||
-            (!options_.split_out &&
-             ReadU32(packet.data() + 28) !=
-                 bridge_wire::kMergedControlCapability)) {
+        if (ReadU32(packet.data() + 24) !=
+                dust_control::benchmarks::bridge_wire::kControlReply ||
+            (!options_.split_out && ReadU32(packet.data() + 28) !=
+                                        dust_control::benchmarks::bridge_wire::
+                                            kMergedControlCapability)) {
             Fail("Flash the updated merged-OUT firmware before this test");
             return;
         }
@@ -420,10 +432,12 @@ class RmcsStyleBenchmark {
             r.group = group;
             r.wakeup_late_ns = late_ns;
             r.state_sample_ns = sample_ns;
-            packets[group] = bridge_wire::StreamCommand(
-                r.sequence, last_ack_us_.load(std::memory_order_relaxed),
-                group);
-            WriteU32(packets[group].data(), bridge_wire::kControlCommand);
+            packets[group] =
+                dust_control::benchmarks::bridge_wire::StreamCommand(
+                    r.sequence, last_ack_us_.load(std::memory_order_relaxed),
+                    group);
+            WriteU32(packets[group].data(),
+                     dust_control::benchmarks::bridge_wire::kControlCommand);
             for (unsigned i = 0; i < 3; ++i) {
                 const auto &motor = state[group * 3 + i];
                 if (!motor.valid) {
@@ -433,7 +447,9 @@ class RmcsStyleBenchmark {
                 r.origin_us[i] = motor.received_us;
                 r.origin_host_ns[i] = motor.host_ns;
                 WriteU32(
-                    packets[group].data() + bridge_wire::FrameOffset(i) + 12,
+                    packets[group].data() +
+                        dust_control::benchmarks::bridge_wire::FrameOffset(i) +
+                        12,
                     motor.received_us);
             }
             WriteU32(packets[group].data() + 12, r.origin_mask);
@@ -456,7 +472,8 @@ class RmcsStyleBenchmark {
             right->first = first + 1;
             right->count = 1;
         } else {
-            left->data = bridge_wire::MergeControl(packets[0], packets[1]);
+            left->data = dust_control::benchmarks::bridge_wire::MergeControl(
+                packets[0], packets[1]);
             left->first = first;
             left->count = 2;
         }
@@ -617,49 +634,62 @@ class RmcsStyleBenchmark {
         std::cout << "Measurement complete; stopping motors and exporting "
                      "counters/timestamps"
                   << std::endl;
-        for (unsigned page = 0; page < bridge_wire::kStreamStatsPages; ++page) {
+        for (unsigned page = 0;
+             page < dust_control::benchmarks::bridge_wire::kStreamStatsPages;
+             ++page) {
             const uint32_t seq = 0xfffffff0U + page;
-            if (!Query(bridge_wire::StreamStatsQuery(seq, page),
-                       bridge_wire::kStreamStatsReply, stats_[page])) {
+            if (!Query(dust_control::benchmarks::bridge_wire::StreamStatsQuery(
+                           seq, page),
+                       dust_control::benchmarks::bridge_wire::kStreamStatsReply,
+                       stats_[page])) {
                 return;
             }
-            if (!bridge_wire::ValidStreamStats(stats_[page], seq, page)) {
+            if (!dust_control::benchmarks::bridge_wire::ValidStreamStats(
+                    stats_[page], seq, page)) {
                 Fail("Invalid final CAN stats");
                 return;
             }
         }
         const auto count = published_.load();
-        const auto total =
-            std::count_if(records_.begin(), records_.begin() + count,
-                          [](const Record &record) {
-                              return bridge_wire::SampleTiming(record.sequence);
-                          });
+        const auto total = std::count_if(
+            records_.begin(), records_.begin() + count,
+            [](const Record &record) {
+                return dust_control::benchmarks::bridge_wire::SampleTiming(
+                    record.sequence);
+            });
         std::cout << "CAN counters exported; MCU timestamp packets: 0/" << total
                   << std::endl;
         size_t exported = 0;
         for (size_t i = 0; i < count; ++i) {
             auto &record = records_[i];
-            if (!bridge_wire::SampleTiming(record.sequence)) {
+            if (!dust_control::benchmarks::bridge_wire::SampleTiming(
+                    record.sequence)) {
                 continue;
             }
-            if (!Query(bridge_wire::ControlQuery(record.sequence),
-                       bridge_wire::kControlReply, record.timing)) {
+            if (!Query(dust_control::benchmarks::bridge_wire::ControlQuery(
+                           record.sequence),
+                       dust_control::benchmarks::bridge_wire::kControlReply,
+                       record.timing)) {
                 return;
             }
             record.has_timing =
-                bridge_wire::ValidControlReply(record.timing, record.sequence);
+                dust_control::benchmarks::bridge_wire::ValidControlReply(
+                    record.timing, record.sequence);
             if (!record.has_timing) {
                 Fail("Invalid MCU control timestamp record");
                 return;
             }
             if (hardware_timing_supported_) {
-                if (!Query(bridge_wire::HardwareQuery(record.sequence),
-                           bridge_wire::kHardwareReply,
-                           record.hardware_timing)) {
+                if (!Query(
+                        dust_control::benchmarks::bridge_wire::HardwareQuery(
+                            record.sequence),
+                        dust_control::benchmarks::bridge_wire::kHardwareReply,
+                        record.hardware_timing)) {
                     return;
                 }
-                record.has_hardware_timing = bridge_wire::ValidHardwareReply(
-                    record.hardware_timing, record.sequence);
+                record.has_hardware_timing =
+                    dust_control::benchmarks::bridge_wire::ValidHardwareReply(
+                        record.hardware_timing, record.sequence);
                 if (!record.has_hardware_timing) {
                     Fail("Invalid hardware timing reply");
                     return;
@@ -759,7 +789,8 @@ class RmcsStyleBenchmark {
     uint64_t feedback_packets_ = 0;
     uint64_t feedback_gaps_ = 0;
     uint32_t last_feedback_ = 0;
-    std::array<Packet, bridge_wire::kStreamStatsPages> stats_{};
+    std::array<Packet, dust_control::benchmarks::bridge_wire::kStreamStatsPages>
+        stats_{};
     libusb_transfer *query_transfer_ = nullptr;
     Packet query_request_{}, query_reply_{};
     std::atomic<bool> query_pending_{false};
@@ -802,7 +833,8 @@ bool RmcsStyleBenchmark::WriteResults() {
     std::getline(isolated_file, isolated);
     std::ofstream json(options_.json_path);
     json << "{\n  \"can_batch_order\": \""
-         << bridge_wire::kCanOrderNames[options_.can_order]
+         << dust_control::benchmarks::bridge_wire::kCanOrderNames
+                [options_.can_order]
          << "\",\n  \"fast_ingress\": "
          << (options_.fast_ingress ? "true" : "false") << ",\n";
     json << "  \"mode\": \"rmcs-style-zero-control\",\n"
@@ -841,7 +873,9 @@ bool RmcsStyleBenchmark::WriteResults() {
     for (unsigned motor = 0; motor < 6; ++motor) {
         const unsigned group = motor / 3;
         const unsigned item = motor % 3;
-        const auto *r = stats_[group].data() + bridge_wire::FrameOffset(item);
+        const auto *r =
+            stats_[group].data() +
+            dust_control::benchmarks::bridge_wire::FrameOffset(item);
         const auto done = ReadU32(r);
         const auto rx = ReadU32(r + 4);
         const auto coalesced = ReadU32(r + 8);
@@ -876,13 +910,15 @@ bool RmcsStyleBenchmark::WriteResults() {
             completed[i] = ReadU32(stats_[group + 2].data() + 28 + i * 4);
             completed_frames += (i + 1) * uint64_t(completed[i]);
             motor_frames +=
-                ReadU32(stats_[group].data() + bridge_wire::FrameOffset(i));
+                ReadU32(stats_[group].data() +
+                        dust_control::benchmarks::bridge_wire::FrameOffset(i));
         }
         batch_pass &= !submitted[0] && !submitted[1] && !completed[0] &&
                       !completed[1] && submitted[2] > 0 &&
                       submitted[2] == completed[2] &&
                       completed_frames == motor_frames;
-        const unsigned bus = bridge_wire::kLayout[group][0].bus;
+        const unsigned bus =
+            dust_control::benchmarks::bridge_wire::kLayout[group][0].bus;
         std::cout << "bus=" << bus << " driver batches(1/2/3)=" << submitted[0]
                   << '/' << submitted[1] << '/' << submitted[2]
                   << " completed=" << completed[0] << '/' << completed[1] << '/'
@@ -926,4 +962,4 @@ int RunRmcsStyle(const RmcsStyleOptions &options) {
 void RequestRmcsStyleStop(int) {
     stop_requested = 1;
 }
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

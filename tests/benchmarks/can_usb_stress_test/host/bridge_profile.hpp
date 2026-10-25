@@ -2,7 +2,7 @@
 #pragma once
 #include "bridge_packet.hpp"
 
-namespace bridge_wire {
+namespace dust_control::benchmarks::bridge_wire {
 // 报文记录与诊断电机索引保持 W/B/D 顺序，只改变 CAN 发布顺序，
 // 电机身份不能依赖队列位置。
 constexpr uint32_t kProfileQuery = 0x31514650;  // PFQ1
@@ -32,4 +32,4 @@ inline bool ValidProfileReply(const Packet &packet, uint32_t sequence,
            ReadU32(packet.data() + 12) == unsigned(fast) &&
            ReadU32(packet.data() + 16) == 0;
 }
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

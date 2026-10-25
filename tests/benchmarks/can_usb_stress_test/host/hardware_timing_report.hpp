@@ -8,13 +8,13 @@
 
 #include "control_latency.hpp"
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 // 采集与 USB 关闭后运行。触发时间是请求 TSALL MMIO 时的软件时间戳，
 // 不代表各帧在线时间或电机实际执行时间。
 template <class Commands>
 bool WriteHardwareTimingReport(const Commands &commands,
                                const std::string &result_path, bool supported) {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     constexpr const char *names[] = {"left_wheel",    "left_joint_b",
                                      "left_joint_d",  "right_wheel",
                                      "right_joint_b", "right_joint_d"};
@@ -69,8 +69,8 @@ bool WriteHardwareTimingReport(const Commands &commands,
             "batch "
             "completion callback; not per-frame wire timing\",\"motors\":[";
     for (unsigned motor = 0; motor < 6; ++motor) {
-        const auto before = wbr::realtime::Summarize(software[motor]);
-        const auto after = wbr::realtime::Summarize(bus[motor]);
+        const auto before = dust_control::realtime::Summarize(software[motor]);
+        const auto after = dust_control::realtime::Summarize(bus[motor]);
         json << (motor ? "," : "") << "{\"name\":\"" << names[motor]
              << "\",\"n\":" << software[motor].size()
              << ",\"driver_to_trigger_p50_us\":" << before.p50_ns / 1000.0
@@ -94,4 +94,4 @@ bool WriteHardwareTimingReport(const Commands &commands,
     return bool(csv) && bool(json) &&
            (!supported || (!missing && !invalid && !software[0].empty()));
 }
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

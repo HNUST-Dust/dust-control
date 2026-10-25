@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 struct BenchmarkOptions {
     double seconds = 65;
     int cpu = 3;
@@ -36,4 +36,4 @@ class UsbBenchmark {
     class Impl;
     std::unique_ptr<Impl> impl_;
 };
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

@@ -2,7 +2,7 @@
 #pragma once
 #include "bridge_packet.hpp"
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 struct Record {
     std::uint32_t sequence;
     std::uint64_t submitted_ns;
@@ -34,4 +34,4 @@ struct FeedbackRecord {
     std::array<unsigned char, 8> data{};
 };
 
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

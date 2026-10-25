@@ -7,7 +7,7 @@
 #include <cerrno>
 #include <utility>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 
 EventWaiter::~EventWaiter() {
     if (timer_fd_ >= 0) {
@@ -60,4 +60,4 @@ void EventWaiter::Stop() {
     }
 }
 
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host

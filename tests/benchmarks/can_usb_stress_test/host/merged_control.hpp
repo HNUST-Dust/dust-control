@@ -4,7 +4,7 @@
 
 #include "control_latency.hpp"
 
-namespace bridge_wire {
+namespace dust_control::benchmarks::bridge_wire {
 using MergedControl = std::array<unsigned char, 128>;
 constexpr uint32_t kMergedControlCapability = 0x3147524d;  // MRG1
 constexpr uint32_t kMergedCapabilityQuery = 0x3151524d;  // MRQ1，固定 64 字节。
@@ -52,4 +52,4 @@ inline bool SplitMergedControl(const MergedControl &transfer,
     const uint32_t sequence = ReadU32(groups[0].data() + 4);
     return !(sequence & 1U) && ReadU32(groups[1].data() + 4) == sequence + 1;
 }
-}  // namespace bridge_wire
+}  // namespace dust_control::benchmarks::bridge_wire

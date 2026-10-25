@@ -12,8 +12,8 @@ struct Command {
     uint64_t feedback_wait_ns = 0;
     bool feedback_wait_expired = false;
     bool has_timing = true;
-    bridge_wire::Packet timing{};
-    bridge_wire::Packet reply{};
+    dust_control::benchmarks::bridge_wire::Packet timing{};
+    dust_control::benchmarks::bridge_wire::Packet reply{};
     uint32_t origin_mask = 7;
     std::array<uint32_t, 3> origin_us{100, 100, 100};
     std::array<uint64_t, 3> origin_host_ns{800000, 800000, 800000};
@@ -26,7 +26,7 @@ struct Feedback {
 };
 
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     static ControlLatencyRecorder recorder;
     std::vector<Command> commands(2);
     std::vector<Feedback> feedback;
@@ -57,7 +57,7 @@ int main() {
                      ("control-latency-report-" + std::to_string(getpid()));
     std::filesystem::create_directory(dir);
     auto run = [&] {
-        return stress_host::WriteControlLatencyReport(
+        return dust_control::benchmarks::stress_host::WriteControlLatencyReport(
             commands, feedback, (dir / "stream.json").string());
     };
 

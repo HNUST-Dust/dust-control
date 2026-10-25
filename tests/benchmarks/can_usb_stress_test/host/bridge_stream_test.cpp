@@ -10,7 +10,7 @@
         }                                             \
     } while (false)
 int main() {
-    using namespace bridge_wire;
+    using namespace dust_control::benchmarks::bridge_wire;
     const auto command = StreamCommand(17, 400, 1);
     CHECK(ReadU32(command.data()) == kStreamCommand &&
           ReadU32(command.data() + 4) == 17);

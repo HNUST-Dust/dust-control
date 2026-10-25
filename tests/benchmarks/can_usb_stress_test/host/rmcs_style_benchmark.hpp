@@ -2,7 +2,7 @@
 #pragma once
 #include <string>
 
-namespace stress_host {
+namespace dust_control::benchmarks::stress_host {
 struct RmcsStyleOptions {
     double seconds = 60;
     int cpu = 3;
@@ -19,4 +19,4 @@ struct RmcsStyleOptions {
 
 int RunRmcsStyle(const RmcsStyleOptions &options);
 void RequestRmcsStyleStop(int);
-}  // namespace stress_host
+}  // namespace dust_control::benchmarks::stress_host
