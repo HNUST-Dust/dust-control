@@ -15,6 +15,8 @@
 
 #include <algorithm>
 
+#include "motor_protocol.hpp"
+
 namespace protocols {
 
 namespace {
@@ -126,4 +128,49 @@ int PackDmMitCommand(const DmMitCommand *cmd, const DmMitRange *range,
     return 0;
 }
 
+}  // namespace protocols
+
+namespace protocols {
+bool EncodeDmMotorTarget(const dust::devices::MotorTarget &target,
+                         uint8_t out[8]) {
+    using dust::devices::MotorMode;
+    if (target.mode == MotorMode::kTorque) {
+        DmMitCommand command{};
+        command.torque = static_cast<float>(target.torque_nm);
+        return PackDmMitCommand(
+                   &command, &platform::motor_model::kJointMitRange, out) == 0;
+    }
+    DmControlCommand command;
+    switch (target.mode) {
+        case MotorMode::kDisable:
+            command = DmControlCommand::kExit;
+            break;
+        case MotorMode::kClearError:
+            command = DmControlCommand::kClearError;
+            break;
+        case MotorMode::kEnable:
+            command = DmControlCommand::kEnter;
+            break;
+        default:
+            return false;
+    }
+    return GetDmControlCommandFrame(command, out) == 0;
+}
+dust::devices::MotorFeedback DecodeDmMotorState(const uint8_t *bytes,
+                                                size_t size,
+                                                uint64_t sample_us) {
+    dust::devices::MotorFeedback sample{};
+    sample.precise_timestamp_us = sample_us;
+    if (size != 8 || !bytes) {
+        return sample;
+    }
+    DmMotorFeedbackNormal decoded{};
+    sample.valid = DecodeDmFeedbackNormal(bytes, size, &decoded) == 0;
+    const auto &range = platform::motor_model::kJointMitRange;
+    sample.position_rad = DmFeedbackPosition(decoded, range);
+    sample.velocity_rad_s = DmFeedbackVelocity(decoded, range);
+    sample.torque_nm = DmFeedbackTorque(decoded, range);
+    sample.enabled = decoded.control_status == 1U;
+    return sample;
+}
 }  // namespace protocols

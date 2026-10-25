@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
 #include <array>
-#include <hardware/motors/motor_state.hpp>
+#include <hardware/motors/motor_protocol.hpp>
 #include <hardware/remote/remote_input_state.hpp>
 
 #include "hardware/imu/imu_sample.hpp"

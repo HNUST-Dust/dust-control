@@ -2,16 +2,20 @@
 #pragma once
 #include "chassis/controller_inputs.h"
 #include "hardware/usb/usb_link.hpp"
+#include "motor_fixture.hpp"
 
 namespace dust::test {
 // 只在测试中驱动真实接收入口；不打开 USB，不复制协议解析或路由逻辑。
 class UsbReportFixture {
    public:
-    explicit UsbReportFixture(wbr::host::UartReceiveQueue& store,
-                              bool strict_crc = false,
-                              const dust::devices::MotorConfig& motors = {},
-                              const dust::devices::ImuConfig& imu = {})
+    explicit UsbReportFixture(
+        wbr::host::UartReceiveQueue& store, bool strict_crc = false,
+        const dust::devices::MotorConfig& motors = MotorFixture(),
+        const dust::devices::ImuConfig& imu = {})
         : link_(store, Options(strict_crc), motors, imu) {}
+    UsbReportFixture(wbr::host::UartReceiveQueue& store,
+                     const wbr::host::UsbOptions& options)
+        : link_(store, options, MotorFixture()) {}
     bool Consume(const wbr::bridge::UsbInPacket& packet, uint64_t receive_us) {
         return link_.ReceiveSensorReport(packet, receive_us);
     }

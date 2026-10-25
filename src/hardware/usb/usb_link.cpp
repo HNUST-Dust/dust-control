@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "usb_link.hpp"
 
-#include <hardware/motors/motor_map.h>
-
 #include <algorithm>
 #include <chassis/runtime/realtime_loop.hpp>
 #include <chrono>
@@ -14,6 +12,8 @@
 #include <sstream>
 #include <vector>
 
+#include "concurrency/thread.hpp"
+
 namespace wbr::host {
 namespace rt = wbr::realtime;
 UsbLink::UsbLink(UartReceiveQueue& uart_queue, const UsbOptions& options,
@@ -23,7 +23,9 @@ UsbLink::UsbLink(UartReceiveQueue& uart_queue, const UsbOptions& options,
       motor_config_(motors),
       uart_queue_(uart_queue),
       motor_decoder_(motors),
-      hi91_decoder_(options.strict_hi91_crc, imu) {}
+      hi91_decoder_(options.strict_hi91_crc, imu) {
+    options_.uart_sensors.Validate();
+}
 UsbLink::~UsbLink() {
     Close();
 }
@@ -203,7 +205,7 @@ bool UsbLink::OpenDevice() {
 
     if (matches.size() != 1) {
         std::string message =
-            "Multiple matching USB bridges; specify --usb-serial:";
+            "Multiple matching USB bridges; set an exact USB serial:";
         for (const auto& match : matches) {
             message += "\n  " + match;
         }
@@ -338,10 +340,18 @@ void LIBUSB_CALL UsbLink::CompleteReceive(libusb_transfer* transfer) {
                 return;
             }
             const auto channels = report.can_channel_mask;
-            for (const auto& motor : self.motor_config_.addresses) {
-                if (!(channels & (1U << motor.bus))) {
-                    self.FailSession("Adapter CAN channel capability missing");
-                    return;
+            if (self.options_.decode_motors) {
+                for (size_t i = 0; i < self.motor_config_.addresses.size();
+                     ++i) {
+                    if (!self.motor_config_.present[i]) {
+                        continue;
+                    }
+                    const auto& motor = self.motor_config_.addresses[i];
+                    if (!(channels & (1U << motor.bus))) {
+                        self.FailSession(
+                            "Adapter CAN channel capability missing");
+                        return;
+                    }
                 }
             }
             if (report.max_can_frames < 6) {
@@ -557,9 +567,10 @@ void UsbLink::Stop() {
 
 void UsbLink::RunEventLoop() {
     std::string error;
-    if (options_.realtime &&
-        !rt::ConfigureCurrentThread(options_.cpu, options_.priority, error)) {
-        FailSession("USB realtime setup: " + error);
+    pthread_setname_np(pthread_self(), options_.thread_name.c_str());
+    if (!dust::concurrency::ConfigureThread(
+            {options_.realtime, options_.cpu, options_.priority}, error)) {
+        FailSession("USB receive thread setup: " + error);
     }
 
     if (!failed_) {

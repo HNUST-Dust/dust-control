@@ -6,10 +6,10 @@
 #include <thread>
 #include <vector>
 
+#include "../support/motor_fixture.hpp"
 #include "concurrency/published_snapshot.hpp"
 #include "hardware/imu/onboard_imu.hpp"
-#include "hardware/motors/motor_feedback.hpp"
-#include "hardware/motors/motor_map.h"
+#include "hardware/motors/motor_protocol.hpp"
 #include "hardware/remote/sbus_decoder.hpp"
 
 namespace {
@@ -54,10 +54,10 @@ int main() {
     assert(reads > 0 && published.Read().sequence == 30000);
 
     // 真正的设备解析线程与控制读取线程并发，Read 不能暴露解析状态。
-    dust::devices::MotorFeedbackDecoder motor;
+    dust::devices::MotorFeedbackDecoder motor(dust::test::MotorFixture());
     dust::devices::OnboardImu onboard;
     dust::devices::SbusDecoder remote;
-    const auto& address = platform::motor_map::kDefaultMotors[0];
+    const auto& address = dust::test::kMotorAddresses[0];
     done = false;
     std::thread control([&] {
         do {

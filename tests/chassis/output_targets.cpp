@@ -1,9 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include <cassert>
 
+#include "../support/motor_fixture.hpp"
 #include "chassis_config.h"
 #include "chassis_output_policy.h"
-#include "hardware/motors/motor_encoder.hpp"
+#include "hardware/motors/motor_protocol.hpp"
 
 int main() {
     using namespace modules;
@@ -12,7 +13,7 @@ int main() {
     constexpr unsigned kExpectedModePeriodTicks = 10;
     constexpr unsigned kExpectedClearTicks = 50;
     ChassisOutputPolicy policy;
-    dust::devices::MotorEncoder encoder;
+    dust::devices::MotorEncoder encoder(dust::test::MotorFixture());
     ChassisCycleInput input{};
     ChassisControlOutput output{};
     input.feedback_valid = input.imu_fresh = input.dm_ready =

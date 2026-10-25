@@ -1,7 +1,6 @@
 add_library(dust_motors
   motor_config.cpp
-  motor_feedback.cpp
-  motor_encoder.cpp
+  motor_protocol.cpp
   dji_protocol.cpp
   dm_protocol.cpp
   cubemars_protocol.cpp

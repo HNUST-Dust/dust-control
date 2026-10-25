@@ -8,9 +8,14 @@ namespace wbr::host {
 UsbSession::UsbSession(const UsbOptions& options,
                        const dust::devices::MotorConfig& motors,
                        const dust::devices::ImuConfig& imu)
-    : link_(uart_queue_, options, motors, imu),
-      transmitter_(link_, {options.realtime, options.cpu,
-                           std::max(1, options.priority - 1)}) {}
+    : UsbSession(options, motors, imu,
+                 {options.realtime, options.cpu,
+                  options.priority ? std::max(1, options.priority - 1) : 0}) {}
+UsbSession::UsbSession(const UsbOptions& options,
+                       const dust::devices::MotorConfig& motors,
+                       const dust::devices::ImuConfig& imu,
+                       UsbTransmitOptions transmit)
+    : link_(uart_queue_, options, motors, imu), transmitter_(link_, transmit) {}
 UsbSession::~UsbSession() {
     Stop();
 }

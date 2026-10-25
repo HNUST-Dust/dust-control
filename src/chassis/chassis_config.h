@@ -8,8 +8,6 @@
 #include <cstdint>
 #include <string>
 
-#include "hardware/motors/dji_model.hpp"
-
 namespace modules::chassis_config {
 // 多个底盘模块共用的物理量、坐标约定及关节控制限值。
 inline constexpr double kGravity = 9.80665;
@@ -46,9 +44,8 @@ inline constexpr double kDpsToRadPerSec = kDegToRad;
 inline constexpr double kRpmToRadPerSec = 0.10471975511965977;
 inline constexpr double kYawTrackingErrorLimit =
     kYawTrackingErrorLimitDeg * kDegToRad;
-inline constexpr double kWheelTorqueLimit =
-    static_cast<double>(platform::motor_model::kDjiProtocolCurrentLimit) /
-    platform::motor_model::kDefaultDjiCurrentPerNm;
+// 离线控制器的默认轮力矩预算；正式运行由设备层注入实际协议限值。
+inline constexpr double kWheelTorqueLimit = 4.748985507246377;
 
 }  // namespace modules::chassis_config
 

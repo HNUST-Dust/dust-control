@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include "chassis/runtime/realtime_loop.hpp"
+#include "concurrency/thread.hpp"
 #include "usb_link.hpp"
 
 namespace wbr::host {
@@ -62,6 +63,12 @@ bool UsbTransmitter::ConfigureCan(CanProducer producer,
     return true;
 }
 
+bool UsbTransmitter::HasCanProducers() const {
+    const std::lock_guard lock(mutex_);
+    return std::any_of(sources_.begin(), sources_.end(),
+                       [](const auto& source) { return source.configured; });
+}
+
 bool UsbTransmitter::Start() {
     {
         const std::lock_guard lock(mutex_);
@@ -87,9 +94,12 @@ bool UsbTransmitter::Start() {
     return true;
 }
 
-void UsbTransmitter::Stop() {
+void UsbTransmitter::RequestStop() {
     stop_ = true;
     changed_.notify_all();
+}
+void UsbTransmitter::Stop() {
+    RequestStop();
     if (thread_.joinable()) {
         thread_.join();
     }
@@ -298,11 +308,11 @@ UsbTransmitter::Work UsbTransmitter::NextWork(uint64_t now_ns,
 void UsbTransmitter::Run() {
     try {
         std::string error;
-        if (options_.realtime && !rt::ConfigureCurrentThread(
-                                     options_.cpu, options_.priority, error)) {
-            Fail("USB transmit realtime setup: " + error);
+        if (!dust::concurrency::ConfigureThread(
+                {options_.realtime, options_.cpu, options_.priority}, error)) {
+            Fail("USB transmit thread setup: " + error);
         }
-        pthread_setname_np(pthread_self(), "dust-usb-tx");
+        pthread_setname_np(pthread_self(), options_.thread_name.c_str());
         while (!stop_ && !failed_) {
             if (!link_.healthy()) {
                 Fail(link_.error().empty() ? "Bridge sensor stream timeout"

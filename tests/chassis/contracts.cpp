@@ -9,13 +9,13 @@
 #include <iostream>
 #include <vector>
 
+#include "../support/motor_fixture.hpp"
 #include "../support/usb_report_fixture.hpp"
 #include "chassis_config.h"
 #include "chassis_controller.h"
 #include "chassis_input_reader.h"
 #include "hardware/imu/hi91_time_guard.hpp"
-#include "hardware/motors/motor_encoder.hpp"
-#include "hardware/motors/motor_map.h"
+#include "hardware/motors/motor_protocol.hpp"
 #define CHECK(condition)                              \
     do {                                              \
         if (!(condition)) {                           \
@@ -176,7 +176,7 @@ int main() {
     CHECK(bridge::Encode(batch, packet));  // 原始 FIFO 允许重复 ID。
     batch.frame_count = 7;
     CHECK(!bridge::Encode(batch, packet));
-    dust::devices::MotorEncoder encoder;
+    dust::devices::MotorEncoder encoder(dust::test::MotorFixture());
     modules::ChassisController controller;
     modules::ControllerInputs sources{};
     sources.remote.robot_enable = true;
@@ -189,8 +189,7 @@ int main() {
     CHECK(disabled.count == 6);
     const unsigned expected_slots[] = {0, 2, 3, 1, 4, 5};
     for (unsigned i = 0; i < 6; ++i) {
-        const auto& address =
-            platform::motor_map::kDefaultMotors[expected_slots[i]];
+        const auto& address = dust::test::kMotorAddresses[expected_slots[i]];
         CHECK(disabled.frames[i].bus == address.bus);
         CHECK(disabled.frames[i].id == address.command_id);
         const auto& record = disabled.frames[i];

@@ -7,7 +7,7 @@
 #include <chassis/controller_inputs.h>
 
 #include <cstdint>
-#include <hardware/motors/motor_targets.hpp>
+#include <hardware/motors/motor_protocol.hpp>
 
 #include "leg_kinematics.h"
 

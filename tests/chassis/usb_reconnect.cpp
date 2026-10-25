@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 
+#include "../support/motor_fixture.hpp"
 #include "chassis/runtime/realtime_loop.hpp"
 #include "usb_link.hpp"
 #include "usb_transmitter.hpp"
@@ -11,7 +12,7 @@ int main() {
     wbr::host::UsbOptions options;
     options.realtime = false;
     for (unsigned session = 0; session < 5; ++session) {
-        wbr::host::UsbLink link(sensors, options);
+        wbr::host::UsbLink link(sensors, options, dust::test::MotorFixture());
         if (!link.Open()) {
             std::cerr << link.error();
             return 1;

@@ -4,11 +4,11 @@
 #include <cstring>
 #include <span>
 
+#include "../support/motor_fixture.hpp"
 #include "hardware/imu/hi91_decoder.hpp"
 #include "hardware/imu/hi91_protocol.h"
 #include "hardware/imu/onboard_imu.hpp"
-#include "hardware/motors/motor_feedback.hpp"
-#include "hardware/motors/motor_map.h"
+#include "hardware/motors/motor_protocol.hpp"
 #include "hardware/referee/referee_decoder.hpp"
 #include "hardware/remote/sbus_decoder.hpp"
 
@@ -110,8 +110,8 @@ int main() {
     assert(fast.Read().precise_timestamp_us == 5000);
     assert(slow.Read().precise_timestamp_us == 1000);
 
-    MotorFeedbackDecoder motors;
-    const auto& address = platform::motor_map::kDefaultMotors[0];
+    MotorFeedbackDecoder motors(dust::test::MotorFixture());
+    const auto& address = dust::test::kMotorAddresses[0];
     const std::array<uint8_t, 8> raw{0, 0, 0, 123, 0, 0, 0, 0};
     motors.Consume(address.bus, address.feedback_id, raw, 1234, true);
     assert(motors.Read()[0].valid && motors.Read()[0].speed_rpm == 123);

@@ -11,12 +11,19 @@
  */
 
 #include <errno.h>
-#include <hardware/motors/byte_order.h>
 #include <hardware/motors/dji_protocol.h>
+
+#include <algorithm>
+#include <cmath>
+
+#include "motor_protocol.hpp"
 
 namespace protocols {
 
 namespace {
+uint16_t ReadBigEndian16(const uint8_t* p) {
+    return (uint16_t(p[0]) << 8) | p[1];
+}
 
 int WriteBe16ToSlot(int16_t value, int slot, uint8_t out[8]) {
     if ((out == nullptr) || (slot < 0) || (slot > 3)) {
@@ -50,7 +57,7 @@ bool IsDjiStandardFeedbackId(uint16_t can_id) {
     return (can_id >= 0x201U) && (can_id <= 0x204U);
 }
 
-int DecodeDjiFeedback(const uint8_t *data, uint8_t dlc, DjiMotorFeedback *out) {
+int DecodeDjiFeedback(const uint8_t* data, uint8_t dlc, DjiMotorFeedback* out) {
     if ((data == nullptr) || (out == nullptr) || (dlc < 7U)) {
         return -EINVAL;
     }
@@ -82,4 +89,41 @@ int WriteDjiCurrentCommandToSlot(uint16_t motor_can_id, int16_t current_cmd,
     return WriteBe16ToSlot(current_cmd, slot, frame_payload);
 }
 
+}  // namespace protocols
+
+namespace protocols {
+bool EncodeDjiMotorTarget(const dust::devices::MotorTarget& target,
+                          uint8_t command_slot, double command_sign,
+                          uint8_t out[8]) {
+    if (target.mode != dust::devices::MotorMode::kTorque || command_slot >= 4 ||
+        !out) {
+        return false;
+    }
+    const double requested = command_sign * target.torque_nm;
+    const double current =
+        std::isfinite(requested)
+            ? std::clamp(requested * platform::motor_model::kDjiCurrentPerNm,
+                         -static_cast<double>(
+                             platform::motor_model::kDjiProtocolCurrentLimit),
+                         static_cast<double>(
+                             platform::motor_model::kDjiProtocolCurrentLimit))
+            : 0.0;
+    int16_t currents[4]{};
+    currents[command_slot] = static_cast<int16_t>(current);
+    return EncodeDjiCurrentFrame0x200(currents, out) == 0;
+}
+dust::devices::MotorFeedback DecodeDjiMotorState(const uint8_t* bytes,
+                                                 size_t size,
+                                                 uint64_t sample_us) {
+    dust::devices::MotorFeedback sample{};
+    sample.precise_timestamp_us = sample_us;
+    if (size != 8 || !bytes) {
+        return sample;
+    }
+    DjiMotorFeedback decoded{};
+    sample.valid = DecodeDjiFeedback(bytes, size, &decoded) == 0;
+    sample.speed_rpm = static_cast<double>(decoded.omega);
+    sample.velocity_rad_s = sample.speed_rpm * 0.10471975511965977;
+    return sample;
+}
 }  // namespace protocols

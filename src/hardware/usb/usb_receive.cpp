@@ -69,6 +69,9 @@ bool UsbLink::ReceiveSensorReport(const bridge::UsbInPacket& packet,
 
 void UsbLink::ReceiveCanReport(const bridge::CanReceiveReport& report,
                                uint64_t arrival_us) {
+    if (!options_.decode_motors) {
+        return;
+    }
     for (unsigned i = 0; i < report.frame_count; ++i) {
         const auto& received = report.frames[i];
         const auto& frame = received.frame;
@@ -105,29 +108,22 @@ bool UsbLink::ReceiveUartReport(const bridge::UartReceiveReport& report,
     chunk.receive_us = sample_us;
     chunk.discontinuity = discontinuity;
     uart_queue_.PublishUartChunk(report.channel, chunk);
-    switch (report.channel) {
-        case 1:
-            if (discontinuity) {
-                sbus_decoder_.Discontinuity();
-            }
-            // 遥控丢帧计时继续使用主机实际接收时间。
-            sbus_decoder_.Consume(bytes, arrival_us);
-            break;
-        case 2:
-            if (discontinuity) {
-                hi91_decoder_.Discontinuity();
-            }
-            hi91_decoder_.Consume(bytes, sample_us);
-            break;
-        case 3:
-            if (discontinuity) {
-                referee_decoder_.Discontinuity();
-            }
-            referee_decoder_.Consume(bytes, sample_us);
-            break;
-        default:
-            // 其余通道只发布原始队列，不猜测连接设备的类型。
-            break;
+    if (report.channel == options_.uart_sensors.remote) {
+        if (discontinuity) {
+            sbus_decoder_.Discontinuity();
+        }
+        // 遥控丢帧计时继续使用主机实际接收时间。
+        sbus_decoder_.Consume(bytes, arrival_us);
+    } else if (report.channel == options_.uart_sensors.hi91) {
+        if (discontinuity) {
+            hi91_decoder_.Discontinuity();
+        }
+        hi91_decoder_.Consume(bytes, sample_us);
+    } else if (report.channel == options_.uart_sensors.referee) {
+        if (discontinuity) {
+            referee_decoder_.Discontinuity();
+        }
+        referee_decoder_.Consume(bytes, sample_us);
     }
     return true;
 }

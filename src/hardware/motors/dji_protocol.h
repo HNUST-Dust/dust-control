@@ -14,7 +14,13 @@
 
 // DJI 电机对外报文格式约定。
 
+#include <stddef.h>
 #include <stdint.h>
+
+namespace dust::devices {
+struct MotorFeedback;
+struct MotorTarget;
+}  // namespace dust::devices
 
 namespace protocols {
 
@@ -39,7 +45,7 @@ bool IsDjiStandardFeedbackId(uint16_t can_id);
  * @param[out] out 接收结果的输出对象；不得为空。
  * @return 成功返回 0；参数或帧格式无效时返回负 errno。
  */
-int DecodeDjiFeedback(const uint8_t *data, uint8_t dlc, DjiMotorFeedback *out);
+int DecodeDjiFeedback(const uint8_t* data, uint8_t dlc, DjiMotorFeedback* out);
 
 // 将四个电机电流打包为 CAN ID 0x200 报文（对应 0x201~0x204）。
 /**
@@ -69,4 +75,25 @@ int EncodeDjiCurrentFrame0x1ff(const int16_t current_cmd[4], uint8_t out[8]);
 int WriteDjiCurrentCommandToSlot(uint16_t motor_can_id, int16_t current_cmd,
                                  uint8_t frame_payload[8]);
 
+}  // namespace protocols
+
+namespace platform::motor_model {
+// 当前 DJI 电流模式的命令规格，不是控制策略力矩上限。
+// 当前轮电机与减速机构的固定电流/力矩换算，与型号规格一起维护。
+inline constexpr double kDjiCurrentPerNm = 3450.0;
+inline constexpr int16_t kDjiProtocolCurrentLimit = 16384;
+inline constexpr uint16_t kDjiCommandId = 0x200;
+inline constexpr uint16_t DjiFeedbackId(uint8_t slot) {
+    return 0x201 + slot;
+}
+}  // namespace platform::motor_model
+
+// 当前轮电机的目标编码和物理反馈换算，与原始线协议接口集中维护。
+namespace protocols {
+bool EncodeDjiMotorTarget(const dust::devices::MotorTarget& target,
+                          uint8_t command_slot, double command_sign,
+                          uint8_t out[8]);
+dust::devices::MotorFeedback DecodeDjiMotorState(const uint8_t* bytes,
+                                                 size_t size,
+                                                 uint64_t sample_us);
 }  // namespace protocols

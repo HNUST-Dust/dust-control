@@ -10,6 +10,10 @@ class UsbSession {
     UsbSession(const UsbOptions& options,
                const dust::devices::MotorConfig& motors,
                const dust::devices::ImuConfig& imu);
+    UsbSession(const UsbOptions& options,
+               const dust::devices::MotorConfig& motors,
+               const dust::devices::ImuConfig& imu,
+               UsbTransmitOptions transmit);
     ~UsbSession();
     bool Start();
     void Stop();
@@ -19,6 +23,9 @@ class UsbSession {
     std::string error();
     const UsbLink& link() const {
         return link_;
+    }
+    const UsbTransmitter& transmitter() const {
+        return transmitter_;
     }
     UsbTransmitter& transmitter() {
         return transmitter_;

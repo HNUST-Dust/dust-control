@@ -27,6 +27,7 @@ struct UsbTransmitOptions {
     int cpu = 3;
     int priority = 79;
     uint32_t uart_bytes_per_second = 8000;
+    std::string thread_name = "dust-usb-tx";
 };
 
 // 多业务线程提交编码结果；唯一发送线程拥有所有业务 USB 提交和 Stop。
@@ -39,8 +40,12 @@ class UsbTransmitter {
     bool ConfigureCan(CanProducer producer,
                       std::span<const CanCommandGroup> groups,
                       uint64_t timeout_ns);
+    // 启动装配时查询，不建立假控制源或续租。
+    bool HasCanProducers() const;
     bool Start();
     // 由生命周期所有者调用：唤醒并等待发送线程提交 Stop，再允许关闭 UsbLink。
+    // 先请求所有板停止，再逐一等待，避免等待一板时其他板耗尽租约。
+    void RequestStop();
     void Stop();
     // 同步复制，不等待 USB。序号必须递增；时间为目标生成时的主机单调纳秒。
     // 空批次代表本周期没有命令，仍更新该来源的活性；旧序号不会刷新期限。
@@ -121,5 +126,37 @@ class UsbTransmitter {
     std::atomic<bool> running_{false};
     std::atomic<bool> failed_{false};
     std::thread thread_;
+};
+// 非拥有端口：业务只能提交数据，不能停止发送器或关闭共享会话。
+class CanCommandPort {
+   public:
+    CanCommandPort(UsbTransmitter& transmitter, CanProducer producer)
+        : transmitter_(transmitter), producer_(producer) {}
+    bool Configure(std::span<const CanCommandGroup> groups,
+                   uint64_t timeout_ns) const {
+        return transmitter_.ConfigureCan(producer_, groups, timeout_ns);
+    }
+    bool Submit(std::span<const dust::devices::CanFrame> frames,
+                uint64_t sequence, uint64_t generated_ns) const {
+        return transmitter_.SubmitCan(producer_, frames, sequence,
+                                      generated_ns);
+    }
+
+   private:
+    UsbTransmitter& transmitter_;
+    CanProducer producer_;
+};
+class UartFramePort {
+   public:
+    explicit UartFramePort(UsbTransmitter& transmitter)
+        : transmitter_(transmitter) {}
+    bool Submit(uint8_t channel, std::span<const uint8_t> bytes,
+                uint64_t generated_ns, uint64_t lifetime_ns = 200000000) const {
+        return transmitter_.SubmitUart(channel, bytes, generated_ns,
+                                       lifetime_ns);
+    }
+
+   private:
+    UsbTransmitter& transmitter_;
 };
 }  // namespace wbr::host

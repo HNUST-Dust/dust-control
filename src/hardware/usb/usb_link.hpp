@@ -8,6 +8,7 @@
 #include <mutex>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -15,7 +16,7 @@
 #include "hardware/can_frame.hpp"
 #include "hardware/imu/hi91_decoder.hpp"
 #include "hardware/imu/onboard_imu.hpp"
-#include "hardware/motors/motor_feedback.hpp"
+#include "hardware/motors/motor_protocol.hpp"
 #include "hardware/referee/referee_decoder.hpp"
 #include "hardware/remote/sbus_decoder.hpp"
 #include "uart_receive_queue.hpp"
@@ -25,7 +26,26 @@ class UsbReportFixture;
 }
 
 namespace wbr::host {
+// 每块 Adapter 独立绑定；0 表示不绑定，1..6 对应物理 UART。
+struct UartSensorBindings {
+    uint8_t remote = 1;
+    uint8_t hi91 = 2;
+    uint8_t referee = 3;
+    void Validate() const {
+        std::array<bool, 7> occupied{};
+        for (const auto channel : {remote, hi91, referee}) {
+            if (channel > 6 || (channel && occupied[channel])) {
+                throw std::invalid_argument(
+                    "UART sensor bindings require unique channels in 1..6 (0 "
+                    "disables)");
+            }
+            occupied[channel] = channel != 0;
+        }
+    }
+};
 struct UsbOptions {
+    UartSensorBindings uart_sensors;
+
     uint16_t vid = 0x34b7;
     std::optional<uint16_t> pid;  // 配置后执行精确筛选，包括 0 和 0xffff。
     std::string manufacturer = "Dust";
@@ -35,6 +55,8 @@ struct UsbOptions {
     int cpu = 3;
     int priority = 80;
     bool strict_hi91_crc = false;
+    bool decode_motors = true;
+    std::string thread_name = "dust-usb-rx";
 };
 
 class UsbLink {
