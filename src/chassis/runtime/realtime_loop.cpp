@@ -1,14 +1,13 @@
 #include "chassis/runtime/realtime_loop.hpp"
 
-#include <pthread.h>
-#include <sched.h>
-#include <sys/mman.h>
 #include <time.h>
 
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <numeric>
+
+#include "concurrency/thread.hpp"
 
 namespace wbr::realtime {
 
@@ -20,30 +19,7 @@ std::uint64_t MonotonicTimeNs() {
 }
 
 bool ConfigureCurrentThread(int cpu, int priority, std::string& error) {
-    if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-        error = std::string("mlockall: ") + std::strerror(errno);
-        return false;
-    }
-
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(cpu, &cpuset);
-    int result =
-        pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
-    if (result != 0) {
-        error = std::string("pthread_setaffinity_np: ") + std::strerror(result);
-        return false;
-    }
-
-    sched_param parameters{};
-    parameters.sched_priority = priority;
-    result = pthread_setschedparam(pthread_self(), SCHED_FIFO, &parameters);
-    if (result != 0) {
-        error = std::string("pthread_setschedparam: ") + std::strerror(result);
-        return false;
-    }
-
-    return true;
+    return dust::concurrency::ConfigureThread({true, cpu, priority}, error);
 }
 
 bool SleepUntilNs(std::uint64_t absolute_time_ns, std::string& error) {
