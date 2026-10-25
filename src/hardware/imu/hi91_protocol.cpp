@@ -14,7 +14,10 @@
 #include <hardware/imu/hi91_protocol.h>
 #include <string.h>
 
-namespace protocols {
+#include <algorithm>
+#include <cmath>
+
+namespace dust_control::protocols {
 
 namespace {
 
@@ -129,4 +132,115 @@ uint16_t Hi91Crc16CcittFalse(const uint8_t *data, size_t size) {
     return Crc16Update(0U, data, size);
 }
 
-}  // namespace protocols
+}  // namespace dust_control::protocols
+
+namespace dust_control::devices {
+namespace {
+constexpr double kMaximumValidPitchDeg = 100.0;
+}  // namespace
+
+void Hi91Decoder::Reset() {
+    stream_ = {};
+    latest_ = {};
+    time_guard_.Reset();
+    sequence_ = 0;
+    published_.Publish(latest_);
+}
+
+void Hi91Decoder::Discontinuity() {
+    stream_.size = 0;
+    time_guard_.Reject();
+    latest_.valid = false;
+    published_.Publish(latest_);
+}
+
+void Hi91Decoder::Consume(std::span<const uint8_t> bytes, uint64_t sample_us) {
+    for (const auto byte : bytes) {
+        stream_.Append(byte);
+        DecodeFrames(sample_us);
+    }
+    published_.Publish(latest_);
+}
+
+void Hi91Decoder::DecodeFrames(uint64_t sample_us) {
+    for (;;) {
+        if (stream_.size < 2) {
+            return;
+        }
+        if (stream_.bytes[0] != dust_control::protocols::kHi91FrameSof0 ||
+            stream_.bytes[1] != dust_control::protocols::kHi91FrameSof1) {
+            time_guard_.Reject();
+            stream_.DiscardPrefix(1);
+            continue;
+        }
+        if (stream_.size < dust_control::protocols::kHi91FrameHeaderSize) {
+            return;
+        }
+        const size_t payload =
+            dust_control::protocols::ReadLe16(stream_.bytes.data() + 2);
+        if (payload > dust_control::protocols::kHi91MaxPayloadLength ||
+            payload < dust_control::protocols::kHi91DataLength) {
+            time_guard_.Reject();
+            stream_.DiscardPrefix(1);
+            continue;
+        }
+        const size_t size =
+            payload + dust_control::protocols::kHi91FrameHeaderSize;
+        if (stream_.size < size) {
+            return;
+        }
+        dust_control::protocols::Hi91Sample decoded{};
+        const int result = dust_control::protocols::DecodeHi91Frame(
+            stream_.bytes.data(), size, strict_crc_, &decoded);
+        if (result) {
+            time_guard_.Reject();
+            stream_.DiscardPrefix(1);
+            continue;
+        }
+        if (!std::isfinite(decoded.pitch_deg) ||
+            std::abs(decoded.pitch_deg) > kMaximumValidPitchDeg ||
+            !std::isfinite(decoded.roll_deg) ||
+            !std::isfinite(decoded.yaw_deg)) {
+            time_guard_.Reject();
+            stream_.DiscardPrefix(1);
+            continue;
+        }
+        bool finite = true;
+        for (unsigned i = 0; i < 3; ++i) {
+            finite = finite && std::isfinite(decoded.gyro_dps[i]) &&
+                     std::isfinite(decoded.accel_g[i]);
+        }
+        if (!finite) {
+            time_guard_.Reject();
+            stream_.DiscardPrefix(size);
+            continue;
+        }
+        // 宽松 CRC 模式下，恢复候选帧仍必须通过校验。
+        const bool crc_valid =
+            dust_control::protocols::ReadLe16(stream_.bytes.data() + 4) ==
+            dust_control::protocols::CalculateHi91FrameCrc(
+                payload, stream_.bytes.data() +
+                             dust_control::protocols::kHi91FrameHeaderSize);
+        if (!time_guard_.Accept(decoded.system_time_ms, sample_us,
+                                config_.freshness_us, crc_valid)) {
+            stream_.DiscardPrefix(size);
+            continue;
+        }
+        latest_ = {};
+        latest_.sequence = ++sequence_;
+        latest_.precise_timestamp_us = sample_us;
+        latest_.valid = true;
+        latest_.pitch_deg = decoded.pitch_deg;
+        latest_.roll_deg = decoded.roll_deg;
+        latest_.yaw_deg = decoded.yaw_deg;
+        constexpr float radians = 0.01745329251994329577F;
+        // 保留 HI91 安装映射：陀螺仪 X 对应 pitch，Y 对应 roll。
+        latest_.pitch_rate_rad_s = decoded.gyro_dps[0] * radians;
+        latest_.roll_rate_rad_s = decoded.gyro_dps[1] * radians;
+        latest_.yaw_rate_rad_s = decoded.gyro_dps[2] * radians;
+        std::copy_n(decoded.accel_g, 3, latest_.accel_g);
+        latest_.vertical_accel_g = decoded.accel_g[2];
+        stream_.DiscardPrefix(size);
+    }
+}
+}  // namespace dust_control::devices

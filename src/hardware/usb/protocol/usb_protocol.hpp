@@ -8,9 +8,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 
-namespace dust::wire {
+namespace dust_control::wire {
 constexpr uint32_t kMagic = 0x31425257;
 constexpr uint8_t kVersion = 4;
 constexpr size_t kInBytes = 160;
@@ -255,6 +254,133 @@ bool Encode(const UartTransmitRequest& message, UsbOutRequest& packet);
 bool Decode(const UsbOutRequest& packet, UartTransmitRequest& message);
 bool Encode(const UartReceiveReport& message, UsbInPacket& packet);
 
-}  // namespace dust::wire
+// 原始字节辅助接口；调用方负责缓冲区长度。包容量不等于实际传输长度。
+size_t UsbReportLength(const UsbInPacket& packet);
+uint32_t U32(const uint8_t* p);
+void Put32(uint8_t* p, uint32_t value);
+void Put16(uint8_t* p, uint16_t value);
+void Header(uint8_t* p, Kind kind, uint32_t sequence, uint32_t session);
+bool HasHeader(const uint8_t* p, size_t size);
+bool NewSequence(uint32_t next, uint32_t previous);
+CanFrame Decode(const uint8_t* p);
+bool ValidRecords(const UsbOutRequest& packet, bool safety = false);
+uint32_t ProtectionSignature(uint32_t timeout_us, const CanFrame* records,
+                             size_t count);
 
-#include "usb_protocol_codec.hpp"
+class UsbOutRequestView {
+   public:
+    explicit UsbOutRequestView(const UsbOutRequest& request)
+        : request_(request) {}
+
+    Kind MessageKind() const {
+        return Kind(request_[9]);
+    }
+    uint32_t Sequence() const {
+        return U32(request_.data() + 4);
+    }
+    uint32_t Session() const {
+        return U32(request_.data() + 12);
+    }
+    uint32_t LeaseUs() const {
+        return U32(request_.data() + 16);
+    }
+    uint8_t RecordCount() const {
+        return request_[10];
+    }
+    uint8_t UartChannel() const {
+        return request_[10];
+    }
+    uint8_t UartLength() const {
+        return request_[11];
+    }
+    uint8_t StatusTarget() const {
+        return request_[10];
+    }
+    uint8_t StatusChannel() const {
+        return request_[11];
+    }
+    const uint8_t* Payload() const {
+        return request_.data() + 32;
+    }
+
+   private:
+    const UsbOutRequest& request_;
+};
+
+// 上行与下行解码均在同一协议实现中；失败不提交部分结果。
+bool Decode(const UsbInPacket& packet, CanReceiveReport& message);
+bool Decode(const UsbInPacket& packet, UartReceiveReport& message);
+bool Decode(const UsbInPacket& packet, ImuSampleReport& message);
+bool Decode(const UsbInPacket& packet, ReadyReport& message);
+bool Decode(const UsbInPacket& packet, RequestResultReport& message);
+
+/**
+ * @brief 独立于硬件的租约与序号状态；所有访问必须由同一所有者执行。
+ */
+class SessionPolicy {
+   public:
+    /**
+     * @brief 重置策略并设置会话随机标识；调用者必须拒绝零会话标识。
+     */
+    void Open(uint32_t nonce);
+
+    /**
+     * @brief 记录已接纳的序号，不续租。
+     */
+    void Observe(uint32_t seq);
+
+    /**
+     * @brief 在授权转发前设置 1000..1000000 微秒租约；状态或范围无效时返回
+     * false。
+     */
+    bool Configure(uint32_t timeout_us);
+
+    /**
+     * @brief 判断 seq 是否晚于上次观察到的序号。
+     */
+    bool Fresh(uint32_t seq) const;
+
+    /**
+     * @brief 使用新序号授权已配置的策略转发，并从 now（微秒）开始计租。
+     */
+    bool Arm(uint32_t seq, uint32_t now);
+
+    /**
+     * @brief 接纳新流量并续租；未授权、序号陈旧或租约过期时返回 false。
+     */
+    bool Accept(uint32_t seq, uint32_t now);
+
+    /**
+     * @brief 使用可处理回绕的无符号微秒减法检查已授权会话的租约。
+     */
+    bool Expired(uint32_t now) const;
+
+    /**
+     * @brief 重置会话状态并撤销转发许可。
+     */
+    void Close();
+
+    /**
+     * @brief 返回当前会话标识；零表示未激活。
+     */
+    uint32_t Session() const;
+
+    /**
+     * @brief 返回是否已授予转发许可。
+     */
+    bool Armed() const;
+
+    /**
+     * @brief 返回是否已配置租约。
+     */
+    bool Configured() const;
+
+   private:
+    uint32_t session_ = 0;
+    uint32_t timeout_ = 0;
+    uint32_t last_sequence_ = 0;
+    uint32_t last_receive_ = 0;
+    bool configured_ = false, armed_ = false, seen_ = false;
+};
+
+}  // namespace dust_control::wire

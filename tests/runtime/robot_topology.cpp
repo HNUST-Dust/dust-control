@@ -47,7 +47,7 @@ void CheckThread(const std::string& name, int cpu) {
 }
 }  // namespace
 int TestSplit(const std::string& directory) {
-    dust::app::Robot robot{directory};
+    dust_control::app::Robot robot{directory};
     try {
         robot.Start();
     } catch (const std::exception& error) {
@@ -55,14 +55,14 @@ int TestSplit(const std::string& directory) {
         return 1;
     }
     const auto& config = robot.configuration();
-    const auto all_motors = dust::devices::LoadMotorConfig(
+    const auto all_motors = dust_control::devices::LoadMotorConfig(
         (std::filesystem::path(directory) / config.motors_file).string());
     const std::set<std::string> motor_adapters(all_motors.adapters.begin(),
                                                all_motors.adapters.end());
     const auto deadline =
         std::chrono::steady_clock::now() + std::chrono::seconds(1);
     bool complete = false;
-    dust::chassis::ChassisObservation sample;
+    dust_control::chassis::ChassisObservation sample;
     std::array<bool, 6> observed{};
     while (!robot.finished() && std::chrono::steady_clock::now() < deadline) {
         while (robot.chassis().TakeObservation(sample)) {
@@ -101,7 +101,7 @@ int TestSplit(const std::string& directory) {
     assert(complete && !robot.finished());
     for (const auto& name : motor_adapters) {
         const auto expected =
-            dust::devices::MotorConfigForAdapter(all_motors, name);
+            dust_control::devices::MotorConfigForAdapter(all_motors, name);
         const auto& usb = robot.adapter(name);
         assert(usb.healthy() && usb.transmitter().HasCanProducers());
         const auto feedback = usb.link().motor_decoder().Read();
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
         return TestSplit(argv[2]);
     if (argc == 3 && std::string(argv[1]) == "--validate") {
         try {
-            dust::app::Robot robot{std::string(argv[2])};
+            dust_control::app::Robot robot{std::string(argv[2])};
             return 0;
         } catch (const std::exception& error) {
             std::cerr << error.what() << '\n';
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
         }
     }
     assert(argc == 2);
-    dust::app::Robot robot{std::string(argv[1])};
+    dust_control::app::Robot robot{std::string(argv[1])};
     robot.Start();
     const auto& config = robot.configuration();
     assert(config.adapters.size() == 2);

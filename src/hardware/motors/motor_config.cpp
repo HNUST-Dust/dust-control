@@ -7,7 +7,7 @@
 
 #include "yaml_validation.hpp"
 
-namespace dust::devices {
+namespace dust_control::devices {
 namespace {
 double FiniteNumber(const YAML::Node& node) {
     const double value = node.as<double>();
@@ -39,11 +39,12 @@ void ValidateMotorConfig(const MotorConfig& config) {
             throw std::runtime_error("Gateway supports only CAN2/CAN3");
         }
         if (address.command_id > 0x7ff || address.feedback_id > 0x7ff ||
-            (i < 2 &&
-             (address.command_slot > 3 ||
-              address.command_id != platform::motor_model::kDjiCommandId ||
-              address.feedback_id != platform::motor_model::DjiFeedbackId(
-                                         address.command_slot)))) {
+            (i < 2 && (address.command_slot > 3 ||
+                       address.command_id !=
+                           dust_control::platform::motor_model::kDjiCommandId ||
+                       address.feedback_id !=
+                           dust_control::platform::motor_model::DjiFeedbackId(
+                               address.command_slot)))) {
             throw std::runtime_error(
                 "Invalid motor CAN address or DJI slot mismatch");
         }
@@ -66,7 +67,7 @@ void ValidateMotorConfig(const MotorConfig& config) {
 }
 
 MotorConfig LoadMotorConfig(const std::string& file) {
-    using namespace dust::yaml_validation;
+    using namespace dust_control::yaml_validation;
     MotorConfig candidate;
     candidate.present.fill(false);
     const std::array<std::string, 6> names = {"left_wheel",    "right_wheel",
@@ -167,4 +168,4 @@ MotorConfig MotorConfigForAdapter(const MotorConfig& config,
     ValidateMotorAdapterConfig(selected);
     return selected;
 }
-}  // namespace dust::devices
+}  // namespace dust_control::devices

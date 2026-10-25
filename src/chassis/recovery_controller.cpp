@@ -32,7 +32,7 @@ constexpr uint32_t kRecoveryMaximumTurnoverReversals = 3;
 }  // namespace
 
 namespace {
-using namespace modules::chassis_config;
+using namespace dust_control::modules::chassis_config;
 constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
 
 double MoveToward(double current, double target, double maximum_delta) {
@@ -47,7 +47,7 @@ double MoveTowardAngle(double current, double target, double maximum_delta) {
 }
 }  // namespace
 
-namespace modules {
+namespace dust_control::modules {
 
 void RecoveryController::Reset() {
     phase_ = RecoveryPhase::kInit;
@@ -331,4 +331,4 @@ double RecoveryController::ComputeJointTorque(uint8_t index, double target,
                       -kJointTorqueMax, kJointTorqueMax);
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

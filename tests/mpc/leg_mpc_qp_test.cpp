@@ -6,7 +6,7 @@
 
 #include "chassis/mpc/leg_mpc.hpp"
 
-using Mpc = wbr::control::LegMpc;
+using Mpc = dust_control::control::LegMpc;
 static void Check(const Mpc::Result& result, const Mpc::Parameters& p,
                   Mpc::Input previous) {
     assert(result.converged && !result.used_fallback);

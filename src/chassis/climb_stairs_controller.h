@@ -8,7 +8,7 @@
 #include "chassis_config.h"
 #include "leg_kinematics.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 enum class ClimbStairsPhase : uint8_t {
     kInit = 0U,
@@ -70,4 +70,4 @@ class ClimbStairsController {
     std::array<JointPidState, 4> joint_pid_{};
 };
 
-}  // namespace modules
+}  // namespace dust_control::modules

@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
     try {
         rclcpp::init(argc, argv);
-        auto node = std::make_shared<dust::ros::DustControlNode>();
+        auto node = std::make_shared<dust_control::ros::DustControlNode>();
         rclcpp::spin(node);
         node->Stop();
         const auto error = node->runtime_error();

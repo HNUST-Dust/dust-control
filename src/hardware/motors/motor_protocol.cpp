@@ -4,7 +4,7 @@
 #include "dm_protocol.h"
 #include "hardware/motors/dji_protocol.h"
 
-namespace dust::devices {
+namespace dust_control::devices {
 MotorFeedback DecodeMotorFeedback(unsigned index, const uint8_t* bytes,
                                   size_t size, uint64_t sample_us,
                                   const MotorConfig& config) {
@@ -14,8 +14,10 @@ MotorFeedback DecodeMotorFeedback(unsigned index, const uint8_t* bytes,
         return sample;
     }
     return config.protocols[index] == MotorProtocol::kDji
-               ? protocols::DecodeDjiMotorState(bytes, size, sample_us)
-               : protocols::DecodeDmMotorState(bytes, size, sample_us);
+               ? dust_control::protocols::DecodeDjiMotorState(bytes, size,
+                                                              sample_us)
+               : dust_control::protocols::DecodeDmMotorState(bytes, size,
+                                                             sample_us);
 }
 
 void MotorFeedbackDecoder::Consume(uint8_t bus, uint16_t id,
@@ -57,10 +59,11 @@ std::optional<CanTransmitBatch> MotorEncoder::Encode(
         frame.id = address.command_id;
         const bool encoded =
             config_.protocols[index] == MotorProtocol::kDji
-                ? protocols::EncodeDjiMotorTarget(
+                ? dust_control::protocols::EncodeDjiMotorTarget(
                       target, address.command_slot,
                       config_.wheel_command_sign[index], frame.bytes.data())
-                : protocols::EncodeDmMotorTarget(target, frame.bytes.data());
+                : dust_control::protocols::EncodeDmMotorTarget(
+                      target, frame.bytes.data());
         if (!encoded) {
             return std::nullopt;
         }
@@ -68,4 +71,4 @@ std::optional<CanTransmitBatch> MotorEncoder::Encode(
     }
     return batch;
 }
-}  // namespace dust::devices
+}  // namespace dust_control::devices

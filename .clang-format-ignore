@@ -1,6 +1,2 @@
-# MCU-shared sources must remain byte-for-byte identical.
-src/hardware/usb/protocol/usb_protocol.hpp
-src/hardware/usb/protocol/usb_protocol_codec.hpp
-src/hardware/usb/protocol/usb_session_policy.hpp
 # Generated message/layout headers must be changed through their generators.
 tests/benchmarks/can_usb_stress_test/host/bridge_layout.hpp

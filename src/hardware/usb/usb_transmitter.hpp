@@ -10,11 +10,14 @@
 #include "concurrency/priority_mutex.hpp"
 #include "hardware/can_frame.hpp"
 
-namespace dust::test {
+namespace dust_control::test {
 class UsbTransmitFixture;
 }
 
-namespace wbr::host {
+namespace dust_control::host {
+// 主机选择的命令租约及接收数据时效，单位为微秒；不是线协议固定值。
+inline constexpr uint32_t kCommandTimeoutUs = 20000;
+
 class UsbLink;
 enum class CanProducer : uint8_t { kChassis, kGimbal };
 struct CanCommandGroup {
@@ -50,7 +53,7 @@ class UsbTransmitter {
     // 同步复制，不等待 USB。序号必须递增；时间为目标生成时的主机单调纳秒。
     // 空批次代表本周期没有命令，仍更新该来源的活性；旧序号不会刷新期限。
     bool SubmitCan(CanProducer producer,
-                   std::span<const dust::devices::CanFrame> frames,
+                   std::span<const dust_control::devices::CanFrame> frames,
                    uint64_t sequence, uint64_t generated_ns);
     // 一次提交一个完整 UART 消息（最多 512 字节），满时返回 false。
     // 过期且尚未开始的消息丢弃；开始发送后保持消息顺序，允许 CAN 在块间抢占。
@@ -62,7 +65,7 @@ class UsbTransmitter {
     std::string error() const;
 
    private:
-    friend class dust::test::UsbTransmitFixture;
+    friend class dust_control::test::UsbTransmitFixture;
     static constexpr size_t kSourceCount = 2;
     static constexpr size_t kMaxGroups = 16;
     static constexpr size_t kUartQueueCapacity = 16;
@@ -71,7 +74,7 @@ class UsbTransmitter {
         std::array<CanCommandGroup, kMaxGroups> groups{};
         size_t group_count = 0;
         uint64_t timeout_ns = 0;
-        std::array<dust::devices::CanFrame, kMaxGroups> frames{};
+        std::array<dust_control::devices::CanFrame, kMaxGroups> frames{};
         size_t frame_count = 0;
         size_t cursor = 0;
         uint64_t sequence = 0;
@@ -91,7 +94,7 @@ class UsbTransmitter {
     struct Work {
         WorkKind kind = WorkKind::kWait;
         CanProducer producer = CanProducer::kChassis;
-        std::array<dust::devices::CanFrame, 6> frames{};
+        std::array<dust_control::devices::CanFrame, 6> frames{};
         size_t count = 0;
         uint8_t channel = 0;
         std::array<uint8_t, 96> bytes{};
@@ -100,7 +103,7 @@ class UsbTransmitter {
     };
     // 下列状态操作要求持有 mutex_，不调用 USB、不等待、不执行动态分配。
     bool StoreCan(CanProducer producer,
-                  std::span<const dust::devices::CanFrame> frames,
+                  std::span<const dust_control::devices::CanFrame> frames,
                   uint64_t sequence, uint64_t generated_ns, uint64_t now_ns);
     bool StoreUart(uint8_t channel, std::span<const uint8_t> bytes,
                    uint64_t generated_ns, uint64_t lifetime_ns,
@@ -111,7 +114,7 @@ class UsbTransmitter {
 
     UsbLink& link_;
     UsbTransmitOptions options_;
-    mutable dust::concurrency::PriorityMutex mutex_;
+    mutable dust_control::concurrency::PriorityMutex mutex_;
     std::condition_variable_any changed_;
     std::array<CanSource, kSourceCount> sources_{};
     std::array<UartMessage, kUartQueueCapacity> uart_queue_{};
@@ -136,7 +139,7 @@ class CanCommandPort {
                    uint64_t timeout_ns) const {
         return transmitter_.ConfigureCan(producer_, groups, timeout_ns);
     }
-    bool Submit(std::span<const dust::devices::CanFrame> frames,
+    bool Submit(std::span<const dust_control::devices::CanFrame> frames,
                 uint64_t sequence, uint64_t generated_ns) const {
         return transmitter_.SubmitCan(producer_, frames, sequence,
                                       generated_ns);
@@ -159,4 +162,4 @@ class UartFramePort {
    private:
     UsbTransmitter& transmitter_;
 };
-}  // namespace wbr::host
+}  // namespace dust_control::host

@@ -5,8 +5,8 @@
 
 #include "balance_controller.h"
 int main() {
-    modules::BalanceController controller;
-    modules::ChassisCycleInput input{};
+    dust_control::modules::BalanceController controller;
+    dust_control::modules::ChassisCycleInput input{};
     input.dt = .001;
     input.imu_fresh = input.feedback_valid = true;
     input.leg.left.jacobian[0][0] = input.leg.right.jacobian[0][0] = .08;
@@ -28,7 +28,7 @@ int main() {
         input.remote.chassis_x = tick > 500 ? .2 : 0;
         input.remote.chassis_rotate = tick > 1000 ? .1 : 0;
         input.imu.yaw_rate_rad_s = .02 * std::sin(time);
-        modules::ChassisControlOutput output{};
+        dust_control::modules::ChassisControlOutput output{};
         controller.Update(input, output);
         if (tick % 10 == 0) {
             std::cout << output.physical_wheel_torque.left << ' '

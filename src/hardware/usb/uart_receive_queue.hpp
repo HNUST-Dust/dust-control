@@ -8,7 +8,7 @@
 
 #include "concurrency/priority_mutex.hpp"
 
-namespace wbr::host {
+namespace dust_control::host {
 /** @brief 原始 UART 接收块；序号或 discontinuity 指示流不连续。 */
 struct UartReceiveChunk {
     std::array<uint8_t, 40> bytes{};
@@ -36,7 +36,8 @@ class UartReceiveQueue {
         size_t size = 0;
         uint64_t dropped = 0;
     };
-    std::array<UartChunkQueue, dust::wire::kUartPortCount> uart_queues_{};
-    dust::concurrency::PriorityMutex mutex_;
+    std::array<UartChunkQueue, dust_control::wire::kUartPortCount>
+        uart_queues_{};
+    dust_control::concurrency::PriorityMutex mutex_;
 };
-}  // namespace wbr::host
+}  // namespace dust_control::host

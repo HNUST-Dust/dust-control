@@ -6,7 +6,7 @@
 
 #include "chassis_config.h"
 
-namespace modules {
+namespace dust_control::modules {
 namespace {
 enum class ChassisJoint : uint8_t { kLeftB, kLeftD, kRightB, kRightD };
 template <typename Enum>
@@ -234,4 +234,4 @@ ChassisControlOutput ChassisController::Tick(
 
     return output;
 }
-}  // namespace modules
+}  // namespace dust_control::modules

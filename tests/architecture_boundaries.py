@@ -8,6 +8,7 @@ violations = []
 rules = {
     "src/chassis": ("hardware/", "runtime/"),
     "src/hardware/usb": (),
+    "src/hardware/usb/protocol": ("libusb", "hardware/", "chassis/", "runtime/"),
     "src/gimbal": ("chassis/chassis_runtime.hpp", "ui/ui_runtime.hpp"),
     "src/ui": ("chassis/chassis_runtime.hpp", "gimbal/gimbal_runtime.hpp"),
     **{f"src/hardware/{group}": ("hardware/usb/", "chassis/", "runtime/")
@@ -15,7 +16,6 @@ rules = {
 }
 # 底盘只引用设备侧的被动数据定义，不能引用 Decoder、Encoder 或通信实现。
 chassis_data_headers = {
-    "hardware/imu/imu_sample.hpp",
     "hardware/remote/remote_input_state.hpp",
 }
 for directory, forbidden in rules.items():
@@ -38,20 +38,45 @@ for directory, forbidden in rules.items():
                 violations.append(f"{path.relative_to(root)}:{number}: algorithm includes business runtime")
             if (not is_chassis_runtime and match and match[1].startswith(forbidden)
                     and not (directory == "src/chassis" and (match[1] in chassis_data_headers or
-                        (path.name in ("controller_inputs.h", "chassis_types.h") and match[1] == "hardware/motors/motor_protocol.hpp")))):
+                        (path.name in ("controller_inputs.h", "chassis_types.h") and match[1] in ("hardware/motors/motor_protocol.hpp", "hardware/imu/hi91_protocol.h"))))):
                 violations.append(f"{path.relative_to(root)}:{number}: {match[1]}")
             if path.relative_to(root).as_posix().removeprefix("src/") in chassis_data_headers:
                 if ((match and match[1].startswith(("hardware/", "chassis/", "runtime/")))
                         or "protocols::" in line):
                     violations.append(f"{path.relative_to(root)}:{number}: data header depends on implementation")
-            if directory == "src/hardware/usb" and match and match[1].endswith("_protocol.h"):
+            if directory == "src/hardware/usb" and match and match[1].endswith("_protocol.h") and match[1] not in ("hardware/imu/hi91_protocol.h", "hardware/referee/referee_protocol.h", "hardware/remote/wfly_sbus_protocol.h"):
                 violations.append(f"{path.relative_to(root)}:{number}: USB includes device wire protocol")
-            # MotorFeedback 已按需求并入公共协议头；算法仍不能使用设备服务。
+            if directory == "src/hardware/usb" and re.search(
+                    r"\b(DecodeWflySbusFrame|WflySbusFrame|DecodeHi91Frame|CalculateHi91FrameCrc|Hi91TimeGuard|Hi91Sample|DecodeRefereeFrame|DecodeRefereeGameStatus|DecodeRefereeRobotStatus|DecodeRefereeShootData|RefereeFrame)\b", line):
+                violations.append(f"{path.relative_to(root)}:{number}: USB parses device wire data")
+            # 公共协议头集中数据定义；算法仍不能使用设备服务。
             if directory == "src/chassis" and not is_chassis_runtime and re.search(
-                    r"\b(MotorEncoder|MotorFeedbackDecoder|DecodeMotorFeedback)\b", line):
+                    r"\b(MotorEncoder|MotorFeedbackDecoder|DecodeMotorFeedback|WflySbusDecoder|Hi91Decoder|Hi91TimeGuard|OnboardImu|RefereeDecoder)\b", line):
                 violations.append(f"{path.relative_to(root)}:{number}: algorithm uses motor device service")
             if directory == "src/chassis" and "protocols::" in line:
                 violations.append(f"{path.relative_to(root)}:{number}: protocol type")
+
+# 自有代码使用统一根；外部工具生成的历史布局保留其接口。
+generated_namespace_headers = {
+    "tests/benchmarks/can_usb_stress_test/host/bridge_layout.hpp",
+}
+for directory in ("src", "tests"):
+    for path in (root / directory).rglob("*"):
+        if path.suffix not in (".cpp", ".cc", ".h", ".hpp"):
+            continue
+        relative = path.relative_to(root).as_posix()
+        if path.suffix in (".h", ".hpp", ".hh", ".hxx"):
+            if len(re.findall(r"^\s*#\s*pragma\s+once\s*$", path.read_text(), re.M)) != 1:
+                violations.append(f"{relative}: header must use exactly one pragma once")
+        if relative in generated_namespace_headers:
+            continue
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            declaration = re.match(
+                r"\s*namespace\s+([A-Za-z_]\w*(?:::\w+)*)\s*(?:\{|$)", line)
+            if declaration and declaration[1].split("::")[0] != "dust_control":
+                violations.append(f"{relative}:{number}: namespace must use dust_control root")
+            if re.match(r"\s*namespace\s+(dust|wbr|modules|protocols|platform|msg)\s*=", line):
+                violations.append(f"{relative}:{number}: obsolete root namespace alias")
 
 links = (root / "src/chassis/CMakeLists.txt").read_text()
 for block in re.findall(r"target_link_libraries\(dust_chassis\s+([^)]*)\)", links):

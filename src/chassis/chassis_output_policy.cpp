@@ -15,12 +15,12 @@ constexpr uint32_t kDmModePeriodTicks = 10;
 static_assert(kDmClearTicks < kDmArmTicks);
 }  // namespace
 
-namespace modules {
+namespace dust_control::modules {
 namespace cfg = chassis_config;
 namespace {
 // 目标槽位与反馈顺序一致；编码器从 YAML 加载的配置取得 CAN 总线及 ID。
-void SetJointTargets(dust::devices::MotorTargets& targets,
-                     dust::devices::MotorMode mode,
+void SetJointTargets(dust_control::devices::MotorTargets& targets,
+                     dust_control::devices::MotorMode mode,
                      const SidePair<JointPair<double>>& torque = {}) {
     targets[2] = {mode, torque.left.b};
     targets[3] = {mode, torque.left.d};
@@ -28,10 +28,10 @@ void SetJointTargets(dust::devices::MotorTargets& targets,
     targets[5] = {mode, torque.right.d};
 }
 
-void SetWheelTargets(dust::devices::MotorTargets& targets,
+void SetWheelTargets(dust_control::devices::MotorTargets& targets,
                      const SidePair<double>& torque = {}) {
-    targets[0] = {dust::devices::MotorMode::kTorque, torque.left};
-    targets[1] = {dust::devices::MotorMode::kTorque, torque.right};
+    targets[0] = {dust_control::devices::MotorMode::kTorque, torque.left};
+    targets[1] = {dust_control::devices::MotorMode::kTorque, torque.right};
 }
 }  // namespace
 
@@ -51,7 +51,8 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
         case ChassisControlState::kActionFault:
         case ChassisControlState::kTiltFault:
             if ((loop_ticks % 100U) == 0U) {
-                SetJointTargets(targets, dust::devices::MotorMode::kDisable);
+                SetJointTargets(targets,
+                                dust_control::devices::MotorMode::kDisable);
             }
             if ((loop_ticks % 10U) == 0U) {
                 SetWheelTargets(targets);
@@ -61,10 +62,10 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
 
         case ChassisControlState::kDmArming:
             if ((loop_ticks % kDmModePeriodTicks) == 0U) {
-                SetJointTargets(targets,
-                                dm_arm_ticks_ < kDmClearTicks
-                                    ? dust::devices::MotorMode::kClearError
-                                    : dust::devices::MotorMode::kEnable);
+                SetJointTargets(
+                    targets, dm_arm_ticks_ < kDmClearTicks
+                                 ? dust_control::devices::MotorMode::kClearError
+                                 : dust_control::devices::MotorMode::kEnable);
             }
             SetWheelTargets(targets);
             if (dm_arm_ticks_ < kDmArmTicks) {
@@ -73,13 +74,13 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
             return true;
 
         case ChassisControlState::kWaitingFeedback:
-            SetJointTargets(targets, dust::devices::MotorMode::kTorque);
+            SetJointTargets(targets, dust_control::devices::MotorMode::kTorque);
             SetWheelTargets(targets);
             return true;
 
         case ChassisControlState::kRecovery:
         case ChassisControlState::kClimbStairs:
-            SetJointTargets(targets, dust::devices::MotorMode::kTorque,
+            SetJointTargets(targets, dust_control::devices::MotorMode::kTorque,
                             output.joint_torque);
             SetWheelTargets(targets);
             return false;
@@ -87,7 +88,7 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
         case ChassisControlState::kBalance:
         case ChassisControlState::kFlight:
         case ChassisControlState::kJump:
-            SetJointTargets(targets, dust::devices::MotorMode::kTorque,
+            SetJointTargets(targets, dust_control::devices::MotorMode::kTorque,
                             output.joint_torque);
             SetWheelTargets(targets, output.physical_wheel_torque);
             return false;
@@ -96,4 +97,4 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
     return true;
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

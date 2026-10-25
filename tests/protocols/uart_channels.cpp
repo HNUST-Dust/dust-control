@@ -7,12 +7,12 @@
 #include "../support/usb_report_fixture.hpp"
 #include "hardware/imu/hi91_protocol.h"
 
-void TestBindings(wbr::host::UartSensorBindings bindings) {
-    namespace wire = dust::wire;
-    wbr::host::UartReceiveQueue store;
-    wbr::host::UsbOptions options;
+void TestBindings(dust_control::host::UartSensorBindings bindings) {
+    namespace wire = dust_control::wire;
+    dust_control::host::UartReceiveQueue store;
+    dust_control::host::UsbOptions options;
     options.uart_sensors = bindings;
-    dust::test::UsbReportFixture decoder(store, options);
+    dust_control::test::UsbReportFixture decoder(store, options);
     std::array<uint32_t, 7> sequences{};
     auto send = [&](uint8_t channel, std::span<const uint8_t> bytes) {
         while (!bytes.empty()) {
@@ -40,7 +40,8 @@ void TestBindings(wbr::host::UartSensorBindings bindings) {
     imu[14] = 1;
     const float pitch = 3.0F;
     std::memcpy(imu.data() + 58, &pitch, sizeof(pitch));
-    const auto crc = protocols::CalculateHi91FrameCrc(76, imu.data() + 6);
+    const auto crc =
+        dust_control::protocols::CalculateHi91FrameCrc(76, imu.data() + 6);
     imu[4] = uint8_t(crc);
     imu[5] = uint8_t(crc >> 8);
     const std::array<uint8_t, 12> referee{0xa5, 3,    0,  1, 0, 1,
@@ -58,7 +59,7 @@ void TestBindings(wbr::host::UartSensorBindings bindings) {
         send(channel, referee);
         assert(bool(decoder.Read().referee.frame_sequence) ==
                (channel == bindings.referee));
-        wbr::host::UartReceiveChunk raw{};
+        dust_control::host::UartReceiveChunk raw{};
         assert(store.TakeUartChunk(channel, raw));
     }
     // 丢块必须使已发布的遥控数据失效。
@@ -76,8 +77,8 @@ int main() {
     TestBindings({1, 2, 3});
     TestBindings({4, 6, 5});
     TestBindings({0, 0, 0});
-    for (auto invalid : {wbr::host::UartSensorBindings{1, 1, 3},
-                         wbr::host::UartSensorBindings{7, 2, 3}}) {
+    for (auto invalid : {dust_control::host::UartSensorBindings{1, 1, 3},
+                         dust_control::host::UartSensorBindings{7, 2, 3}}) {
         bool rejected = false;
         try {
             invalid.Validate();
@@ -87,9 +88,9 @@ int main() {
         assert(rejected);
     }
 
-    namespace wire = dust::wire;
-    wbr::host::UartReceiveQueue store;
-    dust::test::UsbReportFixture decoder(store);
+    namespace wire = dust_control::wire;
+    dust_control::host::UartReceiveQueue store;
+    dust_control::test::UsbReportFixture decoder(store);
     wire::UsbInPacket packet{};
     wire::Header(packet.data(), wire::Kind::UartReceiveReport, 1000, 1);
     packet[11] = 3;
@@ -111,7 +112,7 @@ int main() {
         packet[10] = channel;
         wire::Put32(packet.data() + 16, 7);
         assert(decoder.Consume(packet, 2000));
-        wbr::host::UartReceiveChunk chunk{};
+        dust_control::host::UartReceiveChunk chunk{};
         assert(store.TakeUartChunk(channel, chunk));
         assert(chunk.sequence == 7 && chunk.size == 3 &&
                chunk.bytes[1] == 0x5a);
@@ -136,7 +137,7 @@ int main() {
         assert(decoder.Consume(packet, 2003));
     }
     assert(store.UartDroppedChunks(6) == 1);
-    wbr::host::UartReceiveChunk chunk{};
+    dust_control::host::UartReceiveChunk chunk{};
     assert(store.TakeUartChunk(6, chunk) && chunk.sequence == 11 &&
            chunk.discontinuity);
     decoder.Reset();

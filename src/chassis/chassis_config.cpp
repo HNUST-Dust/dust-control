@@ -3,7 +3,7 @@
 
 #include <cmath>
 #include <stdexcept>
-namespace modules {
+namespace dust_control::modules {
 void ValidateChassisConfig(const ChassisConfig& config) {
     if (!std::isfinite(config.joint_b_zero_offset)) {
         throw std::runtime_error(
@@ -219,4 +219,4 @@ void ValidateChassisConfig(const ChassisConfig& config) {
             "Inconsistent chassis dimensions or operating limits");
     }
 }
-}  // namespace modules
+}  // namespace dust_control::modules

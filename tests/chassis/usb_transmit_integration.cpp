@@ -8,7 +8,7 @@
 #include "usb_transmitter.hpp"
 
 int main() {
-    using namespace wbr::host;
+    using namespace dust_control::host;
     UartReceiveQueue queue;
     UsbOptions usb_options;
     usb_options.realtime = false;
@@ -21,14 +21,14 @@ int main() {
     assert(tx.ConfigureCan(CanProducer::kGimbal, {&gimbal, 1}, 20000000));
     assert(link.Open());
     assert(tx.Start());
-    const auto now = wbr::realtime::MonotonicTimeNs();
+    const auto now = dust_control::realtime::MonotonicTimeNs();
     assert(tx.SubmitCan(CanProducer::kChassis, {}, 1, now));
     // 云台与 UI 持续更新，底盘停止提交。会话必须仍因底盘超时而停止。
     std::thread gimbal_thread([&] {
         uint64_t sequence = 0;
         while (tx.healthy()) {
             if (!tx.SubmitCan(CanProducer::kGimbal, {}, ++sequence,
-                              wbr::realtime::MonotonicTimeNs())) {
+                              dust_control::realtime::MonotonicTimeNs())) {
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -37,7 +37,7 @@ int main() {
     std::thread ui_thread([&] {
         const uint8_t bytes[] = {0xa5, 0x5a, 0x42};
         while (tx.healthy()) {
-            tx.SubmitUart(4, bytes, wbr::realtime::MonotonicTimeNs());
+            tx.SubmitUart(4, bytes, dust_control::realtime::MonotonicTimeNs());
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     });
@@ -52,6 +52,6 @@ int main() {
     ui_thread.join();
     assert(tx.error().find("chassis") != std::string::npos);
     assert(!tx.SubmitCan(CanProducer::kChassis, {}, 2,
-                         wbr::realtime::MonotonicTimeNs()));
+                         dust_control::realtime::MonotonicTimeNs()));
     link.Close();
 }

@@ -3,7 +3,7 @@
 
 #include "chassis_config.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 // 仅应用常量偏移：d(连杆角)/d(电机角) = 1，
 // 因此速度、雅可比列和力矩仍使用相同的电机坐标。
@@ -27,4 +27,4 @@ inline double JointDMotorAngle(double link_angle,
     return link_angle - config.joint_d_zero_offset;
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

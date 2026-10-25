@@ -15,7 +15,7 @@
 
 #include <algorithm>
 
-namespace protocols {
+namespace dust_control::protocols {
 
 namespace {
 
@@ -96,4 +96,4 @@ int PackCubemarsMitCommand(const CubemarsMitCommand *cmd,
     return 0;
 }
 
-}  // namespace protocols
+}  // namespace dust_control::protocols

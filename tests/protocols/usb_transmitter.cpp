@@ -6,17 +6,17 @@
 
 #include "usb_link.hpp"
 
-namespace dust::test {
+namespace dust_control::test {
 // 使用虚拟单调时钟检查调度边界，不依赖主机实时调度或真实 USB。
 class UsbTransmitFixture {
    public:
-    using Tx = wbr::host::UsbTransmitter;
-    using Producer = wbr::host::CanProducer;
-    using Group = wbr::host::CanCommandGroup;
-    using Frame = dust::devices::CanFrame;
+    using Tx = dust_control::host::UsbTransmitter;
+    using Producer = dust_control::host::CanProducer;
+    using Group = dust_control::host::CanCommandGroup;
+    using Frame = dust_control::devices::CanFrame;
     using Kind = Tx::WorkKind;
-    wbr::host::UartReceiveQueue queue;
-    wbr::host::UsbLink link{queue, {}};
+    dust_control::host::UartReceiveQueue queue;
+    dust_control::host::UsbLink link{queue, {}};
     Tx tx{link};
     static constexpr uint64_t kStart = 1000000000;
     static constexpr uint64_t kTimeout = 20000000;
@@ -120,12 +120,12 @@ class UsbTransmitFixture {
         assert(unprimed.Next(kStart + kTimeout).kind == Kind::kExpired);
     }
 };
-}  // namespace dust::test
+}  // namespace dust_control::test
 
 int main() {
-    dust::test::UsbTransmitFixture fixture;
+    dust_control::test::UsbTransmitFixture fixture;
     fixture.Run();
-    dust::test::UsbTransmitFixture::SplittingAndQueue();
+    dust_control::test::UsbTransmitFixture::SplittingAndQueue();
     std::cout << "CAN ownership, latest batches, source deadlines and bounded "
                  "UART scheduling passed\n";
 }

@@ -7,10 +7,10 @@
 #include "hardware/usb/usb_link.hpp"
 #include "hardware/usb/usb_transmitter.hpp"
 
-namespace dust::app {
+namespace dust_control::app {
 struct AdapterConfig {
-    wbr::host::UsbOptions usb;
-    wbr::host::UsbTransmitOptions transmit;
+    dust_control::host::UsbOptions usb;
+    dust_control::host::UsbTransmitOptions transmit;
 };
 struct ModuleConfig {
     bool enabled = true;
@@ -33,4 +33,4 @@ struct RobotConfig {
 };
 RobotConfig LoadRobotConfig(const std::string& file);
 void ValidateRobotConfig(const RobotConfig& config);
-}  // namespace dust::app
+}  // namespace dust_control::app

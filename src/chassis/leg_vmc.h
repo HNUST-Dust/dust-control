@@ -14,7 +14,7 @@
 #include "chassis_config.h"
 #include "leg_kinematics.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 /** @brief 腿部虚拟力映射得到的关节力矩。 */
 struct LegVmcOutput {
@@ -49,4 +49,4 @@ LegVmcOutput ComputeLegVmc(const LegKinematics& leg, double target_leg_length,
                            double target_leg_length_rate,
                            const ChassisConfig& config = {});
 
-}  // namespace modules
+}  // namespace dust_control::modules

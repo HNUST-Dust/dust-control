@@ -7,7 +7,7 @@
 #include "dji_protocol.h"
 #include "dm_protocol.h"
 
-namespace dust::devices {
+namespace dust_control::devices {
 enum class MotorProtocol { kDji, kDm };
 // 接线配置：由 YAML 或显式调用方提供，不内置机器人地址。
 struct MotorAddress {
@@ -26,11 +26,11 @@ struct MotorConfig {
     std::array<uint64_t, 6> freshness_us{3000, 3000, 3000, 3000, 3000, 3000};
     std::array<double, 2> wheel_command_sign{-1.0, 1.0};
     static constexpr double dji_current_per_nm =
-        platform::motor_model::kDjiCurrentPerNm;
+        dust_control::platform::motor_model::kDjiCurrentPerNm;
     static constexpr int16_t dji_protocol_current_limit =
-        platform::motor_model::kDjiProtocolCurrentLimit;
-    static constexpr protocols::DmMitRange dm_range =
-        platform::motor_model::kJointMitRange;
+        dust_control::platform::motor_model::kDjiProtocolCurrentLimit;
+    static constexpr dust_control::protocols::DmMitRange dm_range =
+        dust_control::platform::motor_model::kJointMitRange;
     double wheel_torque_limit_nm() const {
         return static_cast<double>(dji_protocol_current_limit) /
                dji_current_per_nm;
@@ -44,4 +44,4 @@ MotorConfig LoadMotorConfig(const std::string& file);
 // 启动装配时从全量配置提取本板设备，运行期不再解析归属。
 MotorConfig MotorConfigForAdapter(const MotorConfig& config,
                                   const std::string& adapter);
-}  // namespace dust::devices
+}  // namespace dust_control::devices

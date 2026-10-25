@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-namespace dust::concurrency {
+namespace dust_control::concurrency {
 // 实现 BasicLockable，供 std::lock_guard 表达短临界区的所有权。
 class PriorityMutex {
    public:
@@ -37,4 +37,4 @@ class PriorityMutex {
    private:
     pthread_mutex_t mutex_{};
 };
-}  // namespace dust::concurrency
+}  // namespace dust_control::concurrency

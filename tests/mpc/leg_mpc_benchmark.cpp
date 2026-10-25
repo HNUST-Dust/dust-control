@@ -7,7 +7,7 @@
 #include "chassis/mpc/leg_mpc.hpp"
 
 int main() {
-    using Mpc = wbr::control::LegMpc;
+    using Mpc = dust_control::control::LegMpc;
     Mpc controller;
     const auto& p = controller.parameters();
     Mpc::Input previous =

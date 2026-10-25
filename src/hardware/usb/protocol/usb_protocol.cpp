@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#pragma once
+#include "usb_protocol.hpp"
+
+#include <cstring>
 #include <limits>
 
-#include "usb_protocol.hpp"
-namespace dust::wire {
+// 线上字节格式基准：docs/protocols/USB_V4_WIRE.md。
+namespace dust_control::wire {
+
 // 返回实际 USB 上行长度；零表示消息类型或 CAN 帧数无效。
-inline size_t UsbReportLength(const UsbInPacket& packet) {
+size_t UsbReportLength(const UsbInPacket& packet) {
     switch (Kind(packet[9])) {
         case Kind::CanReceiveReport:
             return packet[10] >= 1 && packet[10] <= kMaxCanFramesPerPacket
@@ -25,7 +28,7 @@ inline size_t UsbReportLength(const UsbInPacket& packet) {
 /**
  * @brief 将四个可读字节解码为小端整数，无需地址对齐。
  */
-inline uint32_t U32(const uint8_t* p) {
+uint32_t U32(const uint8_t* p) {
     return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 |
            uint32_t(p[3]) << 24;
 }
@@ -33,7 +36,7 @@ inline uint32_t U32(const uint8_t* p) {
 /**
  * @brief 将 v 按小端顺序写入四个可写字节。
  */
-inline void Put32(uint8_t* p, uint32_t v) {
+void Put32(uint8_t* p, uint32_t v) {
     for (unsigned i = 0; i < 4; ++i) {
         p[i] = uint8_t(v >> (8 * i));
     }
@@ -42,14 +45,14 @@ inline void Put32(uint8_t* p, uint32_t v) {
 /**
  * @brief 将两个可读字节解码为小端整数，无需地址对齐。
  */
-inline uint16_t U16(const uint8_t* p) {
+uint16_t U16(const uint8_t* p) {
     return uint16_t(p[0]) | uint16_t(p[1]) << 8;
 }
 
 /**
  * @brief 将 v 按小端顺序写入两个可写字节。
  */
-inline void Put16(uint8_t* p, uint16_t v) {
+void Put16(uint8_t* p, uint16_t v) {
     p[0] = uint8_t(v);
     p[1] = uint8_t(v >> 8);
 }
@@ -57,7 +60,7 @@ inline void Put16(uint8_t* p, uint16_t v) {
 /**
  * @brief 将包头写入至少 16 字节的可写区域；保留字节由调用者清零。
  */
-inline void Header(uint8_t* p, Kind kind, uint32_t sequence, uint32_t session) {
+void Header(uint8_t* p, Kind kind, uint32_t sequence, uint32_t session) {
     Put32(p, kMagic);
     Put32(p + 4, sequence);
     p[8] = kVersion;
@@ -68,63 +71,23 @@ inline void Header(uint8_t* p, Kind kind, uint32_t sequence, uint32_t session) {
 /**
  * @brief 检查最小长度、魔数和版本，不校验载荷。
  */
-inline bool HasHeader(const uint8_t* p, size_t size) {
+bool HasHeader(const uint8_t* p, size_t size) {
     return size >= 16 && U32(p) == kMagic && p[8] == kVersion;
 }
 
 // 字段访问不校验请求；接纳操作前须校验包头，
 // 并按消息类型校验载荷。
-class UsbOutRequestView {
-   public:
-    explicit UsbOutRequestView(const UsbOutRequest& request)
-        : request_(request) {}
-
-    Kind MessageKind() const {
-        return Kind(request_[9]);
-    }
-    uint32_t Sequence() const {
-        return U32(request_.data() + 4);
-    }
-    uint32_t Session() const {
-        return U32(request_.data() + 12);
-    }
-    uint32_t LeaseUs() const {
-        return U32(request_.data() + 16);
-    }
-    uint8_t RecordCount() const {
-        return request_[10];
-    }
-    uint8_t UartChannel() const {
-        return request_[10];
-    }
-    uint8_t UartLength() const {
-        return request_[11];
-    }
-    uint8_t StatusTarget() const {
-        return request_[10];
-    }
-    uint8_t StatusChannel() const {
-        return request_[11];
-    }
-    const uint8_t* Payload() const {
-        return request_.data() + 32;
-    }
-
-   private:
-    const UsbOutRequest& request_;
-};
-
 /**
  * @brief 在序号空间的有符号半区间内，判断 next 是否晚于 previous。
  */
-inline bool NewSequence(uint32_t next, uint32_t previous) {
+bool NewSequence(uint32_t next, uint32_t previous) {
     return int32_t(next - previous) > 0;
 }
 
 /**
  * @brief 解码一条 16 字节可读记录，不校验字段。
  */
-inline CanFrame Decode(const uint8_t* p) {
+CanFrame Decode(const uint8_t* p) {
     CanFrame r{};
     r.channel = p[0];
     r.length = p[1];
@@ -137,7 +100,7 @@ inline CanFrame Decode(const uint8_t* p) {
 /**
  * @brief 将记录序列化到 16 字节可写区域，并清零保留字节。
  */
-inline void Encode(uint8_t* p, const CanFrame& r) {
+void Encode(uint8_t* p, const CanFrame& r) {
     p[0] = r.channel;
     p[1] = r.length;
     p[2] = r.flags;
@@ -149,7 +112,7 @@ inline void Encode(uint8_t* p, const CanFrame& r) {
 /**
  * @brief 校验一条 16 字节可读记录；仅在显式允许时接纳 UART 动作。
  */
-inline bool ValidRecord(const uint8_t* p, bool allow_uart = false) {
+bool ValidRecord(const uint8_t* p, bool allow_uart = false) {
     const CanFrame r = Decode(p);
     if (p[3] || r.length > 8) {
         return false;
@@ -165,7 +128,7 @@ inline bool ValidRecord(const uint8_t* p, bool allow_uart = false) {
 /**
  * @brief 当 count 个可读字节全部为零时返回 true。
  */
-inline bool Zero(const uint8_t* p, size_t count) {
+bool Zero(const uint8_t* p, size_t count) {
     for (size_t i = 0; i < count; ++i) {
         if (p[i]) {
             return false;
@@ -177,7 +140,7 @@ inline bool Zero(const uint8_t* p, size_t count) {
 /**
  * @brief 校验完整请求中的记录数量、保留字段和尾部填充。
  */
-inline bool ValidRecords(const UsbOutRequest& p, bool safety = false) {
+bool ValidRecords(const UsbOutRequest& p, bool safety) {
     if (p[10] > kMaxRecords || p[11]) {
         return false;
     }
@@ -195,6 +158,7 @@ inline bool ValidRecords(const UsbOutRequest& p, bool safety = false) {
     return Zero(p.data() + 32 + p[10] * kRecordBytes,
                 p.size() - 32 - p[10] * kRecordBytes);
 }
+namespace {
 /** @brief 主机请求向 CAN 总线发送的帧批次；读取前须通过 IsValid()。 */
 class CanTransmitRequestView {
    public:
@@ -269,10 +233,10 @@ class CanReceiveReportBuilder {
 };
 
 /** @brief 构造 UART 接收字节块上报；块边界不等于外设协议帧边界。 */
-inline bool BuildUartReceiveReport(UsbInPacket& packet, uint32_t session,
-                                   uint8_t channel, uint32_t block_sequence,
-                                   uint32_t received_us, const uint8_t* bytes,
-                                   size_t count) {
+bool BuildUartReceiveReport(UsbInPacket& packet, uint32_t session,
+                            uint8_t channel, uint32_t block_sequence,
+                            uint32_t received_us, const uint8_t* bytes,
+                            size_t count) {
     if (!bytes || !count || count > 40 || channel < 1 ||
         channel > kUartPortCount) {
         return false;
@@ -287,6 +251,8 @@ inline bool BuildUartReceiveReport(UsbInPacket& packet, uint32_t session,
     return true;
 }
 
+}  // namespace
+
 // 签名覆盖 MCU 默认租约及按文件顺序序列化的保护动作。
 // 它用于标识配置，不提供密码学认证，
 // 也不是 CAN 校验和。
@@ -295,8 +261,8 @@ inline bool BuildUartReceiveReport(UsbInPacket& packet, uint32_t session,
  * @brief 计算租约及有序保护记录的 CRC32。
  * @note 仅标识配置，不提供认证，也不标识反馈路由。
  */
-inline uint32_t ProtectionSignature(uint32_t timeout_us,
-                                    const CanFrame* records, size_t count) {
+uint32_t ProtectionSignature(uint32_t timeout_us, const CanFrame* records,
+                             size_t count) {
     uint32_t crc = 0xffffffffU;
     const auto consume = [&crc](uint8_t byte) {
         crc ^= byte;
@@ -317,7 +283,7 @@ inline uint32_t ProtectionSignature(uint32_t timeout_us,
     return crc ^ 0xffffffffU;
 }
 
-inline bool Encode(const CanTransmitRequest& m, UsbOutRequest& p) {
+bool Encode(const CanTransmitRequest& m, UsbOutRequest& p) {
     if (m.frame_count > kMaxCanFramesPerPacket) {
         return false;
     }
@@ -330,7 +296,7 @@ inline bool Encode(const CanTransmitRequest& m, UsbOutRequest& p) {
     }
     return ValidRecords(p);
 }
-inline bool Decode(const UsbOutRequest& p, CanTransmitRequest& m) {
+bool Decode(const UsbOutRequest& p, CanTransmitRequest& m) {
     if (!HasHeader(p.data(), p.size()) ||
         !CanTransmitRequestView(p).IsValid()) {
         return false;
@@ -344,7 +310,7 @@ inline bool Decode(const UsbOutRequest& p, CanTransmitRequest& m) {
     m = result;
     return true;
 }
-inline bool Encode(const CanReceiveReport& m, UsbInPacket& p) {
+bool Encode(const CanReceiveReport& m, UsbInPacket& p) {
     if (!m.frame_count || m.frame_count > kMaxCanFramesPerPacket) {
         return false;
     }
@@ -356,7 +322,7 @@ inline bool Encode(const CanReceiveReport& m, UsbInPacket& p) {
     }
     return true;
 }
-inline bool Encode(const UartTransmitRequest& m, UsbOutRequest& p) {
+bool Encode(const UartTransmitRequest& m, UsbOutRequest& p) {
     if (!m.byte_count || m.byte_count > kMaxUartWrite || m.channel < 1 ||
         m.channel > kUartPortCount) {
         return false;
@@ -369,7 +335,7 @@ inline bool Encode(const UartTransmitRequest& m, UsbOutRequest& p) {
     std::memcpy(p.data() + 32, m.bytes.data(), m.byte_count);
     return true;
 }
-inline bool Decode(const UsbOutRequest& p, UartTransmitRequest& m) {
+bool Decode(const UsbOutRequest& p, UartTransmitRequest& m) {
     const UartTransmitRequestView view(p);
     if (!HasHeader(p.data(), p.size()) || !view.IsValid()) {
         return false;
@@ -382,7 +348,7 @@ inline bool Decode(const UsbOutRequest& p, UartTransmitRequest& m) {
     m = result;
     return true;
 }
-inline bool Encode(const UartReceiveReport& m, UsbInPacket& p) {
+bool Encode(const UartReceiveReport& m, UsbInPacket& p) {
     if (!BuildUartReceiveReport(p, m.header.session_id, m.channel,
                                 m.block_sequence, m.receive_timestamp_us,
                                 m.bytes.data(), m.byte_count)) {
@@ -392,13 +358,13 @@ inline bool Encode(const UartReceiveReport& m, UsbInPacket& p) {
     return true;
 }
 
-inline bool Encode(const HelloRequest& m, UsbOutRequest& p) {
+bool Encode(const HelloRequest& m, UsbOutRequest& p) {
     p = {};
     Header(p.data(), Kind::Hello, m.header.request_sequence,
            m.header.session_id);
     return true;
 }
-inline bool Decode(const UsbOutRequest& p, HelloRequest& m) {
+bool Decode(const UsbOutRequest& p, HelloRequest& m) {
     if (!HasHeader(p.data(), p.size()) || Kind(p[9]) != Kind::Hello || p[10] ||
         p[11] || !Zero(p.data() + 16, 112)) {
         return false;
@@ -406,12 +372,12 @@ inline bool Decode(const UsbOutRequest& p, HelloRequest& m) {
     m.header = {U32(p.data() + 4), U32(p.data() + 12)};
     return true;
 }
-inline bool Encode(const ArmRequest& m, UsbOutRequest& p) {
+bool Encode(const ArmRequest& m, UsbOutRequest& p) {
     p = {};
     Header(p.data(), Kind::Arm, m.header.request_sequence, m.header.session_id);
     return true;
 }
-inline bool Decode(const UsbOutRequest& p, ArmRequest& m) {
+bool Decode(const UsbOutRequest& p, ArmRequest& m) {
     if (!HasHeader(p.data(), p.size()) || Kind(p[9]) != Kind::Arm || p[10] ||
         p[11] || !Zero(p.data() + 16, 112)) {
         return false;
@@ -419,13 +385,13 @@ inline bool Decode(const UsbOutRequest& p, ArmRequest& m) {
     m.header = {U32(p.data() + 4), U32(p.data() + 12)};
     return true;
 }
-inline bool Encode(const StopRequest& m, UsbOutRequest& p) {
+bool Encode(const StopRequest& m, UsbOutRequest& p) {
     p = {};
     Header(p.data(), Kind::Stop, m.header.request_sequence,
            m.header.session_id);
     return true;
 }
-inline bool Decode(const UsbOutRequest& p, StopRequest& m) {
+bool Decode(const UsbOutRequest& p, StopRequest& m) {
     if (!HasHeader(p.data(), p.size()) || Kind(p[9]) != Kind::Stop || p[10] ||
         p[11] || !Zero(p.data() + 16, 112)) {
         return false;
@@ -433,13 +399,13 @@ inline bool Decode(const UsbOutRequest& p, StopRequest& m) {
     m.header = {U32(p.data() + 4), U32(p.data() + 12)};
     return true;
 }
-inline bool Encode(const HeartbeatRequest& m, UsbOutRequest& p) {
+bool Encode(const HeartbeatRequest& m, UsbOutRequest& p) {
     p = {};
     Header(p.data(), Kind::Heartbeat, m.header.request_sequence,
            m.header.session_id);
     return true;
 }
-inline bool Decode(const UsbOutRequest& p, HeartbeatRequest& m) {
+bool Decode(const UsbOutRequest& p, HeartbeatRequest& m) {
     if (!HasHeader(p.data(), p.size()) || Kind(p[9]) != Kind::Heartbeat ||
         p[10] || p[11] || !Zero(p.data() + 16, 112)) {
         return false;
@@ -447,7 +413,7 @@ inline bool Decode(const UsbOutRequest& p, HeartbeatRequest& m) {
     m.header = {U32(p.data() + 4), U32(p.data() + 12)};
     return true;
 }
-inline bool Encode(const ReadyReport& m, UsbInPacket& p) {
+bool Encode(const ReadyReport& m, UsbInPacket& p) {
     p = {};
     Header(p.data(), Kind::Ready, m.header.transmit_timestamp_us,
            m.header.session_id);
@@ -462,7 +428,7 @@ inline bool Encode(const ReadyReport& m, UsbInPacket& p) {
     p[34] = m.protection_flags;
     return true;
 }
-inline bool Encode(const RequestResultReport& m, UsbInPacket& p) {
+bool Encode(const RequestResultReport& m, UsbInPacket& p) {
     p = {};
     Header(p.data(), Kind::Result, m.header.transmit_timestamp_us,
            m.header.session_id);
@@ -472,7 +438,7 @@ inline bool Encode(const RequestResultReport& m, UsbInPacket& p) {
     Put32(p.data() + 24, uint32_t(m.result_code));
     return true;
 }
-inline bool Encode(const ImuSampleReport& m, UsbInPacket& p) {
+bool Encode(const ImuSampleReport& m, UsbInPacket& p) {
     p = {};
     Header(p.data(), Kind::ImuSampleReport, m.header.transmit_timestamp_us,
            m.header.session_id);
@@ -486,7 +452,7 @@ inline bool Encode(const ImuSampleReport& m, UsbInPacket& p) {
     Put32(p.data() + 52, m.sample_sequence);
     return true;
 }
-inline bool Encode(const SessionStatusReport& m, UsbInPacket& p) {
+bool Encode(const SessionStatusReport& m, UsbInPacket& p) {
     p = {};
     Header(p.data(), Kind::Status, m.header.transmit_timestamp_us,
            m.header.session_id);
@@ -506,7 +472,7 @@ inline bool Encode(const SessionStatusReport& m, UsbInPacket& p) {
     Put32(p.data() + 56, m.max_lease_us);
     return true;
 }
-inline bool Encode(const CanStatusReport& m, UsbInPacket& p) {
+bool Encode(const CanStatusReport& m, UsbInPacket& p) {
     p = {};
     Header(p.data(), Kind::Status, m.header.transmit_timestamp_us,
            m.header.session_id);
@@ -523,7 +489,7 @@ inline bool Encode(const CanStatusReport& m, UsbInPacket& p) {
     Put32(p.data() + 48, m.rx_errors);
     return true;
 }
-inline bool Encode(const UartStatusReport& m, UsbInPacket& p) {
+bool Encode(const UartStatusReport& m, UsbInPacket& p) {
     p = {};
     Header(p.data(), Kind::Status, m.header.transmit_timestamp_us,
            m.header.session_id);
@@ -536,7 +502,7 @@ inline bool Encode(const UartStatusReport& m, UsbInPacket& p) {
     return true;
 }
 
-inline bool Encode(const StatusRequest& m, UsbOutRequest& p) {
+bool Encode(const StatusRequest& m, UsbOutRequest& p) {
     if (uint8_t(m.target) > 2) {
         return false;
     }
@@ -547,7 +513,7 @@ inline bool Encode(const StatusRequest& m, UsbOutRequest& p) {
     p[11] = m.channel;
     return true;
 }
-inline bool Decode(const UsbOutRequest& p, StatusRequest& m) {
+bool Decode(const UsbOutRequest& p, StatusRequest& m) {
     if (!HasHeader(p.data(), p.size()) || Kind(p[9]) != Kind::Status ||
         p[10] > 2 || !Zero(p.data() + 16, 112)) {
         return false;
@@ -557,7 +523,7 @@ inline bool Decode(const UsbOutRequest& p, StatusRequest& m) {
     m.channel = p[11];
     return true;
 }
-inline bool Encode(const ConfigureSafetyRequest& m, UsbOutRequest& p) {
+bool Encode(const ConfigureSafetyRequest& m, UsbOutRequest& p) {
     if (m.uart_stop_count > kMaxRecords || m.lease_us < 1000 ||
         m.lease_us > 1000000) {
         return false;
@@ -578,7 +544,7 @@ inline bool Encode(const ConfigureSafetyRequest& m, UsbOutRequest& p) {
     }
     return ValidRecords(p, true);
 }
-inline bool Decode(const UsbOutRequest& p, ConfigureSafetyRequest& m) {
+bool Decode(const UsbOutRequest& p, ConfigureSafetyRequest& m) {
     if (!HasHeader(p.data(), p.size()) || Kind(p[9]) != Kind::ConfigureSafety ||
         !ValidRecords(p, true)) {
         return false;
@@ -600,4 +566,159 @@ inline bool Decode(const UsbOutRequest& p, ConfigureSafetyRequest& m) {
     m = result;
     return true;
 }
-}  // namespace dust::wire
+
+namespace {
+bool HasReportKind(const UsbInPacket& packet, Kind kind) {
+    return HasHeader(packet.data(), packet.size()) && Kind(packet[9]) == kind;
+}
+UsbReportHeader DecodeHeader(const UsbInPacket& packet) {
+    return {U32(packet.data() + 4), U32(packet.data() + 12)};
+}
+}  // namespace
+
+bool Decode(const UsbInPacket& packet, CanReceiveReport& message) {
+    if (!HasReportKind(packet, Kind::CanReceiveReport) || !packet[10] ||
+        packet[10] > kMaxCanFramesPerPacket) {
+        return false;
+    }
+    CanReceiveReport result{};
+    result.header = DecodeHeader(packet);
+    result.frame_count = packet[10];
+    for (size_t i = 0; i < result.frame_count; ++i) {
+        const auto* record = packet.data() + 16 + i * kCanReceiveRecordBytes;
+        if (!ValidRecord(record)) {
+            return false;
+        }
+        result.frames[i] = {Decode(record), U32(record + 16), U32(record + 20)};
+    }
+    message = result;
+    return true;
+}
+
+bool Decode(const UsbInPacket& packet, UartReceiveReport& message) {
+    if (!HasReportKind(packet, Kind::UartReceiveReport) || packet[10] < 1 ||
+        packet[10] > kUartPortCount || !packet[11] || packet[11] > 40) {
+        return false;
+    }
+    UartReceiveReport result{};
+    result.header = DecodeHeader(packet);
+    result.channel = packet[10];
+    result.byte_count = packet[11];
+    result.block_sequence = U32(packet.data() + 16);
+    result.receive_timestamp_us = U32(packet.data() + 20);
+    std::memcpy(result.bytes.data(), packet.data() + 24, result.byte_count);
+    message = result;
+    return true;
+}
+
+bool Decode(const UsbInPacket& packet, ImuSampleReport& message) {
+    if (!HasReportKind(packet, Kind::ImuSampleReport) || packet[10] != 25) {
+        return false;
+    }
+    ImuSampleReport result{};
+    result.header = DecodeHeader(packet);
+    result.sample_timestamp_us = U32(packet.data() + 16);
+    std::memcpy(result.spi_bytes.data(), packet.data() + 20, 25);
+    const auto temperature_bits = U32(packet.data() + 48);
+    std::memcpy(&result.temperature_c, &temperature_bits, 4);
+    result.sample_sequence = U32(packet.data() + 52);
+    message = result;
+    return true;
+}
+
+bool Decode(const UsbInPacket& packet, ReadyReport& message) {
+    if (!HasReportKind(packet, Kind::Ready)) {
+        return false;
+    }
+    ReadyReport result{};
+    result.header = DecodeHeader(packet);
+    result.capabilities = U32(packet.data() + 16);
+    result.request_bytes = U32(packet.data() + 20);
+    result.max_report_bytes = U32(packet.data() + 24);
+    result.can_channel_mask = U32(packet.data() + 28);
+    result.max_can_frames = packet[32];
+    result.protection_frame_count = packet[33];
+    result.protection_flags = packet[34];
+    result.protection_signature = U32(packet.data() + 36);
+    result.max_lease_us = U32(packet.data() + 40);
+    message = result;
+    return true;
+}
+
+bool Decode(const UsbInPacket& packet, RequestResultReport& message) {
+    if (!HasReportKind(packet, Kind::Result) || packet[21] > 1) {
+        return false;
+    }
+    RequestResultReport result{};
+    result.header = DecodeHeader(packet);
+    result.request_sequence = U32(packet.data() + 16);
+    result.request_kind = Kind(packet[20]);
+    result.armed = packet[21];
+    result.result_code = int32_t(U32(packet.data() + 24));
+    message = result;
+    return true;
+}
+
+void SessionPolicy::Open(uint32_t nonce) {
+    *this = {};
+    session_ = nonce;
+}
+
+void SessionPolicy::Observe(uint32_t seq) {
+    last_sequence_ = seq;
+    seen_ = true;
+}
+
+bool SessionPolicy::Configure(uint32_t timeout_us) {
+    if (!session_ || armed_ || timeout_us < 1000 || timeout_us > 1000000) {
+        return false;
+    }
+    timeout_ = timeout_us;
+    configured_ = true;
+    return true;
+}
+
+bool SessionPolicy::Fresh(uint32_t seq) const {
+    return !seen_ || NewSequence(seq, last_sequence_);
+}
+
+bool SessionPolicy::Arm(uint32_t seq, uint32_t now) {
+    if (!configured_ || armed_ || !Fresh(seq)) {
+        return false;
+    }
+    armed_ = true;
+    last_receive_ = now;
+    Observe(seq);
+    return true;
+}
+
+bool SessionPolicy::Accept(uint32_t seq, uint32_t now) {
+    if (!armed_ || !Fresh(seq) || Expired(now)) {
+        return false;
+    }
+    last_sequence_ = seq;
+    last_receive_ = now;
+    seen_ = true;
+    return true;
+}
+
+bool SessionPolicy::Expired(uint32_t now) const {
+    return armed_ && uint32_t(now - last_receive_) >= timeout_;
+}
+
+void SessionPolicy::Close() {
+    *this = {};
+}
+
+uint32_t SessionPolicy::Session() const {
+    return session_;
+}
+
+bool SessionPolicy::Armed() const {
+    return armed_;
+}
+
+bool SessionPolicy::Configured() const {
+    return configured_;
+}
+}  // namespace dust_control::wire

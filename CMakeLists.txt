@@ -53,12 +53,12 @@ install(DIRECTORY tools/foxglove/ DESTINATION share/dust-control/foxglove
         FILES_MATCHING PATTERN "*.json" PATTERN "*.md")
 
 install(DIRECTORY config/ DESTINATION share/dust-control/config FILES_MATCHING PATTERN "*.yaml" PATTERN "README.md")
-install(FILES docs/protocols/USB.md docs/protocols/UART.md
+install(FILES docs/protocols/USB.md docs/protocols/USB_V4_WIRE.md docs/protocols/UART.md
         DESTINATION share/dust-control/docs/protocols)
 
 if(DUST_BUILD_ROS2)
   install(TARGETS dust_startup dust_chassis_runtime dust_usb dust_chassis
-                  dust_realtime dust_motors dust_remote dust_imu dust_referee dust_gimbal dust_ui
+                  dust_usb_protocol dust_realtime dust_motors dust_remote dust_imu dust_referee dust_gimbal dust_ui
           LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
   add_executable(dust_control_node src/main.cpp src/dust_control_node.cpp src/chassis_telemetry.cpp)
   ament_target_dependencies(dust_control_node rclcpp rcl_interfaces sensor_msgs diagnostic_msgs)

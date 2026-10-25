@@ -10,18 +10,16 @@
  * 接口直接处理线协议字节序列。调用方负责提供声明长度的有效缓冲区；解码失败时输出对象内容不应作为有效数据使用。
  */
 
-#ifndef WBR_CONTROL_PROTOCOLS_MOTORS_DM_MOTOR_PROTOCOL_H_
-#define WBR_CONTROL_PROTOCOLS_MOTORS_DM_MOTOR_PROTOCOL_H_
-
+#pragma once
 #include <stddef.h>
 #include <stdint.h>
 
-namespace dust::devices {
+namespace dust_control::devices {
 struct MotorFeedback;
 struct MotorTarget;
-}  // namespace dust::devices
+}  // namespace dust_control::devices
 
-namespace protocols {
+namespace dust_control::protocols {
 
 /** @brief 达妙电机普通模式的解码结果。 */
 struct DmMotorFeedbackNormal {
@@ -123,21 +121,19 @@ int GetDmControlCommandFrame(DmControlCommand cmd, uint8_t out[8]);
  */
 int PackDmMitCommand(const DmMitCommand *cmd, const DmMitRange *range,
                      uint8_t out[8]);
-}  // namespace protocols
+}  // namespace dust_control::protocols
 
-namespace platform::motor_model {
+namespace dust_control::platform::motor_model {
 // 当前关节电机型号的 MIT 量程；编码与反馈解码共用。
-inline constexpr protocols::DmMitRange kJointMitRange{
+inline constexpr dust_control::protocols::DmMitRange kJointMitRange{
     -12.56637F, 12.56637F, -45.0F, 45.0F,  0.0F,
     500.0F,     0.0F,      5.0F,   -54.0F, 54.0F};
-}  // namespace platform::motor_model
+}  // namespace dust_control::platform::motor_model
 
-namespace protocols {
-bool EncodeDmMotorTarget(const dust::devices::MotorTarget &target,
+namespace dust_control::protocols {
+bool EncodeDmMotorTarget(const dust_control::devices::MotorTarget &target,
                          uint8_t out[8]);
-dust::devices::MotorFeedback DecodeDmMotorState(const uint8_t *bytes,
-                                                size_t size,
-                                                uint64_t sample_us);
-}  // namespace protocols
-
-#endif /* WBR_CONTROL_PROTOCOLS_MOTORS_DM_MOTOR_PROTOCOL_H_ */
+dust_control::devices::MotorFeedback DecodeDmMotorState(const uint8_t *bytes,
+                                                        size_t size,
+                                                        uint64_t sample_us);
+}  // namespace dust_control::protocols

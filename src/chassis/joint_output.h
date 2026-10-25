@@ -7,7 +7,7 @@
 #include "chassis_config.h"
 #include "gas_spring_model.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 // 由执行器在选择控制器后、提交设备目标前调用一次。
 inline void PrepareJointOutput(ChassisControlState state,
@@ -58,4 +58,4 @@ inline void PrepareJointOutput(ChassisControlState state,
     }
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

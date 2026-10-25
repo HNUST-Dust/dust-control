@@ -8,13 +8,11 @@
  * 接口直接处理线协议字节序列。调用方负责提供声明长度的有效缓冲区；解码失败时输出对象内容不应作为有效数据使用。
  */
 
-#ifndef WBR_CONTROL_PROTOCOLS_REMOTE_INPUT_DR16_PROTOCOL_H_
-#define WBR_CONTROL_PROTOCOLS_REMOTE_INPUT_DR16_PROTOCOL_H_
-
+#pragma once
 #include <stddef.h>
 #include <stdint.h>
 
-namespace protocols {
+namespace dust_control::protocols {
 
 constexpr size_t kDr16FrameLength = 18;  ///< DR16 协议固定帧长度，单位为字节。
 
@@ -39,6 +37,4 @@ struct Dr16Frame {
  */
 bool DecodeDr16Frame(const uint8_t *data, size_t len, Dr16Frame *out);
 
-}  // namespace protocols
-
-#endif /* WBR_CONTROL_PROTOCOLS_REMOTE_INPUT_DR16_PROTOCOL_H_ */
+}  // namespace dust_control::protocols

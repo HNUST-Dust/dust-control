@@ -1,6 +1,6 @@
-#include <hardware/usb/protocol/usb_session_policy.hpp>
-
 #include "chassis/chassis_input_reader.h"
+#include "hardware/usb/protocol/usb_protocol.hpp"
+#include "hardware/usb/usb_transmitter.hpp"
 /* SPDX-License-Identifier: Apache-2.0 */
 #include <hardware/imu/hi91_protocol.h>
 
@@ -14,7 +14,6 @@
 #include "chassis_config.h"
 #include "chassis_controller.h"
 #include "chassis_input_reader.h"
-#include "hardware/imu/hi91_time_guard.hpp"
 #include "hardware/motors/motor_protocol.hpp"
 #define CHECK(condition)                              \
     do {                                              \
@@ -23,16 +22,18 @@
             return 1;                                 \
         }                                             \
     } while (false)
-using namespace wbr;
+using namespace dust_control;
 namespace {
-bridge::UsbInPacket Uart(unsigned port, uint32_t sequence, const uint8_t* data,
-                         size_t size, uint32_t time = 1000) {
-    bridge::UsbInPacket packet{};
-    bridge::Header(packet.data(), bridge::Kind::UartReceiveReport, time, 7);
+dust_control::wire::UsbInPacket Uart(unsigned port, uint32_t sequence,
+                                     const uint8_t* data, size_t size,
+                                     uint32_t time = 1000) {
+    dust_control::wire::UsbInPacket packet{};
+    dust_control::wire::Header(
+        packet.data(), dust_control::wire::Kind::UartReceiveReport, time, 7);
     packet[10] = port;
     packet[11] = size;
-    bridge::Put32(packet.data() + 16, sequence);
-    bridge::Put32(packet.data() + 20, time);
+    dust_control::wire::Put32(packet.data() + 16, sequence);
+    dust_control::wire::Put32(packet.data() + 20, time);
     std::copy_n(data, size, packet.data() + 24);
     return packet;
 }
@@ -62,7 +63,7 @@ std::array<uint8_t, 25> Sbus(bool enabled) {
 int main() {
     {
         host::UartReceiveQueue remote_store;
-        dust::test::UsbReportFixture remote_decoder(remote_store);
+        dust_control::test::UsbReportFixture remote_decoder(remote_store);
         uint32_t chunk_sequence = 0;
         auto send_remote = [&](std::array<uint8_t, 25> frame,
                                uint64_t host_us) {
@@ -118,7 +119,7 @@ int main() {
         CHECK(!remote_decoder.remote_timeout_pending());
     }
 
-    host::Hi91TimeGuard time_guard;
+    dust_control::devices::Hi91TimeGuard time_guard;
     CHECK(time_guard.Accept(100000, 1000, 3000, true));
     CHECK(!time_guard.Accept(10, 2000, 3000, true));  // 样本仍新鲜。
     CHECK(!time_guard.Accept(10, 10000, 3000, true));
@@ -145,51 +146,57 @@ int main() {
     CHECK(!time_guard.Accept(4, 11000, 3000, true));
     CHECK(!time_guard.Accept(5, 12000, 3000, true));
     CHECK(time_guard.Accept(6, 13000, 3000, true));
-    bridge::SessionPolicy lease;
+    dust_control::wire::SessionPolicy lease;
     lease.Open(1);
     CHECK(!lease.Arm(1, 0));
-    CHECK(lease.Configure(bridge::kCommandTimeoutUs));
+    CHECK(lease.Configure(dust_control::host::kCommandTimeoutUs));
     CHECK(lease.Arm(0xffffffffU, 0xfffffff0U));
     CHECK(!lease.Accept(0xffffffffU, 0));
     CHECK(lease.Fresh(0));
     CHECK(!lease.Expired(0x10U));
-    CHECK(lease.Expired(uint32_t(0xfffffff0U + bridge::kCommandTimeoutUs)));
+    CHECK(lease.Expired(
+        uint32_t(0xfffffff0U + dust_control::host::kCommandTimeoutUs)));
     CHECK(lease.Accept(0, 0));
-    CHECK(!lease.Expired(bridge::kCommandTimeoutUs - 1));
-    CHECK(lease.Expired(bridge::kCommandTimeoutUs));
+    CHECK(!lease.Expired(dust_control::host::kCommandTimeoutUs - 1));
+    CHECK(lease.Expired(dust_control::host::kCommandTimeoutUs));
     lease.Close();
     CHECK(!lease.Armed());
 
-    CHECK(bridge::NewSequence(0, 0xffffffffU));
-    CHECK(!bridge::NewSequence(9, 10));
-    bridge::CanTransmitRequest batch{};
+    CHECK(dust_control::wire::NewSequence(0, 0xffffffffU));
+    CHECK(!dust_control::wire::NewSequence(9, 10));
+    dust_control::wire::CanTransmitRequest batch{};
     batch.frame_count = 1;
     batch.frames[0] = {3, 8, 0, 0x200, {}};
     batch.header = {1, 7};
-    bridge::UsbOutRequest packet{};
-    CHECK(bridge::Encode(batch, packet));
-    bridge::CanTransmitRequest decoded{};
-    CHECK(bridge::Decode(packet, decoded) && decoded.header.session_id == 7);
+    dust_control::wire::UsbOutRequest packet{};
+    CHECK(dust_control::wire::Encode(batch, packet));
+    dust_control::wire::CanTransmitRequest decoded{};
+    CHECK(dust_control::wire::Decode(packet, decoded) &&
+          decoded.header.session_id == 7);
     CHECK(decoded.header.session_id != 8);
     batch.frame_count = 2;
     batch.frames[1] = batch.frames[0];
-    CHECK(bridge::Encode(batch, packet));  // 原始 FIFO 允许重复 ID。
+    CHECK(
+        dust_control::wire::Encode(batch, packet));  // 原始 FIFO 允许重复 ID。
     batch.frame_count = 7;
-    CHECK(!bridge::Encode(batch, packet));
-    dust::devices::MotorEncoder encoder(dust::test::MotorFixture());
-    modules::ChassisController controller;
-    modules::ControllerInputs sources{};
+    CHECK(!dust_control::wire::Encode(batch, packet));
+    dust_control::devices::MotorEncoder encoder(
+        dust_control::test::MotorFixture());
+    dust_control::modules::ChassisController controller;
+    dust_control::modules::ControllerInputs sources{};
     sources.remote.robot_enable = true;
     sources.remote.sequence = 1;
     const auto disabled_output = controller.Tick(sources, 1000, false);
-    CHECK(controller.state() == modules::ChassisControlState::kDisabled);
+    CHECK(controller.state() ==
+          dust_control::modules::ChassisControlState::kDisabled);
     const auto encoded = encoder.Encode(disabled_output.motor_targets);
     CHECK(encoded.has_value());
     const auto& disabled = *encoded;
     CHECK(disabled.count == 6);
     const unsigned expected_slots[] = {0, 2, 3, 1, 4, 5};
     for (unsigned i = 0; i < 6; ++i) {
-        const auto& address = dust::test::kMotorAddresses[expected_slots[i]];
+        const auto& address =
+            dust_control::test::kMotorAddresses[expected_slots[i]];
         CHECK(disabled.frames[i].bus == address.bus);
         CHECK(disabled.frames[i].id == address.command_id);
         const auto& record = disabled.frames[i];
@@ -203,19 +210,22 @@ int main() {
         }
     }
 
-    modules::ChassisStateMachine states;
-    modules::ChassisCycleInput input{};
+    dust_control::modules::ChassisStateMachine states;
+    dust_control::modules::ChassisCycleInput input{};
     input.dt = .001;
     input.requested_enable = true;
     input.remote_fresh = true;
     input.imu_fresh = true;
-    CHECK(states.Update(input).to == modules::ChassisControlState::kDmArming);
+    CHECK(states.Update(input).to ==
+          dust_control::modules::ChassisControlState::kDmArming);
     input.imu_fresh = false;
-    CHECK(states.Update(input).to == modules::ChassisControlState::kSafetyStop);
+    CHECK(states.Update(input).to ==
+          dust_control::modules::ChassisControlState::kSafetyStop);
     input.requested_enable = false;
-    CHECK(states.Update(input).to == modules::ChassisControlState::kDisabled);
+    CHECK(states.Update(input).to ==
+          dust_control::modules::ChassisControlState::kDisabled);
     host::UartReceiveQueue store;
-    dust::test::UsbReportFixture decoder(store, true);
+    dust_control::test::UsbReportFixture decoder(store, true);
     auto sbus = Sbus(true);
     CHECK(decoder.Consume(Uart(1, 0, sbus.data(), 10), 2000));
     CHECK(!decoder.Read().control.remote.robot_enable);
@@ -234,19 +244,21 @@ int main() {
     safe[23] = 4;
     CHECK(decoder.Consume(Uart(1, 6, safe.data(), 25), 2000));
     CHECK(!decoder.Read().control.remote.robot_enable);
-    modules::ChassisInputReader freshness;
-    modules::ChassisCycleInput checked{};
+    dust_control::modules::ChassisInputReader freshness;
+    dust_control::modules::ChassisCycleInput checked{};
     freshness.Read(sources, checked, 1000, .001, false);
     CHECK(checked.requested_enable);
-    freshness.Read(sources, checked, modules::InputDeadlines{}.remote_us + 2000,
+    freshness.Read(sources, checked,
+                   dust_control::modules::InputDeadlines{}.remote_us + 2000,
                    .001, false);
     CHECK(!checked.remote_fresh && !checked.requested_enable);
-    modules::ChassisInputReader imu_freshness;
-    modules::ControllerInputs imu_sources{};
+    dust_control::modules::ChassisInputReader imu_freshness;
+    dust_control::modules::ControllerInputs imu_sources{};
     imu_sources.imu.valid = true;
     imu_sources.imu.sequence = 1;
     imu_sources.imu.precise_timestamp_us = 10000;
-    const uint64_t imu_timeout_us = modules::InputDeadlines{}.hi91_us;
+    const uint64_t imu_timeout_us =
+        dust_control::modules::InputDeadlines{}.hi91_us;
     imu_freshness.Read(imu_sources, checked, 10000 + imu_timeout_us, .001,
                        false);
     CHECK(checked.imu_fresh);
@@ -257,16 +269,18 @@ int main() {
     imu_sources.imu.precise_timestamp_us = 20000;
     imu_freshness.Read(imu_sources, checked, 20000, .001, false);
     CHECK(checked.imu_fresh);
-    modules::ChassisInputReader motor_reader;
-    modules::ControllerInputs motor_sources{};
+    dust_control::modules::ChassisInputReader motor_reader;
+    dust_control::modules::ControllerInputs motor_sources{};
     motor_sources.motors[0].valid = motor_sources.motors[1].valid = true;
     motor_sources.motors[0].precise_timestamp_us = 10000;
     motor_sources.motors[1].precise_timestamp_us = 12000;
     motor_reader.Read(motor_sources, checked,
-                      10000 + modules::InputDeadlines{}.motors[0], .001, false);
+                      10000 + dust_control::modules::InputDeadlines{}.motors[0],
+                      .001, false);
     CHECK(!(checked.motor_stale_mask & 3));
     motor_reader.Read(motor_sources, checked,
-                      10001 + modules::InputDeadlines{}.motors[0], .001, false);
+                      10001 + dust_control::modules::InputDeadlines{}.motors[0],
+                      .001, false);
     CHECK((checked.motor_stale_mask & 3) == 1);  // 仅左轮超时。
     CHECK(!checked.feedback_valid && (checked.feedback_invalid_mask & 1));
     motor_sources.motors[0].precise_timestamp_us = 13000;
@@ -284,14 +298,15 @@ int main() {
     std::array<uint8_t, 82> hi91{};
     hi91[0] = 0x5a;
     hi91[1] = 0xa5;
-    bridge::Put16(hi91.data() + 2, 76);
+    dust_control::wire::Put16(hi91.data() + 2, 76);
     auto* payload = hi91.data() + 6;
     payload[0] = 0x91;
-    bridge::Put32(payload + 8, 1);
+    dust_control::wire::Put32(payload + 8, 1);
     float pitch = 3.0F;
     std::memcpy(payload + 52, &pitch, 4);
-    bridge::Put16(hi91.data() + 4,
-                  protocols::CalculateHi91FrameCrc(76, payload));
+    dust_control::wire::Put16(
+        hi91.data() + 4,
+        dust_control::protocols::CalculateHi91FrameCrc(76, payload));
     CHECK(decoder.Consume(Uart(2, 0, hi91.data(), 40), 2000));
     CHECK(decoder.Consume(Uart(2, 1, hi91.data() + 40, 40), 2000));
     CHECK(decoder.Consume(Uart(2, 2, hi91.data() + 80, 2), 2000));
@@ -303,20 +318,20 @@ int main() {
     CHECK(decoder.Consume(Uart(2, 5, hi91.data() + 80, 2), 3000));
     CHECK(decoder.Read().control.imu.sequence ==
           sequence);  // 重复传感器时间不能刷新状态。
-    bridge::UsbInPacket can{};
-    bridge::CanReceiveReport can_message{};
+    dust_control::wire::UsbInPacket can{};
+    dust_control::wire::CanReceiveReport can_message{};
     can_message.header = {10, 7};
     can_message.frame_count = 1;
     can_message.frames[0] = {{3, 8, 0, 0x201, {}}, 0xfffffff0U, 0};
-    CHECK(bridge::Encode(can_message, can));
+    CHECK(dust_control::wire::Encode(can_message, can));
     CHECK(decoder.Consume(can, 1000));
     CHECK(decoder.Read().control.motors[0].precise_timestamp_us == 974);
-    bridge::Put32(can.data() + 4, 50000);
+    dust_control::wire::Put32(can.data() + 4, 50000);
     CHECK(decoder.Consume(can, 60000));
     CHECK(!decoder.Read().control.motors[0].valid);
     // 以固定几何状态运行真实平衡控制器；重复更新并改变速度目标后，
     // 所有输出都必须保持有限。
-    modules::BalanceController balance;
+    dust_control::modules::BalanceController balance;
     input = {};
     input.dt = .001;
     input.imu_fresh = input.feedback_valid = true;
@@ -324,7 +339,7 @@ int main() {
     input.leg.left.angle = input.leg.right.angle = 1.5707963267948966;
     input.leg.left.jacobian[0][0] = input.leg.right.jacobian[0][0] = .1;
     input.leg.left.jacobian[1][1] = input.leg.right.jacobian[1][1] = .1;
-    modules::ChassisControlOutput output{};
+    dust_control::modules::ChassisControlOutput output{};
     for (unsigned tick = 0; tick < 1000; ++tick) {
         input.remote.chassis_x = tick > 500 ? .2 : 0;
         balance.Update(input, output);
@@ -333,14 +348,14 @@ int main() {
     }
 
     // 动态电机配置提供轮力矩预算，平衡控制器不能继续使用编译期默认预算。
-    modules::BalanceController no_turn(0.0);
-    modules::BalanceController configured_turn(2.0);
+    dust_control::modules::BalanceController no_turn(0.0);
+    dust_control::modules::BalanceController configured_turn(2.0);
     input.remote.chassis_x = 0;
     input.remote.chassis_rotate = .5;
     input.remote.run = input.requested_enable = true;
     input.theta.left = input.theta.right =
-        modules::ChassisConfig{}.theta_balance_bias();
-    modules::ChassisControlOutput disabled_turn{}, enabled_turn{};
+        dust_control::modules::ChassisConfig{}.theta_balance_bias();
+    dust_control::modules::ChassisControlOutput disabled_turn{}, enabled_turn{};
     for (unsigned tick = 0; tick < 500; ++tick) {
         no_turn.Update(input, disabled_turn);
         configured_turn.Update(input, enabled_turn);

@@ -9,7 +9,7 @@
 #include <cstring>
 #include <stdexcept>
 
-namespace dust::concurrency {
+namespace dust_control::concurrency {
 void ValidateThreadOptions(const ThreadOptions& options) {
     if (options.cpu < -1 || options.cpu >= CPU_SETSIZE ||
         options.priority < 0 || options.priority > 99 ||
@@ -46,4 +46,4 @@ bool ConfigureThread(const ThreadOptions& options, std::string& error) {
     }
     return true;
 }
-}  // namespace dust::concurrency
+}  // namespace dust_control::concurrency

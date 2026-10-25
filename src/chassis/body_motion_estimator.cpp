@@ -28,11 +28,11 @@ using StateVector = Eigen::Matrix<double, 2, 1>;
 using StateMatrix = Eigen::Matrix<double, 2, 2>;
 using ObservationVector = Eigen::Matrix<double, 1, 2>;
 
-using namespace modules::chassis_config;
+using namespace dust_control::modules::chassis_config;
 
 }  // namespace
 
-namespace modules {
+namespace dust_control::modules {
 
 void BodyMotionEstimator::Reset() {
     state_ = {};
@@ -92,4 +92,4 @@ const BodyMotionState &BodyMotionEstimator::Update(
     return state_;
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

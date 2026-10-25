@@ -1,4 +1,5 @@
-#include <hardware/usb/protocol/usb_session_policy.hpp>
+#include "hardware/usb/protocol/usb_protocol.hpp"
+#include "hardware/usb/usb_transmitter.hpp"
 /* SPDX-License-Identifier: Apache-2.0 */
 // 仅供测试的后端，不打开硬件，也不链接到生产程序。
 #include <hardware/imu/hi91_protocol.h>
@@ -11,7 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
-#include <hardware/usb/bridge_protocol.hpp>
+#include <hardware/usb/protocol/usb_protocol.hpp>
 #include <mutex>
 #include <thread>
 
@@ -31,7 +32,7 @@ struct libusb_device_handle {
 };
 
 namespace {
-namespace wire = wbr::bridge;
+namespace wire = dust_control::wire;
 // 契约失败仍立即终止，仅补充位置，便于区分时序失败和协议错误。
 [[noreturn]] void MockAbort(int line) {
     std::fprintf(stderr, "USB mock contract failed at usb_mock.cpp:%d\n", line);
@@ -116,7 +117,8 @@ void FullLoadSensors(MockState& state, const wire::CanTransmitRequest& packet) {
     wire::Put16(hi91 + 2, 76);
     hi91[6] = 0x91;
     wire::Put32(hi91 + 14, state.command_count);
-    wire::Put16(hi91 + 4, protocols::CalculateHi91FrameCrc(76, hi91 + 6));
+    wire::Put16(hi91 + 4,
+                dust_control::protocols::CalculateHi91FrameCrc(76, hi91 + 6));
     uart(2, hi91, sizeof(hi91));
     if (!std::getenv("WBR_MOCK_FULL_DROP_IMU")) {
         wire::ImuSampleReport imu{};
@@ -188,7 +190,7 @@ void Process(MockState& state, libusb_transfer* transfer) {
                 : 12;
         reply.protection_frame_count = 6;
         reply.protection_signature = 0x12345678;
-        reply.max_lease_us = wire::kCommandTimeoutUs;
+        reply.max_lease_us = dust_control::host::kCommandTimeoutUs;
         if (std::getenv("WBR_MOCK_PROFILE_MISMATCH")) {
             reply.protection_signature ^= 1;
         }
@@ -221,7 +223,7 @@ void Process(MockState& state, libusb_transfer* transfer) {
             wire::ConfigureSafetyRequest request{};
             if (state.armed || !wire::Decode(packet, request) ||
                 request.uart_stop_count != 0 ||
-                request.lease_us != wire::kCommandTimeoutUs) {
+                request.lease_us != dust_control::host::kCommandTimeoutUs) {
                 MockAbort(__LINE__);
             }
             // 零动作表示选择固件默认保护，不能清空保护基线。
@@ -326,7 +328,7 @@ void Process(MockState& state, libusb_transfer* transfer) {
             feedback.header = {Now(), state.session};
             feedback.frame_count = 6;
             for (unsigned slot = 0; slot < 6; ++slot) {
-                const auto& motor = dust::test::kMotorAddresses[slot];
+                const auto& motor = dust_control::test::kMotorAddresses[slot];
                 auto& received = feedback.frames[slot];
                 received.frame.channel = motor.bus;
                 received.frame.id = motor.feedback_id;

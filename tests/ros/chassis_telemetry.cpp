@@ -5,7 +5,7 @@
 #include <cmath>
 
 int main() {
-    dust::chassis::ChassisObservation sample;
+    dust_control::chassis::ChassisObservation sample;
     sample.sequence = 17;
     sample.monotonic_ns = 1000000000;
     sample.control_duration_ns = 12500;
@@ -16,7 +16,8 @@ int main() {
     sample.input.leg.left.hz = -.23;
     sample.input.leg.right.length = .26;
     const rclcpp::Time now(2000000000LL);
-    auto message = dust::ros::MakeChassisTelemetry(sample, now, 1010000000);
+    auto message =
+        dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
     assert(message.sequence == 17 && message.version == 1);
     assert(message.header.stamp.sec == 1 &&
            message.header.stamp.nanosec == 990000000);
@@ -26,14 +27,14 @@ int main() {
            message.control_duration_us == 12.5);
     sample.input.motor_stale_mask = 0x0c;
     sample.input.imu_fresh = false;
-    message = dust::ros::MakeChassisTelemetry(sample, now, 1010000000);
+    message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
     assert(std::isnan(message.pitch_deg));
     assert(!message.left_leg_fresh && std::isnan(message.left_length_m));
     assert(message.right_leg_fresh && message.right_length_m == .26);
     sample.input.feedback_invalid_mask = 8;
-    message = dust::ros::MakeChassisTelemetry(sample, now, 1010000000);
+    message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
     assert(!message.right_leg_fresh && std::isnan(message.right_length_m));
-    message = dust::ros::MakeChassisTelemetry(sample, now, 1300000000);
+    message = dust_control::ros::MakeChassisTelemetry(sample, now, 1300000000);
     assert(!message.source_connected && !message.imu_fresh);
     assert(message.motor_stale_mask == 0x3f && std::isnan(message.imu_age_us));
     assert(!message.right_leg_fresh && !message.left_leg_fresh);

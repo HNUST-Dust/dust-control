@@ -2,7 +2,7 @@ add_executable(chassis_contracts chassis/contracts.cpp)
 target_link_libraries(chassis_contracts PRIVATE dust_usb dust_chassis)
 add_test(NAME chassis.contracts COMMAND chassis_contracts)
 add_library(production_usb_mock SHARED chassis/usb_mock.cpp)
-target_link_libraries(production_usb_mock PRIVATE dust_imu dust_chassis Threads::Threads PkgConfig::LIBUSB)
+target_link_libraries(production_usb_mock PRIVATE dust_usb_protocol dust_imu dust_chassis Threads::Threads PkgConfig::LIBUSB)
 set(DUST_TEST_NODE "")
 if(DUST_BUILD_ROS2)
   set(DUST_TEST_NODE "$<TARGET_FILE:dust_control_node>")
@@ -76,7 +76,7 @@ set_tests_properties(configuration.startup_loading PROPERTIES TIMEOUT 35
   ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH};ROS_LOCALHOST_ONLY=1;ROS_DOMAIN_ID=170;ROS_LOG_DIR=/tmp/dust-control-config-test-logs")
 
 add_executable(adapter_protocol_contracts protocols/adapter_protocol.cpp)
-target_link_libraries(adapter_protocol_contracts PRIVATE dust_headers)
+target_link_libraries(adapter_protocol_contracts PRIVATE dust_usb_protocol)
 add_test(NAME usb.generic_protocol_contracts COMMAND adapter_protocol_contracts)
 
 add_executable(uart_channel_contracts protocols/uart_channels.cpp)
@@ -149,3 +149,9 @@ add_test(NAME configuration.robot_topology COMMAND ${Python3_EXECUTABLE}
   "${PROJECT_SOURCE_DIR}/config" "${DUST_TEST_NODE}")
 set_tests_properties(configuration.robot_topology PROPERTIES TIMEOUT 35 RUN_SERIAL TRUE
   ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH};ROS_LOCALHOST_ONLY=1;ROS_DOMAIN_ID=171;ROS_LOG_DIR=/tmp/dust-control-topology-test-logs")
+
+add_executable(usb_wire_vectors protocols/usb_wire_vectors.cpp)
+target_link_libraries(usb_wire_vectors PRIVATE dust_usb_protocol)
+add_test(NAME usb.wire_v4_baseline COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/protocols/check_usb_vectors.py"
+  $<TARGET_FILE:usb_wire_vectors> "${CMAKE_CURRENT_SOURCE_DIR}/protocols/usb_v4_vectors.txt")

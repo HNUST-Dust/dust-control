@@ -10,15 +10,15 @@
 #include "concurrency/thread.hpp"
 #include "hardware/motors/motor_protocol.hpp"
 
-namespace dust::devices {
+namespace dust_control::devices {
 class MotorFeedbackDecoder;
-class SbusDecoder;
+class WflySbusDecoder;
 class Hi91Decoder;
-}  // namespace dust::devices
-namespace wbr::host {
+}  // namespace dust_control::devices
+namespace dust_control::host {
 class UsbTransmitter;
 }
-namespace dust::chassis {
+namespace dust_control::chassis {
 struct ChassisRuntimeOptions {
     concurrency::ThreadOptions thread{true, 3, 80};
     bool enable_output = false;
@@ -29,23 +29,23 @@ struct ChassisRuntimeOptions {
 struct ChassisMotorAdapter {
     std::string name;
     const devices::MotorFeedbackDecoder* feedback = nullptr;
-    wbr::host::UsbTransmitter* transmitter = nullptr;
+    dust_control::host::UsbTransmitter* transmitter = nullptr;
     devices::MotorConfig motors;
     // Robot 在握手和发送线程就绪后置 true；独立调用者可省略。
     const std::atomic<bool>* started = nullptr;
 };
 struct ChassisDevices {
     std::vector<ChassisMotorAdapter> motor_adapters;
-    const devices::SbusDecoder* remote = nullptr;
+    const devices::WflySbusDecoder* remote = nullptr;
     const devices::Hi91Decoder* imu = nullptr;
 };
 class ChassisRuntime {
    public:
     ChassisRuntime(ChassisRuntimeOptions options,
                    const devices::MotorConfig& motors,
-                   modules::InputDeadlines deadlines,
+                   dust_control::modules::InputDeadlines deadlines,
                    ChassisDevices devices = {},
-                   modules::ChassisConfig config = {});
+                   dust_control::modules::ChassisConfig config = {});
     ~ChassisRuntime();
     void Start();
     // 只停止并回收本模块线程，不停止借用的 USB 资源。
@@ -64,15 +64,15 @@ class ChassisRuntime {
 
    private:
     void Run();
-    const modules::ChassisConfig config_;
+    const dust_control::modules::ChassisConfig config_;
     ChassisRuntimeOptions options_;
     ChassisDevices devices_;
     std::vector<devices::MotorEncoder> encoders_;
-    modules::ChassisController controller_;
+    dust_control::modules::ChassisController controller_;
     ChassisObservationQueue observations_;
     std::atomic<bool> stop_{false};
     std::atomic<bool> finished_{false};
     std::thread worker_;
     std::string error_;
 };
-}  // namespace dust::chassis
+}  // namespace dust_control::chassis

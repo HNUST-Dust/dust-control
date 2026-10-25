@@ -17,7 +17,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace protocols {
+#include <array>
+#include <span>
+
+#include "concurrency/published_snapshot.hpp"
+#include "hardware/byte_stream.hpp"
+
+namespace dust_control::protocols {
 
 constexpr uint8_t kRefereeSof = 0xA5U;  ///< 裁判系统协议帧起始字节。
 
@@ -114,4 +120,37 @@ int DecodeRefereeRobotStatus(const uint8_t *data, size_t len,
 int DecodeRefereeShootData(const uint8_t *data, size_t len,
                            RefereeShootData *out);
 
-}  // namespace protocols
+}  // namespace dust_control::protocols
+
+namespace dust_control::devices {
+struct RefereeSample {
+    // 最近接收块的前 40 字节；Consume 仍解析传入的全部字节。
+    std::array<uint8_t, 40> chunk{};
+    uint8_t chunk_size = 0;
+    uint64_t receive_us = 0;
+    // 沿用现有裁判协议解析器：只校验帧边界，尚不校验 CRC8/CRC16。
+    std::array<uint8_t, dust_control::protocols::kRefereeMaxDataLength>
+        payload{};
+    uint16_t payload_size = 0;
+    uint16_t command_id = 0;
+    uint64_t frame_us = 0;
+    uint32_t frame_sequence = 0;
+};
+
+// Read 可跨线程调用；其余操作仅由接收线程调用。输出不参与控制许可。
+class RefereeDecoder {
+   public:
+    void Reset();
+    void Discontinuity();
+    void Consume(std::span<const uint8_t> bytes, uint64_t receive_us);
+    RefereeSample Read() const {
+        return published_.Read();
+    }
+
+   private:
+    void DecodeFrames(uint64_t receive_us);
+    ByteStream<dust_control::protocols::kRefereeMaxFrameSize> stream_;
+    RefereeSample latest_;
+    concurrency::PublishedSnapshot<RefereeSample> published_;
+};
+}  // namespace dust_control::devices

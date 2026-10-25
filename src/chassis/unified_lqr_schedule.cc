@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-namespace modules {
+namespace dust_control::modules {
 namespace {
 
 constexpr double kMinScheduledLegLength = 0.15362;
@@ -36,4 +36,4 @@ void EvaluateUnifiedLqrGain(double leg_length, double gain[4][10]) {
     }
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

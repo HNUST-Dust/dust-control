@@ -10,17 +10,17 @@
 #include "concurrency/thread.hpp"
 #include "hardware/usb/usb_transmitter.hpp"
 
-namespace dust::devices {
+namespace dust_control::devices {
 class MotorFeedbackDecoder;
 class Hi91Decoder;
-}  // namespace dust::devices
-namespace dust::gimbal {
+}  // namespace dust_control::devices
+namespace dust_control::gimbal {
 // 接口全部借用，必须长于本模块线程寿命；为空时离线运行。
 // 空线程可先绑定 CAN 端口；motors 为空表示尚无电机映射，attached 不代表可控制。
 struct GimbalDevices {
     const devices::MotorFeedbackDecoder* motors = nullptr;
     const devices::Hi91Decoder* imu = nullptr;
-    std::optional<wbr::host::CanCommandPort> can;
+    std::optional<dust_control::host::CanCommandPort> can;
 };
 // 当前仅建立独立线程与生命周期；等待停止，不生成命令或维持虚假心跳。
 class GimbalRuntime {
@@ -53,4 +53,4 @@ class GimbalRuntime {
     std::string error_;
     std::thread worker_;
 };
-}  // namespace dust::gimbal
+}  // namespace dust_control::gimbal

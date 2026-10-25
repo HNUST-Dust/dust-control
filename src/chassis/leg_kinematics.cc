@@ -17,13 +17,13 @@
 
 namespace {
 
-using namespace modules::chassis_config;
+using namespace dust_control::modules::chassis_config;
 constexpr double kJacobianStep = 1.0e-6;
 constexpr double kMinLegLength = 1.0e-4;
 
 }  // namespace
 
-namespace modules {
+namespace dust_control::modules {
 
 bool ForwardKinematics(double phi1, double phi2, int branch, double &hx,
                        double &hz, const ChassisConfig &config) {
@@ -180,4 +180,4 @@ bool ComputeLegKinematics(double phi1, double phi2, double dphi1, double dphi2,
     return true;
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

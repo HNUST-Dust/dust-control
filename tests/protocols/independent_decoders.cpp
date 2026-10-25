@@ -5,12 +5,11 @@
 #include <span>
 
 #include "../support/motor_fixture.hpp"
-#include "hardware/imu/hi91_decoder.hpp"
 #include "hardware/imu/hi91_protocol.h"
 #include "hardware/imu/onboard_imu.hpp"
 #include "hardware/motors/motor_protocol.hpp"
-#include "hardware/referee/referee_decoder.hpp"
-#include "hardware/remote/sbus_decoder.hpp"
+#include "hardware/referee/referee_protocol.h"
+#include "hardware/remote/wfly_sbus_protocol.h"
 
 namespace {
 void Put16(uint8_t* bytes, uint16_t value) {
@@ -33,23 +32,23 @@ std::array<uint8_t, 82> ImuFrame() {
     const float pitch = 3.0F;
     std::memcpy(frame.data() + 58, &pitch, sizeof(pitch));
     Put16(frame.data() + 4,
-          protocols::CalculateHi91FrameCrc(76, frame.data() + 6));
+          dust_control::protocols::CalculateHi91FrameCrc(76, frame.data() + 6));
     return frame;
 }
 }  // namespace
 
 int main() {
-    using namespace dust::devices;
+    using namespace dust_control::devices;
     const auto remote = RemoteFrame();
     for (size_t split = 0; split < remote.size(); ++split) {
-        SbusDecoder decoder;
+        WflySbusDecoder decoder;
         decoder.Consume(std::span(remote).first(split), 1000);
         assert(!decoder.Read().remote.sequence);
         decoder.Consume(std::span(remote).subspan(split), 1000);
         assert(decoder.Read().remote.robot_enable);
     }
-    SbusDecoder first;
-    SbusDecoder second;
+    WflySbusDecoder first;
+    WflySbusDecoder second;
     first.Consume(remote, 1000);
     assert(first.Read().remote.robot_enable &&
            !second.Read().remote.robot_enable);
@@ -97,7 +96,8 @@ int main() {
                 static_cast<uint8_t>(device_ms >> (8 * byte));
         }
         Put16(clock_frame.data() + 4,
-              protocols::CalculateHi91FrameCrc(76, clock_frame.data() + 6));
+              dust_control::protocols::CalculateHi91FrameCrc(
+                  76, clock_frame.data() + 6));
     };
     set_device_time(1000);
     fast.Consume(clock_frame, 1000);
@@ -110,8 +110,8 @@ int main() {
     assert(fast.Read().precise_timestamp_us == 5000);
     assert(slow.Read().precise_timestamp_us == 1000);
 
-    MotorFeedbackDecoder motors(dust::test::MotorFixture());
-    const auto& address = dust::test::kMotorAddresses[0];
+    MotorFeedbackDecoder motors(dust_control::test::MotorFixture());
+    const auto& address = dust_control::test::kMotorAddresses[0];
     const std::array<uint8_t, 8> raw{0, 0, 0, 123, 0, 0, 0, 0};
     motors.Consume(address.bus, address.feedback_id, raw, 1234, true);
     assert(motors.Read()[0].valid && motors.Read()[0].speed_rpm == 123);

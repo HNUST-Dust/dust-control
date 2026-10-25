@@ -6,7 +6,7 @@
 #include "gas_spring.h"
 #include "leg_joint_coordinates.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 // 共享几何参数映射；结果为 [B, D] 顺序的电机反向补偿力矩，
 // 使用原始运动学坐标，不使用估计器的传感器极性。
@@ -27,4 +27,4 @@ inline JointPair<double> ConfiguredGasSpringCompensation(
     return {torque[1], torque[0]};
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

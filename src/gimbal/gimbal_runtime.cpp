@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 
-namespace dust::gimbal {
+namespace dust_control::gimbal {
 GimbalRuntime::GimbalRuntime(GimbalDevices devices,
                              concurrency::ThreadOptions thread)
     : devices_(devices), thread_(thread) {
@@ -50,4 +50,4 @@ void GimbalRuntime::Run() {
     }
     finished_ = true;
 }
-}  // namespace dust::gimbal
+}  // namespace dust_control::gimbal

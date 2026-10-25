@@ -17,7 +17,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace protocols {
+#include <span>
+
+#include "concurrency/published_snapshot.hpp"
+#include "hardware/byte_stream.hpp"
+#include "imu_config.hpp"
+
+namespace dust_control::protocols {
 
 constexpr uint8_t kHi91FrameSof0 =
     0x5AU;  ///< HI91 帧起始标志的第一个固定字节。
@@ -74,4 +80,110 @@ uint16_t CalculateHi91FrameCrc(uint16_t payload_length, const uint8_t *payload);
  */
 uint16_t Hi91Crc16CcittFalse(const uint8_t *data, size_t size);
 
-}  // namespace protocols
+}  // namespace dust_control::protocols
+
+namespace dust_control::devices {
+// HI91 发布的控制用物理量样本，时间戳使用主机单调时钟。
+struct ImuSample {
+    uint32_t sequence = 0U;
+    uint64_t precise_timestamp_us = 0U;
+    bool valid = false;
+    float pitch_deg = 0.0F;
+    float roll_deg = 0.0F;
+    float yaw_deg = 0.0F;
+    float pitch_rate_rad_s = 0.0F;
+    float roll_rate_rad_s = 0.0F;
+    float yaw_rate_rad_s = 0.0F;
+    float accel_g[3] = {};
+    float vertical_accel_g = 0.0F;
+};
+
+// 确认传感器进入新的时间周期，避免把单帧乱序误判为重启。
+class Hi91TimeGuard {
+   public:
+    void Reset() {
+        *this = {};
+    }
+
+    void Reject() {
+        candidates_ = 0;
+    }
+
+    bool Accept(uint32_t device_ms, uint64_t sample_us, uint64_t timeout_us,
+                bool crc_valid) {
+        if (!has_time_ || int32_t(device_ms - accepted_ms_) > 0) {
+            Commit(device_ms, sample_us);
+            return true;
+        }
+        if (!crc_valid || device_ms == accepted_ms_ ||
+            sample_us <= accepted_us_ ||
+            sample_us - accepted_us_ <= timeout_us) {
+            Reject();
+            return false;
+        }
+        const bool consecutive =
+            candidates_ && sample_us >= candidate_us_ &&
+            sample_us - candidate_us_ <= kMaximumCandidateGapUs &&
+            int32_t(device_ms - candidate_ms_) > 0 &&
+            uint32_t(device_ms - candidate_ms_) <= kMaximumDeviceStepMs;
+        if (!consecutive) {
+            candidates_ = 1;
+            first_candidate_us_ = sample_us;
+        } else if (candidates_ < kRecoveryFrameCount) {
+            ++candidates_;
+        }
+        candidate_ms_ = device_ms;
+        candidate_us_ = sample_us;
+        // 必须经过实际观测时间，不能将一次到达的三个缓冲帧当作恢复依据。
+        if (candidates_ < kRecoveryFrameCount ||
+            sample_us - first_candidate_us_ < kMinimumRecoverySpanUs) {
+            return false;
+        }
+        Commit(device_ms, sample_us);
+        return true;
+    }
+
+   private:
+    static constexpr unsigned kRecoveryFrameCount = 3;
+    static constexpr uint64_t kMinimumRecoverySpanUs = 2000;
+    static constexpr uint64_t kMaximumCandidateGapUs = 20000;
+    static constexpr uint32_t kMaximumDeviceStepMs = 20;
+    void Commit(uint32_t device_ms, uint64_t sample_us) {
+        has_time_ = true;
+        accepted_ms_ = device_ms;
+        accepted_us_ = sample_us;
+        Reject();
+    }
+
+    bool has_time_ = false;
+    uint32_t accepted_ms_ = 0;
+    uint32_t candidate_ms_ = 0;
+    unsigned candidates_ = 0;
+    uint64_t accepted_us_ = 0;
+    uint64_t candidate_us_ = 0;
+    uint64_t first_candidate_us_ = 0;
+};
+
+// Read 可跨线程调用；拼帧、CRC 和时钟恢复状态只由接收线程访问。
+class Hi91Decoder {
+   public:
+    explicit Hi91Decoder(bool strict_crc = false, ImuConfig config = {})
+        : config_(config), strict_crc_(strict_crc) {}
+    void Reset();
+    void Discontinuity();
+    void Consume(std::span<const uint8_t> bytes, uint64_t sample_us);
+    ImuSample Read() const {
+        return published_.Read();
+    }
+
+   private:
+    const ImuConfig config_;
+    void DecodeFrames(uint64_t sample_us);
+    ByteStream<512> stream_;
+    ImuSample latest_;
+    concurrency::PublishedSnapshot<ImuSample> published_;
+    Hi91TimeGuard time_guard_;
+    uint32_t sequence_ = 0;
+    bool strict_crc_;
+};
+}  // namespace dust_control::devices

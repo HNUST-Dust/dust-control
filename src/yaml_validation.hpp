@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace dust::yaml_validation {
+namespace dust_control::yaml_validation {
 inline void ValidateKeys(const YAML::Node &node,
                          const std::set<std::string> &allowed,
                          const std::set<std::string> &optional = {}) {
@@ -66,4 +66,4 @@ inline YAML::Node LoadSensorFile(const std::string &file) {
     }
     return root;
 }
-}  // namespace dust::yaml_validation
+}  // namespace dust_control::yaml_validation

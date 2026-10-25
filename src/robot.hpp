@@ -13,7 +13,7 @@
 #include "robot_config.hpp"
 #include "ui/ui_runtime.hpp"
 
-namespace dust::app {
+namespace dust_control::app {
 // ROS 节点使用的装配处；只协调启动、故障和退出，没有业务循环或工作线程。
 class Robot {
    public:
@@ -34,7 +34,8 @@ class Robot {
         return config_;
     }
     // 只读检查已装配的会话；绑定空模块的会话可能尚未启动。
-    const wbr::host::UsbSession& adapter(const std::string& name) const;
+    const dust_control::host::UsbSession& adapter(
+        const std::string& name) const;
 
    private:
     void CreateAdapters();
@@ -43,17 +44,17 @@ class Robot {
     void CreateUi();
     void StartAdapters();
     void StartModulesFor(const std::string& adapter);
-    wbr::host::UsbSession* SessionFor(const std::string& name);
-    modules::ChassisConfig chassis_config_;
+    dust_control::host::UsbSession* SessionFor(const std::string& name);
+    dust_control::modules::ChassisConfig chassis_config_;
     RobotConfig config_;
     devices::MotorConfig chassis_motors_;
     std::map<std::string, devices::MotorConfig> motor_configs_;
     devices::ImuConfig imu_;
     devices::RemoteConfig remote_;
     struct Adapter {
-        std::unique_ptr<wbr::host::UsbSession> session;
+        std::unique_ptr<dust_control::host::UsbSession> session;
         std::atomic<bool> started{false};
-        explicit Adapter(std::unique_ptr<wbr::host::UsbSession> value)
+        explicit Adapter(std::unique_ptr<dust_control::host::UsbSession> value)
             : session(std::move(value)) {}
     };
     std::map<std::string, Adapter> adapters_;
@@ -64,4 +65,4 @@ class Robot {
     bool started_ = false;
     bool stopped_ = false;
 };
-}  // namespace dust::app
+}  // namespace dust_control::app

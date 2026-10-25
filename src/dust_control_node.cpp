@@ -8,7 +8,7 @@
 
 #include "chassis_telemetry.hpp"
 
-namespace dust::ros {
+namespace dust_control::ros {
 namespace {
 constexpr double kStandardGravityMps2 = 9.80665;
 constexpr auto kPublicationPeriod = std::chrono::milliseconds(1);
@@ -104,7 +104,7 @@ void DustControlNode::PublishObservations() {
         have_observation_ = true;
     }
     // 空队列不重复发布新鲜样本；源停更时继续告知观测已经失效。
-    const auto monotonic_ns = wbr::realtime::MonotonicTimeNs();
+    const auto monotonic_ns = dust_control::realtime::MonotonicTimeNs();
     if (have_observation_ &&
         (available ||
          monotonic_ns - latest_observation_.monotonic_ns > 200000000)) {
@@ -118,7 +118,7 @@ void DustControlNode::PublishAuxiliaryObservations() {
         return;
     }
     const auto stamp = now();
-    const auto monotonic_ns = wbr::realtime::MonotonicTimeNs();
+    const auto monotonic_ns = dust_control::realtime::MonotonicTimeNs();
     if (monotonic_ns - last_status_ns_ >= 20000000) {
         PublishStatusReport(latest_observation_, stamp);
         last_status_ns_ = monotonic_ns;
@@ -166,10 +166,12 @@ void DustControlNode::PublishStatusReport(
     status_publisher_->publish(status);
 }
 
-void DustControlNode::PublishImuSample(const modules::ChassisCycleInput& input,
-                                       const rclcpp::Time& stamp) {
+void DustControlNode::PublishImuSample(
+    const dust_control::modules::ChassisCycleInput& input,
+    const rclcpp::Time& stamp) {
     if (input.imu_fresh && input.imu.sequence != last_imu_sequence_) {
-        const auto monotonic_us = wbr::realtime::MonotonicTimeNs() / 1000;
+        const auto monotonic_us =
+            dust_control::realtime::MonotonicTimeNs() / 1000;
         const auto sample_us = input.imu.precise_timestamp_us;
         const auto age_ns = monotonic_us >= sample_us
                                 ? (monotonic_us - sample_us) * 1000
@@ -198,7 +200,8 @@ void DustControlNode::PublishImuSample(const modules::ChassisCycleInput& input,
 }
 
 void DustControlNode::PublishJointStates(
-    const modules::ChassisCycleInput& input, const rclcpp::Time& stamp) {
+    const dust_control::modules::ChassisCycleInput& input,
+    const rclcpp::Time& stamp) {
     if (input.feedback_valid) {
         sensor_msgs::msg::JointState joints;
         joints.header.stamp = stamp;
@@ -217,4 +220,4 @@ void DustControlNode::PublishJointStates(
         joints_publisher_->publish(joints);
     }
 }
-}  // namespace dust::ros
+}  // namespace dust_control::ros

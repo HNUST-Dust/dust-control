@@ -11,7 +11,7 @@
 
 #include "leg_kinematics.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 enum class Side : uint8_t {
     kLeft = 0U,
@@ -74,8 +74,8 @@ enum class DmArmResetReason : uint8_t {
 
 /** 本控制周期冻结的输入、估计值与有效性状态。 */
 struct ChassisCycleInput {
-    dust::devices::ImuSample imu;
-    msg::RemoteInputState remote = {};
+    dust_control::devices::ImuSample imu;
+    dust_control::input::RemoteInputState remote = {};
     SidePair<LegKinematics> leg;
     SidePair<double> wheel_motor_speed_rpm;
     SidePair<JointPair<double>> joint_position;
@@ -98,7 +98,7 @@ struct ChassisCycleInput {
     uint8_t feedback_invalid_mask = 0U;  ///< 安全位：电机超时、IMU 超时、
                                          ///< 左/右运动学无效。
     uint8_t motor_stale_mask =
-        0U;  ///< 位顺序与 dust::devices::ActuatorId 一致。
+        0U;  ///< 位顺序与 dust_control::devices::ActuatorId 一致。
     uint32_t motor_feedback_age_us[6] = {};  ///< 顺序与 motor_stale_mask 一致。
     bool requested_enable = false;
     bool dm_ready = false;
@@ -107,7 +107,7 @@ struct ChassisCycleInput {
 
 /** 本周期生成的执行器目标与估计状态，物理量单位由字段注明。 */
 struct ChassisControlOutput {
-    dust::devices::MotorTargets motor_targets{};
+    dust_control::devices::MotorTargets motor_targets{};
     // 必须显式启用；默认或零输出不能触发弹簧补偿。
     bool joint_control_active = false;
     // 仅开环跳跃推力阶段绕过反向弹簧补偿。
@@ -147,4 +147,4 @@ struct ExternalSupportForceCommand {
     double right_force_n = 0.0;
 };
 
-}  // namespace modules
+}  // namespace dust_control::modules

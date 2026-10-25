@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "chassis_config.h"
 #include "yaml_validation.hpp"
-namespace modules {
+namespace dust_control::modules {
 ChassisConfig LoadChassisConfig(const std::string& file) {
-    using dust::yaml_validation::ValidateKeys;
+    using dust_control::yaml_validation::ValidateKeys;
     const auto root = YAML::LoadFile(file);
     ValidateKeys(root,
                  {"actuator", "balance", "flight", "gas_spring", "hardware",
@@ -40,8 +40,8 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
     ValidateKeys(root["hardware"], {"left", "right"});
     ValidateKeys(root["hardware"]["left"], {"leg_angle_offset_rad"});
     ValidateKeys(root["hardware"]["right"], {"leg_angle_offset_rad"});
-    if (dust::yaml_validation::ParseUnsignedInteger(root["schema_version"],
-                                                    2) != 2) {
+    if (dust_control::yaml_validation::ParseUnsignedInteger(
+            root["schema_version"], 2) != 2) {
         throw std::runtime_error("Unsupported chassis schema version");
     }
     ChassisConfig config;
@@ -117,4 +117,4 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
     ValidateChassisConfig(config);
     return config;
 }
-}  // namespace modules
+}  // namespace dust_control::modules

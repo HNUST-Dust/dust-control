@@ -2,10 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef WBR_CONTROL_UNIFIED_LQR_SCHEDULE_H_
-#define WBR_CONTROL_UNIFIED_LQR_SCHEDULE_H_
-
-namespace modules {
+#pragma once
+namespace dust_control::modules {
 
 /**
  * @brief 计算四路输出、十维状态的完整 LQR 增益矩阵。
@@ -16,6 +14,4 @@ namespace modules {
  */
 void EvaluateUnifiedLqrGain(double leg_length, double gain[4][10]);
 
-}  // namespace modules
-
-#endif  // WBR_CONTROL_UNIFIED_LQR_SCHEDULE_H_
+}  // namespace dust_control::modules

@@ -3,22 +3,20 @@
 
 #include <algorithm>
 #include <chassis/runtime/realtime_loop.hpp>
-#include <chrono>
 #include <cstring>
-#include <hardware/usb/protocol/usb_report_decoder.hpp>
 #include <iomanip>
 #include <iostream>
-#include <random>
 #include <sstream>
 #include <vector>
 
 #include "concurrency/thread.hpp"
+#include "usb_transmitter.hpp"
 
-namespace wbr::host {
-namespace rt = wbr::realtime;
+namespace dust_control::host {
+namespace rt = dust_control::realtime;
 UsbLink::UsbLink(UartReceiveQueue& uart_queue, const UsbOptions& options,
-                 const dust::devices::MotorConfig& motors,
-                 const dust::devices::ImuConfig& imu)
+                 const dust_control::devices::MotorConfig& motors,
+                 const dust_control::devices::ImuConfig& imu)
     : options_(options),
       motor_config_(motors),
       uart_queue_(uart_queue),
@@ -57,7 +55,7 @@ bool UsbLink::healthy() const {
     // 发布更新的时间戳，导致无符号时间差下溢，把正常数据流误判为超时。
     const uint64_t received_us = last_receive_us_.load();
     const uint64_t now_us = rt::MonotonicTimeNs() / 1000;
-    return now_us - received_us < bridge::kCommandTimeoutUs;
+    return now_us - received_us < kCommandTimeoutUs;
 }
 
 bool UsbLink::Open() {
@@ -223,67 +221,10 @@ bool UsbLink::OpenDevice() {
     return true;
 }
 
-bool UsbLink::StartSession() {
-    for (auto& input : receive_transfers_) {
-        input.owner = this;
-        input.transfer = libusb_alloc_transfer(0);
-        if (!input.transfer) {
-            return FailSession("USB IN allocation");
-        }
-    }
-
-    for (auto& output : transmit_transfers_) {
-        output.owner = this;
-        output.transfer = libusb_alloc_transfer(0);
-        if (!output.transfer) {
-            return FailSession("USB OUT allocation");
-        }
-    }
-
-    session_ = std::random_device{}();
-    if (!session_) {
-        session_ = 1;
-    }
-
-    thread_ = std::thread([this] { RunEventLoop(); });
-    // 发送 Hello 使 MCU 开始发布前，必须先启动接收并完成实时配置和 mlockall；
-    // 任一步骤失败都不能启动会话。
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (!ready_cv_.wait_for(lock, std::chrono::seconds(2), [this] {
-                return receive_preposted_.load() || failed_.load();
-            })) {
-            lock.unlock();
-            return FailSession("USB IN prepost timed out");
-        }
-        if (failed_) {
-            return false;
-        }
-    }
-
-    bridge::UsbOutRequest hello{};
-    bridge::Encode(bridge::HelloRequest{{0, session_}}, hello);
-    if (!QueueTransmit(hello.data(), hello.size())) {
-        return false;
-    }
-
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (!ready_cv_.wait_for(lock, std::chrono::seconds(2), [this] {
-            return ready_received_.load() || failed_.load();
-        })) {
-        lock.unlock();
-        return FailSession(
-            "Adapter v4 handshake timed out; matching generic firmware is "
-            "required");
-    }
-
-    lock.unlock();
-    return !failed_ && ConfigureSafetyAndArm();
-}
-
 void UsbLink::SubmitReceive(ReceiveTransfer& input) {
     libusb_fill_bulk_transfer(input.transfer, device_, 0x81, input.data.data(),
-                              bridge::kInBytes, CompleteReceive, &input, 0);
+                              dust_control::wire::kInBytes, CompleteReceive,
+                              &input, 0);
     input.pending = true;
     ++active_transfers_;
     if (libusb_submit_transfer(input.transfer)) {
@@ -304,7 +245,8 @@ void LIBUSB_CALL UsbLink::CompleteReceive(libusb_transfer* transfer) {
 
     if (transfer->status != LIBUSB_TRANSFER_COMPLETED ||
         transfer->actual_length < 16 ||
-        transfer->actual_length != int(bridge::UsbReportLength(input.data))) {
+        transfer->actual_length !=
+            int(dust_control::wire::UsbReportLength(input.data))) {
         self.FailSession(
             "USB IN status=" + std::to_string(int(transfer->status)) +
             " actual_length=" + std::to_string(transfer->actual_length) +
@@ -312,101 +254,7 @@ void LIBUSB_CALL UsbLink::CompleteReceive(libusb_transfer* transfer) {
         return;
     }
 
-    const auto& packet = input.data;
-    if (bridge::U32(packet.data()) == bridge::kMagic &&
-        packet[8] != bridge::kVersion) {
-        self.FailSession("Adapter protocol version mismatch (v4 required)");
-        return;
-    }
-
-    if (bridge::U32(packet.data()) == bridge::kMagic &&
-        packet[8] == bridge::kVersion &&
-        bridge::U32(packet.data() + 12) == self.session_) {
-        self.last_receive_us_ = rt::MonotonicTimeNs() / 1000;
-        if (packet[9] == uint8_t(bridge::Kind::Ready)) {
-            if (self.ready_received_) {
-                self.FailSession("Unexpected bridge session restart");
-                return;
-            }
-            bridge::ReadyReport report{};
-            if (!bridge::Decode(packet, report)) {
-                self.FailSession("Malformed adapter Ready report");
-                return;
-            }
-            if (report.request_bytes != bridge::kOutBytes ||
-                report.max_report_bytes != bridge::kInBytes ||
-                (report.capabilities & 7) != 7) {
-                self.FailSession("Bridge CAN/remote/HI91 capability missing");
-                return;
-            }
-            const auto channels = report.can_channel_mask;
-            if (self.options_.decode_motors) {
-                for (size_t i = 0; i < self.motor_config_.addresses.size();
-                     ++i) {
-                    if (!self.motor_config_.present[i]) {
-                        continue;
-                    }
-                    const auto& motor = self.motor_config_.addresses[i];
-                    if (!(channels & (1U << motor.bus))) {
-                        self.FailSession(
-                            "Adapter CAN channel capability missing");
-                        return;
-                    }
-                }
-            }
-            if (report.max_can_frames < 6) {
-                self.FailSession("Adapter batch/safety capacity missing");
-                return;
-            }
-            if (!(report.protection_flags & bridge::kFirmwareCanProtection)) {
-                self.FailSession(
-                    "Adapter firmware CAN protection profile missing");
-                return;
-            }
-            self.max_lease_us_ = report.max_lease_us;
-            self.capabilities_ = report.capabilities;
-            self.ResetSensors();
-            {
-                std::lock_guard<std::mutex> lock(self.mutex_);
-                self.ready_received_ = true;
-            }
-            self.ready_cv_.notify_all();
-        } else if (packet[9] == uint8_t(bridge::Kind::Result)) {
-            bridge::RequestResultReport report{};
-            if (!bridge::Decode(packet, report)) {
-                self.FailSession("Malformed adapter control acknowledgement");
-                return;
-            }
-            const auto sequence = report.request_sequence;
-            if (sequence == self.awaited_request_sequence_.load()) {
-                const auto status = report.result_code;
-                if (uint8_t(report.request_kind) !=
-                        self.awaited_request_kind_.load() ||
-                    (!status && report.request_kind == bridge::Kind::Arm &&
-                     !report.armed)) {
-                    self.FailSession(
-                        "Malformed adapter control acknowledgement");
-                    return;
-                }
-                {
-                    std::lock_guard<std::mutex> lock(self.mutex_);
-                    self.result_code_ = report.result_code;
-                    self.acknowledged_request_sequence_ = sequence;
-                }
-                self.ready_cv_.notify_all();
-            } else if (report.result_code) {
-                self.FailSession("Adapter rejected a data request");
-                return;
-            }
-        } else if (packet[9] == uint8_t(bridge::Kind::Status)) {
-            // 显式状态查询结果不进入传感器解码流程。
-        } else if (self.ready_received_) {
-            const uint64_t arrival_ns = rt::MonotonicTimeNs();
-            if (!self.ReceiveSensorReport(packet, arrival_ns / 1000)) {
-                self.FailSession("Malformed bridge sensor packet");
-            }
-        }
-    }
+    self.HandleReport(input.data);
 
     if (!self.closing_ && !self.failed_) {
         self.SubmitReceive(input);
@@ -456,61 +304,14 @@ bool UsbLink::QueueTransmit(const uint8_t* data, size_t length) {
         "stale commands");
 }
 
-bool UsbLink::ExchangeControlRequest(bridge::UsbOutRequest request) {
-    const bridge::UsbOutRequestView view(request);
-    const auto sequence = view.Sequence();
-    awaited_request_kind_ = uint8_t(view.MessageKind());
-    awaited_request_sequence_ = sequence;
-    acknowledged_request_sequence_ = 0;
-    if (!QueueTransmit(request.data(), request.size())) {
-        return false;
-    }
-
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (!ready_cv_.wait_for(lock, std::chrono::seconds(2), [this, sequence] {
-            return acknowledged_request_sequence_.load() == sequence ||
-                   failed_.load();
-        })) {
-        lock.unlock();
-        return FailSession("Adapter safety configuration/arm timed out");
-    }
-
-    if (failed_) {
-        return false;
-    }
-
-    if (result_code_.load()) {
-        lock.unlock();
-        return FailSession("Adapter rejected safety configuration/arm");
-    }
-
-    return true;
-}
-
-bool UsbLink::ConfigureSafetyAndArm() {
-    const auto lease = std::min(max_lease_us_, bridge::kCommandTimeoutUs);
-    bridge::ConfigureSafetyRequest safety{};
-    safety.header = {++request_sequence_, session_};
-    safety.lease_us = lease;
-    bridge::UsbOutRequest packet{};
-    if (!bridge::Encode(safety, packet)) {
-        return FailSession("Invalid adapter safety lease");
-    }
-    if (!ExchangeControlRequest(packet)) {
-        return false;
-    }
-    bridge::Encode(bridge::ArmRequest{{++request_sequence_, session_}}, packet);
-    return ExchangeControlRequest(packet);
-}
-
-bool UsbLink::Send(std::span<const dust::devices::CanFrame> frames) {
+bool UsbLink::Send(std::span<const dust_control::devices::CanFrame> frames) {
     if (!healthy()) {
         return false;
     }
-    if (frames.size() > bridge::kMaxCanFramesPerPacket) {
+    if (frames.size() > dust_control::wire::kMaxCanFramesPerPacket) {
         return FailSession("Invalid CAN transmit request");
     }
-    bridge::CanTransmitRequest request{};
+    dust_control::wire::CanTransmitRequest request{};
     request.header = {++request_sequence_, session_};
     request.frame_count = static_cast<uint8_t>(frames.size());
     for (size_t i = 0; i < frames.size(); ++i) {
@@ -520,55 +321,39 @@ bool UsbLink::Send(std::span<const dust::devices::CanFrame> frames) {
         record.length = static_cast<uint8_t>(frames[i].bytes.size());
         std::copy(frames[i].bytes.begin(), frames[i].bytes.end(), record.data);
     }
-    bridge::UsbOutRequest packet{};
-    if (!bridge::Encode(request, packet)) {
+    dust_control::wire::UsbOutRequest packet{};
+    if (!dust_control::wire::Encode(request, packet)) {
         return FailSession("Invalid CAN transmit request");
     }
     return QueueTransmit(packet.data(), packet.size());
 }
 
 bool UsbLink::SendUart(uint8_t channel, const uint8_t* bytes, size_t size) {
-    if (!healthy() || !bytes || !size || size > bridge::kMaxUartWrite ||
-        channel < 1 || channel > bridge::kUartPortCount) {
+    if (!healthy() || !bytes || !size ||
+        size > dust_control::wire::kMaxUartWrite || channel < 1 ||
+        channel > dust_control::wire::kUartPortCount) {
         return false;
     }
     const unsigned bit = channel < 3 ? channel : channel + 1;
     if (!(capabilities_ & (1U << bit))) {
         return false;
     }
-    bridge::UartTransmitRequest request{};
+    dust_control::wire::UartTransmitRequest request{};
     request.header = {++request_sequence_, session_};
     request.channel = channel;
     request.byte_count = uint8_t(size);
     std::copy_n(bytes, size, request.bytes.begin());
-    bridge::UsbOutRequest packet{};
-    if (!bridge::Encode(request, packet)) {
+    dust_control::wire::UsbOutRequest packet{};
+    if (!dust_control::wire::Encode(request, packet)) {
         return false;
     }
     return QueueTransmit(packet.data(), packet.size());
 }
 
-void UsbLink::Stop() {
-    if (!device_ || !thread_.joinable() || closing_) {
-        return;
-    }
-
-    if (!failed_) {
-        bridge::UsbOutRequest stop{};
-        bridge::Encode(bridge::StopRequest{{++request_sequence_, session_}},
-                       stop);
-        QueueTransmit(stop.data(), stop.size());
-    }
-
-    // 等待设备停止，或由 20 ms 本地看门狗触发保护。
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
-    ready_received_ = false;
-}
-
 void UsbLink::RunEventLoop() {
     std::string error;
     pthread_setname_np(pthread_self(), options_.thread_name.c_str());
-    if (!dust::concurrency::ConfigureThread(
+    if (!dust_control::concurrency::ConfigureThread(
             {options_.realtime, options_.cpu, options_.priority}, error)) {
         FailSession("USB receive thread setup: " + error);
     }
@@ -616,9 +401,9 @@ void UsbLink::RunEventLoop() {
         }
         // 即使 UART 没有流量，待处理的丢帧策略也必须定时检查。
         if (ready_received_ && !failed_ && !closing_) {
-            sbus_decoder_.PollTimeout(rt::MonotonicTimeNs() / 1000);
+            wfly_sbus_decoder_.PollTimeout(rt::MonotonicTimeNs() / 1000);
         }
-        timeval timeout{0, sbus_decoder_.timeout_pending() ? 1000 : 20000};
+        timeval timeout{0, wfly_sbus_decoder_.timeout_pending() ? 1000 : 20000};
         const int result =
             libusb_handle_events_timeout_completed(context_, &timeout, nullptr);
         if (result && result != LIBUSB_ERROR_INTERRUPTED) {
@@ -668,12 +453,13 @@ void UsbLink::Close() {
     context_ = nullptr;
     device_ = nullptr;
 }
-}  // namespace wbr::host
 
-unsigned wbr::host::UsbLink::FreeTransmitSlots() const {
+unsigned UsbLink::FreeTransmitSlots() const {
     unsigned count = 0;
     for (const auto& transfer : transmit_transfers_) {
         count += transfer.free.load(std::memory_order_acquire);
     }
     return count;
 }
+
+}  // namespace dust_control::host

@@ -4,7 +4,7 @@
 #include <thread>
 
 #include "chassis/chassis_observation.hpp"
-using namespace dust::chassis;
+using namespace dust_control::chassis;
 void Require(bool ok) {
     if (!ok) {
         throw std::runtime_error("Chassis observation contract failed");

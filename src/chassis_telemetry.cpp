@@ -4,7 +4,7 @@
 #include <cmath>
 #include <limits>
 
-namespace dust::ros {
+namespace dust_control::ros {
 // 仅由非实时发布回调调用；按样本与设备新鲜度转换观测。
 dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     const chassis::ChassisObservation& sample, const rclcpp::Time& now,
@@ -64,4 +64,4 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
         number(input.leg.right.length_rate, message.right_leg_fresh);
     return message;
 }
-}  // namespace dust::ros
+}  // namespace dust_control::ros

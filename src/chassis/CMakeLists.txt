@@ -21,7 +21,7 @@ target_link_libraries(dust_chassis PUBLIC dust_headers Eigen3::Eigen)
 target_include_directories(dust_chassis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_options(dust_chassis PRIVATE -Wall -Wextra -Wpedantic)
 target_compile_definitions(dust_chassis PRIVATE EIGEN_NO_MALLOC EIGEN_DONT_VECTORIZE)
-add_library(dust::chassis ALIAS dust_chassis)
+add_library(dust_control::chassis ALIAS dust_chassis)
 
 if(DUST_BUILD_MPC)
   add_subdirectory(mpc)

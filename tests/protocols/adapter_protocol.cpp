@@ -1,7 +1,6 @@
-#include <hardware/usb/protocol/usb_session_policy.hpp>
+#include "hardware/usb/protocol/usb_protocol.hpp"
 /* SPDX-License-Identifier: Apache-2.0 */
 #include <cstdlib>
-#include <hardware/usb/protocol/usb_report_decoder.hpp>
 #include <iostream>
 #define CHECK(c)                                      \
     do {                                              \
@@ -11,16 +10,17 @@
         }                                             \
     } while (0)
 int main() {
-    dust::wire::UsbInPacket can_report{};
-    can_report[9] = uint8_t(dust::wire::Kind::CanReceiveReport);
+    dust_control::wire::UsbInPacket can_report{};
+    can_report[9] = uint8_t(dust_control::wire::Kind::CanReceiveReport);
     for (unsigned count = 1; count <= 6; ++count) {
         can_report[10] = count;
-        CHECK(dust::wire::UsbReportLength(can_report) == 16 + 24 * count);
+        CHECK(dust_control::wire::UsbReportLength(can_report) ==
+              16 + 24 * count);
     }
     can_report[10] = 7;
-    CHECK(dust::wire::UsbReportLength(can_report) == 0);
+    CHECK(dust_control::wire::UsbReportLength(can_report) == 0);
 
-    namespace w = dust::wire;
+    namespace w = dust_control::wire;
     w::SessionPolicy policy;
     CHECK(!policy.Arm(1, 0));
     policy.Open(42);
@@ -173,13 +173,13 @@ int main() {
 }
 
 // Wire v4：固定检查编号和版本，避免两端仅改名而未同步编码。
-static_assert(dust::wire::kVersion == 4);
-static_assert(uint8_t(dust::wire::Kind::CanTransmitRequest) == 3);
-static_assert(uint8_t(dust::wire::Kind::CanReceiveReport) == 4);
-static_assert(uint8_t(dust::wire::Kind::UartTransmitRequest) == 5);
-static_assert(uint8_t(dust::wire::Kind::UartReceiveReport) == 6);
-static_assert(uint8_t(dust::wire::Kind::ImuSampleReport) == 7);
-static_assert(uint8_t(dust::wire::Kind::Stop) == 10);
-static_assert(uint8_t(dust::wire::Kind::Heartbeat) == 11);
-static_assert(uint8_t(dust::wire::Kind::Result) == 12);
-static_assert(uint8_t(dust::wire::Kind::Status) == 13);
+static_assert(dust_control::wire::kVersion == 4);
+static_assert(uint8_t(dust_control::wire::Kind::CanTransmitRequest) == 3);
+static_assert(uint8_t(dust_control::wire::Kind::CanReceiveReport) == 4);
+static_assert(uint8_t(dust_control::wire::Kind::UartTransmitRequest) == 5);
+static_assert(uint8_t(dust_control::wire::Kind::UartReceiveReport) == 6);
+static_assert(uint8_t(dust_control::wire::Kind::ImuSampleReport) == 7);
+static_assert(uint8_t(dust_control::wire::Kind::Stop) == 10);
+static_assert(uint8_t(dust_control::wire::Kind::Heartbeat) == 11);
+static_assert(uint8_t(dust_control::wire::Kind::Result) == 12);
+static_assert(uint8_t(dust_control::wire::Kind::Status) == 13);

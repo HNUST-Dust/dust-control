@@ -9,7 +9,7 @@
 
 #include "concurrency/thread.hpp"
 
-namespace wbr::realtime {
+namespace dust_control::realtime {
 
 std::uint64_t MonotonicTimeNs() {
     timespec now{};
@@ -19,7 +19,8 @@ std::uint64_t MonotonicTimeNs() {
 }
 
 bool ConfigureCurrentThread(int cpu, int priority, std::string& error) {
-    return dust::concurrency::ConfigureThread({true, cpu, priority}, error);
+    return dust_control::concurrency::ConfigureThread({true, cpu, priority},
+                                                      error);
 }
 
 bool SleepUntilNs(std::uint64_t absolute_time_ns, std::string& error) {
@@ -65,4 +66,4 @@ SampleSummary Summarize(std::vector<std::int64_t> samples) {
     return result;
 }
 
-}  // namespace wbr::realtime
+}  // namespace dust_control::realtime

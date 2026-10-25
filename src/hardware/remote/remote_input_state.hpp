@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace msg {
+namespace dust_control::input {
 
 enum RemoteInputSource : uint8_t {
     kRemoteInputUnknown = 0,
@@ -35,4 +35,4 @@ struct RemoteInputState {
     uint32_t sequence;
 };
 
-}  // namespace msg
+}  // namespace dust_control::input

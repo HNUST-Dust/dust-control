@@ -17,7 +17,7 @@
 #include "chassis_config.h"
 #include "leg_kinematics.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 /** @brief 凳式姿态控制器的状态与目标输入。 */
 struct StoolControllerInput {
@@ -106,4 +106,4 @@ class StoolController {
     std::array<JointPidState, 4> joint_pid_{};
 };
 
-}  // namespace modules
+}  // namespace dust_control::modules

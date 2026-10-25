@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace wbr::control {
+namespace dust_control::control {
 
 class LegMpc {
    public:
@@ -121,4 +121,4 @@ class LegMpc {
     Decision warm_start_ = Decision::Zero();
 };
 
-}  // namespace wbr::control
+}  // namespace dust_control::control

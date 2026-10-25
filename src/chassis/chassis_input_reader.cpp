@@ -7,7 +7,7 @@
 #include "chassis_config.h"
 #include "leg_kinematics.h"
 
-namespace modules {
+namespace dust_control::modules {
 using namespace chassis_config;
 
 void ChassisInputReader::Read(const ControllerInputs &sources,
@@ -18,7 +18,7 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     // 内部反馈槽位固定为：左轮、右轮、左 B/D、右 B/D，与 YAML 排列无关。
     // CAN 总线及 ID 由设备层按 YAML 路由，控制层只读取物理反馈。
     const auto &motors = sources.motors;
-    const SidePair<JointPair<dust::devices::MotorFeedback>> joints = {
+    const SidePair<JointPair<dust_control::devices::MotorFeedback>> joints = {
         {motors[2], motors[3]}, {motors[4], motors[5]}};
 
     // sequence 用于区分新样本和通道中残留的旧值。
@@ -39,7 +39,7 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
         now_us - last_remote_update_us_ <= deadlines_.remote_us;
     input.requested_enable = input.remote_fresh && input.remote.robot_enable;
 
-    dust::devices::ImuSample new_imu = {};
+    dust_control::devices::ImuSample new_imu = {};
     new_imu = sources.imu;
     if (new_imu.sequence != 0U) {
         input.imu = new_imu;
@@ -57,14 +57,16 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     input.imu_fresh = input.imu.valid && last_imu_sequence_ != 0U &&
                       input.imu_age_us <= deadlines_.hi91_us;
 
-    const auto frame_age_us = [feedback_now_us](
-                                  const dust::devices::MotorFeedback &frame) {
-        if (!frame.valid || frame.precise_timestamp_us > feedback_now_us) {
-            return UINT32_MAX;
-        }
-        const uint64_t age_us = feedback_now_us - frame.precise_timestamp_us;
-        return age_us > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(age_us);
-    };
+    const auto frame_age_us =
+        [feedback_now_us](const dust_control::devices::MotorFeedback &frame) {
+            if (!frame.valid || frame.precise_timestamp_us > feedback_now_us) {
+                return UINT32_MAX;
+            }
+            const uint64_t age_us =
+                feedback_now_us - frame.precise_timestamp_us;
+            return age_us > UINT32_MAX ? UINT32_MAX
+                                       : static_cast<uint32_t>(age_us);
+        };
     for (unsigned i = 0; i < motors.size(); ++i) {
         input.motor_feedback_age_us[i] = frame_age_us(motors[i]);
     }
@@ -155,4 +157,4 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     }
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

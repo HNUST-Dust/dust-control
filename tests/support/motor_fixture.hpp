@@ -2,7 +2,7 @@
 #pragma once
 #include "hardware/motors/motor_config.hpp"
 
-namespace dust::test {
+namespace dust_control::test {
 inline constexpr std::array<devices::MotorAddress, 6> kMotorAddresses{{
     {3, 0x200, 0x201, 0},
     {2, 0x200, 0x201, 0},
@@ -19,4 +19,4 @@ inline devices::MotorConfig MotorFixture() {
     config.addresses = kMotorAddresses;
     return config;
 }
-}  // namespace dust::test
+}  // namespace dust_control::test

@@ -5,7 +5,7 @@
 #include "chassis_config.h"
 #include "chassis_types.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 enum class FlightPhase : uint8_t { kInit = 0U, kAir, kReturn, kFailed };
 
@@ -46,4 +46,4 @@ class FlightController {
     SidePair<bool> touched_down_;
 };
 
-}  // namespace modules
+}  // namespace dust_control::modules

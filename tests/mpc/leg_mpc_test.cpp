@@ -6,20 +6,20 @@
 #include <iostream>
 
 int main() {
-    wbr::control::LegMpc controller;
+    dust_control::control::LegMpc controller;
     const auto& p = controller.parameters();
     const double hover = p.mass_kg * p.gravity_m_per_s2 / 2.0;
-    wbr::control::LegMpc::State state;
+    dust_control::control::LegMpc::State state;
     state << 0.10, 0.0, 0.08, 0.0;
-    wbr::control::LegMpc::Reference reference;
+    dust_control::control::LegMpc::Reference reference;
     reference.height_m = 0.10;
-    wbr::control::LegMpc::Input previous =
-        wbr::control::LegMpc::Input::Constant(hover);
+    dust_control::control::LegMpc::Input previous =
+        dust_control::control::LegMpc::Input::Constant(hover);
 
     // 沿用 MCU 横滚约定：正横滚误差应通过减小左支撑力、增大右支撑力修正。
     {
-        wbr::control::LegMpc direction_controller;
-        wbr::control::LegMpc::State direction_state;
+        dust_control::control::LegMpc direction_controller;
+        dust_control::control::LegMpc::State direction_state;
         direction_state << 0.10, 0.0, p.nominal_height_m, 0.0;
         const auto direction_result =
             direction_controller.Solve(direction_state, reference, previous);
@@ -40,7 +40,7 @@ int main() {
         assert(std::abs(result.right_force_n - previous(1)) <=
                p.maximum_force_step_n + 1e-9);
         previous << result.left_force_n, result.right_force_n;
-        wbr::control::LegMpc::State deviation = state;
+        dust_control::control::LegMpc::State deviation = state;
         deviation(2) -= p.nominal_height_m;
         deviation =
             controller.discrete_a() * deviation +

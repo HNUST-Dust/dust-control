@@ -11,7 +11,7 @@
 #include "hardware/can_frame.hpp"
 #include "motor_config.hpp"
 
-namespace dust::devices {
+namespace dust_control::devices {
 enum class ActuatorId : uint8_t {
     kLeftWheel,
     kRightWheel,
@@ -67,6 +67,12 @@ class MotorFeedbackDecoder {
     concurrency::PublishedSnapshot<std::array<MotorFeedback, 6>> published_;
 };
 
+// 单块 Adapter 的电机编码结果；批次容量属于电机编码接口，不限制通用 CAN 帧。
+struct CanTransmitBatch {
+    std::array<CanFrame, 6> frames{};
+    size_t count = 0;
+};
+
 // 无状态编码；不持有 USB、回调或底盘控制器，不执行使能许可判断。
 // 成功返回本周期 CAN 帧；无效目标返回 nullopt，不输出部分批次。
 class MotorEncoder {
@@ -80,4 +86,4 @@ class MotorEncoder {
     const MotorConfig config_;
 };
 
-}  // namespace dust::devices
+}  // namespace dust_control::devices

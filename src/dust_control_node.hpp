@@ -11,7 +11,7 @@
 
 #include "robot.hpp"
 
-namespace dust::ros {
+namespace dust_control::ros {
 class DustControlNode : public rclcpp::Node {
    public:
     explicit DustControlNode(
@@ -29,10 +29,11 @@ class DustControlNode : public rclcpp::Node {
     void PublishAuxiliaryObservations();
     void PublishStatusReport(const chassis::ChassisObservation& sample,
                              const rclcpp::Time& stamp);
-    void PublishImuSample(const modules::ChassisCycleInput& input,
+    void PublishImuSample(const dust_control::modules::ChassisCycleInput& input,
                           const rclcpp::Time& stamp);
-    void PublishJointStates(const modules::ChassisCycleInput& input,
-                            const rclcpp::Time& stamp);
+    void PublishJointStates(
+        const dust_control::modules::ChassisCycleInput& input,
+        const rclcpp::Time& stamp);
 
     // 发布回调独占缓存；源停更后继续发布失效状态。
     chassis::ChassisObservation latest_observation_{};
@@ -52,4 +53,4 @@ class DustControlNode : public rclcpp::Node {
     // 默认互斥回调组独占发布和以下统计，不由控制线程修改。
     uint32_t last_imu_sequence_ = 0;
 };
-}  // namespace dust::ros
+}  // namespace dust_control::ros

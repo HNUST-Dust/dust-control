@@ -10,12 +10,10 @@
  * 接口直接处理线协议字节序列。调用方负责提供声明长度的有效缓冲区；解码失败时输出对象内容不应作为有效数据使用。
  */
 
-#ifndef WBR_CONTROL_PROTOCOLS_MOTORS_CUBEMARS_MOTOR_PROTOCOL_H_
-#define WBR_CONTROL_PROTOCOLS_MOTORS_CUBEMARS_MOTOR_PROTOCOL_H_
-
+#pragma once
 #include <stdint.h>
 
-namespace protocols {
+namespace dust_control::protocols {
 
 /** @brief CubeMars 电机反馈数据。 */
 struct CubemarsFeedback {
@@ -85,6 +83,4 @@ int GetCubemarsSaveZeroFrame(uint8_t out[8]);
 int PackCubemarsMitCommand(const CubemarsMitCommand *cmd,
                            const CubemarsMitRange *range, uint8_t out[8]);
 
-}  // namespace protocols
-
-#endif /* WBR_CONTROL_PROTOCOLS_MOTORS_CUBEMARS_MOTOR_PROTOCOL_H_ */
+}  // namespace dust_control::protocols

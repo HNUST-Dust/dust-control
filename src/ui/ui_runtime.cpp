@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 
-namespace dust::ui {
+namespace dust_control::ui {
 UiRuntime::UiRuntime(UiDevices devices, concurrency::ThreadOptions thread)
     : devices_(devices), thread_(thread) {
     concurrency::ValidateThreadOptions(thread_);
@@ -49,4 +49,4 @@ void UiRuntime::Run() {
     }
     finished_ = true;
 }
-}  // namespace dust::ui
+}  // namespace dust_control::ui

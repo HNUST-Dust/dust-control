@@ -3,16 +3,16 @@
 #include "usb_link.hpp"
 #include "usb_transmitter.hpp"
 
-namespace wbr::host {
+namespace dust_control::host {
 // 拥有单个 USB 会话的收发资源；业务线程先注册命令组，退出后再停止会话。
 class UsbSession {
    public:
     UsbSession(const UsbOptions& options,
-               const dust::devices::MotorConfig& motors,
-               const dust::devices::ImuConfig& imu);
+               const dust_control::devices::MotorConfig& motors,
+               const dust_control::devices::ImuConfig& imu);
     UsbSession(const UsbOptions& options,
-               const dust::devices::MotorConfig& motors,
-               const dust::devices::ImuConfig& imu,
+               const dust_control::devices::MotorConfig& motors,
+               const dust_control::devices::ImuConfig& imu,
                UsbTransmitOptions transmit);
     ~UsbSession();
     bool Start();
@@ -38,4 +38,4 @@ class UsbSession {
     bool started_ = false;
     bool stopped_ = false;
 };
-}  // namespace wbr::host
+}  // namespace dust_control::host

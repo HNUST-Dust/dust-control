@@ -52,8 +52,8 @@ void RejectRestart(Worker& worker) {
 int main(int argc, char** argv) {
     assert(argc == 2);
     {
-        dust::gimbal::GimbalRuntime gimbal;
-        dust::ui::UiRuntime ui;
+        dust_control::gimbal::GimbalRuntime gimbal;
+        dust_control::ui::UiRuntime ui;
         gimbal.Start();
         ui.Start();
         WaitForWorkers();
@@ -70,23 +70,25 @@ int main(int argc, char** argv) {
         WaitForWorkers(false);
     }
     {
-        dust::gimbal::GimbalRuntime stopped;
+        dust_control::gimbal::GimbalRuntime stopped;
         stopped.Stop();
         RejectRestart(stopped);
         // 析构必须唤醒等待中的线程，无需调用者预先 Stop。
-        dust::ui::UiRuntime scope;
+        dust_control::ui::UiRuntime scope;
         scope.Start();
     }
-    wbr::host::UsbOptions usb_options;
+    dust_control::host::UsbOptions usb_options;
     usb_options.realtime = false;
-    wbr::host::UsbSession board(usb_options, {}, {});
+    dust_control::host::UsbSession board(usb_options, {}, {});
     {
-        dust::ui::UiRuntime ui({&board.link().referee_decoder(),
-                                wbr::host::UartFramePort(board.transmitter())});
-        dust::gimbal::GimbalRuntime gimbal(
+        dust_control::ui::UiRuntime ui(
+            {&board.link().referee_decoder(),
+             dust_control::host::UartFramePort(board.transmitter())});
+        dust_control::gimbal::GimbalRuntime gimbal(
             {&board.link().motor_decoder(), nullptr,
-             wbr::host::CanCommandPort(board.transmitter(),
-                                       wbr::host::CanProducer::kGimbal)});
+             dust_control::host::CanCommandPort(
+                 board.transmitter(),
+                 dust_control::host::CanProducer::kGimbal)});
         ui.Start();
         gimbal.Start();
         WaitForWorkers();
@@ -97,31 +99,32 @@ int main(int argc, char** argv) {
     assert(board.healthy());
     board.Stop();
     {
-        wbr::host::UsbSession pending(usb_options, {}, {});
-        const wbr::host::CanCommandPort can(pending.transmitter(),
-                                            wbr::host::CanProducer::kGimbal);
+        dust_control::host::UsbSession pending(usb_options, {}, {});
+        const dust_control::host::CanCommandPort can(
+            pending.transmitter(), dust_control::host::CanProducer::kGimbal);
         {
-            dust::gimbal::GimbalRuntime gimbal(
+            dust_control::gimbal::GimbalRuntime gimbal(
                 {&pending.link().motor_decoder(), nullptr, can});
             gimbal.Start();
         }
         // 空云台没有提前注册来源；真实算法就绪后仍可注册自己的命令组。
-        const std::array groups{wbr::host::CanCommandGroup{2, 0x200}};
+        const std::array groups{dust_control::host::CanCommandGroup{2, 0x200}};
         assert(can.Configure(groups, 20000000));
         bool rejected = false;
         try {
-            dust::ui::UiRuntime invalid(
-                {nullptr, wbr::host::UartFramePort(pending.transmitter())});
+            dust_control::ui::UiRuntime invalid(
+                {nullptr,
+                 dust_control::host::UartFramePort(pending.transmitter())});
         } catch (const std::invalid_argument&) {
             rejected = true;
         }
         assert(rejected);
     }
     {
-        dust::app::RobotConfig config;
+        dust_control::app::RobotConfig config;
         config.execution.simulate = true;
         config.execution.realtime = false;
-        dust::app::Robot robot(config, argv[1]);
+        dust_control::app::Robot robot(config, argv[1]);
         robot.Start();
         WaitForWorkers();
         assert(!robot.gimbal().attached() && !robot.ui().attached());
@@ -131,9 +134,9 @@ int main(int argc, char** argv) {
         assert(robot.error().empty());
     }
     {
-        dust::app::RobotConfig config;
+        dust_control::app::RobotConfig config;
         config.execution.realtime = false;
-        dust::app::Robot robot(config, argv[1]);
+        dust_control::app::Robot robot(config, argv[1]);
         robot.Start();
         WaitForWorkers();
         assert(robot.ui().attached() && !robot.gimbal().attached());

@@ -10,14 +10,14 @@
 #include "concurrency/thread.hpp"
 #include "hardware/usb/usb_transmitter.hpp"
 
-namespace dust::devices {
+namespace dust_control::devices {
 class RefereeDecoder;
 }
-namespace dust::ui {
+namespace dust_control::ui {
 // 接口全部借用，必须长于本模块线程寿命；为空时离线运行。
 struct UiDevices {
     const devices::RefereeDecoder* referee = nullptr;
-    std::optional<wbr::host::UartFramePort> uart;
+    std::optional<dust_control::host::UartFramePort> uart;
 };
 // 当前仅建立独立线程与生命周期；等待停止，不生成命令或维持虚假心跳。
 class UiRuntime {
@@ -50,4 +50,4 @@ class UiRuntime {
     std::string error_;
     std::thread worker_;
 };
-}  // namespace dust::ui
+}  // namespace dust_control::ui

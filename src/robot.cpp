@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace dust::app {
+namespace dust_control::app {
 Robot::Robot(const std::string& config_directory)
     : Robot(LoadRobotConfig(
                 (std::filesystem::path(config_directory) / "robot.yaml")
@@ -18,7 +18,7 @@ Robot::Robot(RobotConfig config, const std::string& config_directory)
     const std::filesystem::path directory(config_directory);
     if (!directory.empty()) {
         if (config_.chassis.enabled) {
-            chassis_config_ = modules::LoadChassisConfig(
+            chassis_config_ = dust_control::modules::LoadChassisConfig(
                 (directory / "chassis_params.yaml").string());
             remote_ = devices::LoadRemoteConfig(
                 (directory / "sensors_params.yaml").string());
@@ -105,7 +105,7 @@ void Robot::CreateAdapters() {
             usb.realtime = transmit.realtime = config_.execution.realtime;
             const auto motors = motor_configs_.find(name);
             usb.decode_motors = motors != motor_configs_.end();
-            auto session = std::make_unique<wbr::host::UsbSession>(
+            auto session = std::make_unique<dust_control::host::UsbSession>(
                 usb,
                 usb.decode_motors ? motors->second : devices::MotorConfig{},
                 imu_, transmit);
@@ -124,7 +124,7 @@ void Robot::CreateChassis() {
         control.startup_ready = &startup_ready_;
         chassis::ChassisDevices devices;
         if (auto* usb = SessionFor(config_.chassis.adapter)) {
-            devices.remote = &usb->link().sbus_decoder();
+            devices.remote = &usb->link().wfly_sbus_decoder();
             devices.imu = &usb->link().hi91_decoder();
         }
         for (const auto& [name, config] : motor_configs_) {
@@ -140,8 +140,8 @@ void Robot::CreateChassis() {
         }
         chassis_ = std::make_unique<chassis::ChassisRuntime>(
             control, motors,
-            modules::InputDeadlines{motors.freshness_us, imu_.freshness_us,
-                                    remote_.freshness_us},
+            dust_control::modules::InputDeadlines{
+                motors.freshness_us, imu_.freshness_us, remote_.freshness_us},
             devices, chassis_config_);
     }
 }
@@ -155,7 +155,7 @@ void Robot::CreateGimbal() {
             }
             devices.imu = &usb->link().hi91_decoder();
             devices.can.emplace(usb->transmitter(),
-                                wbr::host::CanProducer::kGimbal);
+                                dust_control::host::CanProducer::kGimbal);
         }
         auto thread = config_.gimbal.thread;
         thread.realtime = config_.execution.realtime;
@@ -210,7 +210,7 @@ void Robot::StartModulesFor(const std::string& adapter) {
     }
 }
 
-wbr::host::UsbSession* Robot::SessionFor(const std::string& name) {
+dust_control::host::UsbSession* Robot::SessionFor(const std::string& name) {
     const auto found = adapters_.find(name);
     return found == adapters_.end() ? nullptr : found->second.session.get();
 }
@@ -283,7 +283,8 @@ ui::UiRuntime& Robot::ui() {
     }
     return *ui_;
 }
-const wbr::host::UsbSession& Robot::adapter(const std::string& name) const {
+const dust_control::host::UsbSession& Robot::adapter(
+    const std::string& name) const {
     return *adapters_.at(name).session;
 }
-}  // namespace dust::app
+}  // namespace dust_control::app

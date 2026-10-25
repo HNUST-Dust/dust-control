@@ -8,7 +8,7 @@
 #include "chassis_config.h"
 #include "leg_kinematics.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 enum class RecoveryPhase : uint8_t {
     kInit = 0U,
@@ -94,4 +94,4 @@ class RecoveryController {
     std::array<JointPidState, 4> joint_pid_{};
 };
 
-}  // namespace modules
+}  // namespace dust_control::modules

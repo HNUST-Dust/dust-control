@@ -12,20 +12,21 @@
 #include <string>
 #include <thread>
 
-#include "bridge_protocol.hpp"
 #include "hardware/can_frame.hpp"
-#include "hardware/imu/hi91_decoder.hpp"
+#include "hardware/imu/hi91_protocol.h"
 #include "hardware/imu/onboard_imu.hpp"
 #include "hardware/motors/motor_protocol.hpp"
-#include "hardware/referee/referee_decoder.hpp"
-#include "hardware/remote/sbus_decoder.hpp"
+#include "hardware/referee/referee_protocol.h"
+#include "hardware/remote/wfly_sbus_protocol.h"
+#include "hardware/usb/protocol/usb_protocol.hpp"
 #include "uart_receive_queue.hpp"
 
-namespace dust::test {
+namespace dust_control::test {
 class UsbReportFixture;
 }
 
-namespace wbr::host {
+namespace dust_control::host {
+
 // 每块 Adapter 独立绑定；0 表示不绑定，1..6 对应物理 UART。
 struct UartSensorBindings {
     uint8_t remote = 1;
@@ -62,8 +63,8 @@ struct UsbOptions {
 class UsbLink {
    public:
     UsbLink(UartReceiveQueue& uart_queue, const UsbOptions& options,
-            const dust::devices::MotorConfig& motors = {},
-            const dust::devices::ImuConfig& imu = {});
+            const dust_control::devices::MotorConfig& motors = {},
+            const dust_control::devices::ImuConfig& imu = {});
     ~UsbLink();
     // 阻塞等待设备发现、v4 握手、安全配置和 Arm 确认；失败后由 Close 清理。
     bool Open();
@@ -80,27 +81,27 @@ class UsbLink {
     }
 
     // 引用寿命不超过 UsbLink；控制线程只调用各设备的 Read() 获取副本。
-    const dust::devices::MotorFeedbackDecoder& motor_decoder() const {
+    const dust_control::devices::MotorFeedbackDecoder& motor_decoder() const {
         return motor_decoder_;
     }
-    const dust::devices::SbusDecoder& sbus_decoder() const {
-        return sbus_decoder_;
+    const dust_control::devices::WflySbusDecoder& wfly_sbus_decoder() const {
+        return wfly_sbus_decoder_;
     }
-    const dust::devices::Hi91Decoder& hi91_decoder() const {
+    const dust_control::devices::Hi91Decoder& hi91_decoder() const {
         return hi91_decoder_;
     }
-    const dust::devices::RefereeDecoder& referee_decoder() const {
+    const dust_control::devices::RefereeDecoder& referee_decoder() const {
         return referee_decoder_;
     }
-    const dust::devices::OnboardImu& onboard_imu() const {
+    const dust_control::devices::OnboardImu& onboard_imu() const {
         return onboard_imu_;
     }
 
    private:
-    friend class dust::test::UsbReportFixture;
+    friend class dust_control::test::UsbReportFixture;
     friend class UsbTransmitter;
     // 握手完成后，仅发送线程推进命令序号和提交业务传输。
-    bool Send(std::span<const dust::devices::CanFrame> frames);
+    bool Send(std::span<const dust_control::devices::CanFrame> frames);
     bool SendUart(uint8_t channel, const uint8_t* bytes, size_t size);
     void Stop();
     unsigned FreeTransmitSlots() const;
@@ -113,14 +114,14 @@ class UsbLink {
     struct ReceiveTransfer {
         UsbLink* owner = nullptr;
         libusb_transfer* transfer = nullptr;
-        bridge::UsbInPacket data{};
+        dust_control::wire::UsbInPacket data{};
         bool pending = false;
     };
 
     struct TransmitTransfer {
         UsbLink* owner = nullptr;
         libusb_transfer* transfer = nullptr;
-        bridge::UsbOutRequest data{};
+        dust_control::wire::UsbOutRequest data{};
         std::atomic<bool> free{true};
     };
 
@@ -128,7 +129,7 @@ class UsbLink {
     bool OpenDevice();
     bool StartSession();
     bool ConfigureSafetyAndArm();
-    bool ExchangeControlRequest(bridge::UsbOutRequest request);
+    bool ExchangeControlRequest(dust_control::wire::UsbOutRequest request);
     bool FailSession(const std::string& reason);
 
     // 接收提交与回调成对排列；发送入队与回调同理。
@@ -139,25 +140,29 @@ class UsbLink {
     void RunEventLoop();
 
     // 以下操作由接收线程独占，各 Decoder 自行发布线程安全快照。
-    bool ReceiveSensorReport(const bridge::UsbInPacket& report,
+    void HandleReport(const dust_control::wire::UsbInPacket& report);
+    void HandleReady(const dust_control::wire::UsbInPacket& report);
+    void HandleResult(const dust_control::wire::UsbInPacket& report);
+    bool ReceiveSensorReport(const dust_control::wire::UsbInPacket& report,
                              uint64_t arrival_us);
-    void ReceiveCanReport(const bridge::CanReceiveReport& report,
+    void ReceiveCanReport(const dust_control::wire::CanReceiveReport& report,
                           uint64_t arrival_us);
-    bool ReceiveUartReport(const bridge::UartReceiveReport& report,
+    bool ReceiveUartReport(const dust_control::wire::UartReceiveReport& report,
                            uint64_t arrival_us);
-    bool ReceiveOnboardImuReport(const bridge::ImuSampleReport& report,
-                                 uint64_t arrival_us);
+    bool ReceiveOnboardImuReport(
+        const dust_control::wire::ImuSampleReport& report, uint64_t arrival_us);
     void ResetSensors();
 
     UsbOptions options_;
-    const dust::devices::MotorConfig motor_config_;
+    const dust_control::devices::MotorConfig motor_config_;
     UartReceiveQueue& uart_queue_;
-    dust::devices::MotorFeedbackDecoder motor_decoder_;
-    dust::devices::SbusDecoder sbus_decoder_;
-    dust::devices::Hi91Decoder hi91_decoder_;
-    dust::devices::RefereeDecoder referee_decoder_;
-    dust::devices::OnboardImu onboard_imu_;
-    std::array<UartSequence, bridge::kUartPortCount> uart_sequences_{};
+    dust_control::devices::MotorFeedbackDecoder motor_decoder_;
+    dust_control::devices::WflySbusDecoder wfly_sbus_decoder_;
+    dust_control::devices::Hi91Decoder hi91_decoder_;
+    dust_control::devices::RefereeDecoder referee_decoder_;
+    dust_control::devices::OnboardImu onboard_imu_;
+    std::array<UartSequence, dust_control::wire::kUartPortCount>
+        uart_sequences_{};
     libusb_context* context_ = nullptr;
     libusb_device_handle* device_ = nullptr;
     bool claimed_ = false;
@@ -184,4 +189,4 @@ class UsbLink {
     std::condition_variable ready_cv_;
     std::string error_;
 };
-}  // namespace wbr::host
+}  // namespace dust_control::host

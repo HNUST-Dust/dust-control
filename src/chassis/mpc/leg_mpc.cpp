@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace wbr::control {
+namespace dust_control::control {
 struct LegMpc::QpWorkspace {
     static constexpr int kConstraints = 2 * kDecisionDimension;
     Eigen::Matrix<double, kConstraints, kDecisionDimension> a =
@@ -333,4 +333,4 @@ void LegMpc::Reset() {
     osqp_cold_start(qp_->solver);
 }
 
-}  // namespace wbr::control
+}  // namespace dust_control::control

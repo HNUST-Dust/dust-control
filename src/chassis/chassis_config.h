@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string>
 
-namespace modules::chassis_config {
+namespace dust_control::modules::chassis_config {
 // 多个底盘模块共用的物理量、坐标约定及关节控制限值。
 inline constexpr double kGravity = 9.80665;
 inline constexpr double kLegLengthCommandRate = 0.24;
@@ -47,9 +47,9 @@ inline constexpr double kYawTrackingErrorLimit =
 // 离线控制器的默认轮力矩预算；正式运行由设备层注入实际协议限值。
 inline constexpr double kWheelTorqueLimit = 4.748985507246377;
 
-}  // namespace modules::chassis_config
+}  // namespace dust_control::modules::chassis_config
 
-namespace modules {
+namespace dust_control::modules {
 // 启动时加载后按值复制给使用者，控制周期不读 YAML、不访问全局可变配置。
 struct ChassisConfig {
     double joint_b_zero_offset = 0.0;
@@ -120,4 +120,4 @@ struct ChassisConfig {
 };
 void ValidateChassisConfig(const ChassisConfig& config);
 ChassisConfig LoadChassisConfig(const std::string& file);
-}  // namespace modules
+}  // namespace dust_control::modules

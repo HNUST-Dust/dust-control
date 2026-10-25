@@ -26,11 +26,11 @@ constexpr double kVelocityFeedforwardDeadband = 0.005;
 
 namespace {
 
-using namespace modules::chassis_config;
+using namespace dust_control::modules::chassis_config;
 
 }  // namespace
 
-namespace modules {
+namespace dust_control::modules {
 
 double UpdateLegLengthIntegral(double integral_force, double length_error,
                                double dt, const ChassisConfig& config) {
@@ -76,4 +76,4 @@ LegVmcOutput ComputeLegVmc(const LegKinematics& leg, double target_leg_length,
     return output;
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

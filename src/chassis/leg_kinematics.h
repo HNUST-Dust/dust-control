@@ -5,12 +5,10 @@
  * @details 由控制线程同步调用，不创建线程或执行设备 I/O。
  */
 
-#ifndef WBR_CONTROL_CORE_LEG_KINEMATICS_H_
-#define WBR_CONTROL_CORE_LEG_KINEMATICS_H_
-
+#pragma once
 #include "chassis_config.h"
 
-namespace modules {
+namespace dust_control::modules {
 
 /** @brief 五连杆腿部末端位姿、速度和雅可比矩阵。 */
 struct LegKinematics {
@@ -76,6 +74,4 @@ bool NumericalJacobian(double phi1, double phi2, int branch,
 bool ComputeLegKinematics(double phi1, double phi2, double dphi1, double dphi2,
                           int branch, LegKinematics &leg,
                           const ChassisConfig &config = {});
-}  // namespace modules
-
-#endif  // WBR_CONTROL_CORE_LEG_KINEMATICS_H_
+}  // namespace dust_control::modules

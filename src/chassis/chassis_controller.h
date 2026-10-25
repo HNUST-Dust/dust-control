@@ -11,7 +11,7 @@
 #include "recovery_controller.h"
 #include "support_force_estimator.h"
 
-namespace modules {
+namespace dust_control::modules {
 // 控制周期的同步执行入口，不依赖线程、USB、RTOS、全局通道或遥测。
 class ChassisController {
    public:
@@ -59,4 +59,4 @@ class ChassisController {
     ChassisStateMachine state_machine_;
     ChassisOutputPolicy output_policy_;
 };
-}  // namespace modules
+}  // namespace dust_control::modules

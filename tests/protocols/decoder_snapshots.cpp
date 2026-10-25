@@ -10,7 +10,7 @@
 #include "concurrency/published_snapshot.hpp"
 #include "hardware/imu/onboard_imu.hpp"
 #include "hardware/motors/motor_protocol.hpp"
-#include "hardware/remote/sbus_decoder.hpp"
+#include "hardware/remote/wfly_sbus_protocol.h"
 
 namespace {
 struct Sample {
@@ -21,7 +21,7 @@ struct Sample {
 
 int main() {
     // 多读取者必须得到完整版本；大样本用于暴露逐字段复制的撕裂。
-    dust::concurrency::PublishedSnapshot<Sample> published;
+    dust_control::concurrency::PublishedSnapshot<Sample> published;
     std::atomic<bool> start{false};
     std::atomic<bool> done{false};
     std::atomic<unsigned> reads{0};
@@ -54,10 +54,11 @@ int main() {
     assert(reads > 0 && published.Read().sequence == 30000);
 
     // 真正的设备解析线程与控制读取线程并发，Read 不能暴露解析状态。
-    dust::devices::MotorFeedbackDecoder motor(dust::test::MotorFixture());
-    dust::devices::OnboardImu onboard;
-    dust::devices::SbusDecoder remote;
-    const auto& address = dust::test::kMotorAddresses[0];
+    dust_control::devices::MotorFeedbackDecoder motor(
+        dust_control::test::MotorFixture());
+    dust_control::devices::OnboardImu onboard;
+    dust_control::devices::WflySbusDecoder remote;
+    const auto& address = dust_control::test::kMotorAddresses[0];
     done = false;
     std::thread control([&] {
         do {

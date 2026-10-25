@@ -8,20 +8,21 @@
 #include "usb_link.hpp"
 #include "usb_transmitter.hpp"
 int main() {
-    wbr::host::UartReceiveQueue sensors;
-    wbr::host::UsbOptions options;
+    dust_control::host::UartReceiveQueue sensors;
+    dust_control::host::UsbOptions options;
     options.realtime = false;
     for (unsigned session = 0; session < 5; ++session) {
-        wbr::host::UsbLink link(sensors, options, dust::test::MotorFixture());
+        dust_control::host::UsbLink link(sensors, options,
+                                         dust_control::test::MotorFixture());
         if (!link.Open()) {
             std::cerr << link.error();
             return 1;
         }
-        wbr::host::UsbTransmitOptions tx_options;
+        dust_control::host::UsbTransmitOptions tx_options;
         tx_options.realtime = false;
-        wbr::host::UsbTransmitter transmitter(link, tx_options);
-        const wbr::host::CanCommandGroup group{2, 0x200};
-        if (!transmitter.ConfigureCan(wbr::host::CanProducer::kChassis,
+        dust_control::host::UsbTransmitter transmitter(link, tx_options);
+        const dust_control::host::CanCommandGroup group{2, 0x200};
+        if (!transmitter.ConfigureCan(dust_control::host::CanProducer::kChassis,
                                       {&group, 1}, 20000000) ||
             !transmitter.Start()) {
             return 5;
@@ -32,9 +33,9 @@ int main() {
             return 2;
         }
         for (unsigned tick = 0; tick < 3; ++tick) {
-            if (!transmitter.SubmitCan(wbr::host::CanProducer::kChassis, {},
-                                       tick + 1,
-                                       wbr::realtime::MonotonicTimeNs())) {
+            if (!transmitter.SubmitCan(
+                    dust_control::host::CanProducer::kChassis, {}, tick + 1,
+                    dust_control::realtime::MonotonicTimeNs())) {
                 return 3;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(2));

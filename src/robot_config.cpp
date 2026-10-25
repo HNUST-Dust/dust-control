@@ -8,7 +8,7 @@
 
 #include "yaml_validation.hpp"
 
-namespace dust::app {
+namespace dust_control::app {
 namespace {
 concurrency::ThreadOptions ReadThread(const YAML::Node& node) {
     yaml_validation::ValidateKeys(node, {"cpu", "priority"});
@@ -156,4 +156,4 @@ RobotConfig LoadRobotConfig(const std::string& file) {
     ValidateRobotConfig(config);
     return config;
 }
-}  // namespace dust::app
+}  // namespace dust_control::app

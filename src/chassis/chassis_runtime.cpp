@@ -8,18 +8,17 @@
 #include <stdexcept>
 
 #include "chassis/runtime/realtime_loop.hpp"
-#include "hardware/imu/hi91_decoder.hpp"
+#include "hardware/imu/hi91_protocol.h"
 #include "hardware/motors/motor_protocol.hpp"
-#include "hardware/remote/sbus_decoder.hpp"
-#include "hardware/usb/bridge_protocol.hpp"
+#include "hardware/remote/wfly_sbus_protocol.h"
 #include "hardware/usb/usb_transmitter.hpp"
 
-namespace dust::chassis {
+namespace dust_control::chassis {
 ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
                                const devices::MotorConfig& motors,
-                               modules::InputDeadlines deadlines,
+                               dust_control::modules::InputDeadlines deadlines,
                                ChassisDevices devices,
-                               modules::ChassisConfig config)
+                               dust_control::modules::ChassisConfig config)
     : config_(config),
       options_(options),
       devices_(std::move(devices)),
@@ -40,7 +39,7 @@ ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
                                         adapter.name);
         }
         encoders_.emplace_back(adapter.motors);
-        std::array<wbr::host::CanCommandGroup, 6> groups{};
+        std::array<dust_control::host::CanCommandGroup, 6> groups{};
         size_t count = 0;
         for (size_t i = 0; i < owned.size(); ++i) {
             if (!adapter.motors.present[i]) {
@@ -51,16 +50,17 @@ ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
             }
             owned[i] = true;
             const auto& motor = adapter.motors.addresses[i];
-            const wbr::host::CanCommandGroup group{motor.bus, motor.command_id};
+            const dust_control::host::CanCommandGroup group{motor.bus,
+                                                            motor.command_id};
             if (std::find(groups.begin(), groups.begin() + count, group) ==
                 groups.begin() + count) {
                 groups[count++] = group;
             }
         }
-        if (!count ||
-            !adapter.transmitter->ConfigureCan(
-                wbr::host::CanProducer::kChassis, {groups.data(), count},
-                wbr::bridge::kCommandTimeoutUs * 1000ULL)) {
+        if (!count || !adapter.transmitter->ConfigureCan(
+                          dust_control::host::CanProducer::kChassis,
+                          {groups.data(), count},
+                          dust_control::host::kCommandTimeoutUs * 1000ULL)) {
             throw std::runtime_error("Chassis CAN registration rejected: " +
                                      adapter.name);
         }
@@ -105,7 +105,7 @@ void ChassisRuntime::Run() {
               << ", output="
               << (options_.enable_output ? "remote-gated" : "disabled")
               << std::endl;
-    const uint64_t start = wbr::realtime::MonotonicTimeNs();
+    const uint64_t start = dust_control::realtime::MonotonicTimeNs();
     uint64_t release = start;
     bool disabled_observed = false;
     unsigned late_cycles = 0;
@@ -114,27 +114,30 @@ void ChassisRuntime::Run() {
     uint64_t observation_drops = 0;
     ChassisObservation sample;
     while (!stop_.load()) {
-        release += modules::chassis_config::kControlPeriodNs;
-        if (!wbr::realtime::SleepUntilNs(release, error)) {
+        release += dust_control::modules::chassis_config::kControlPeriodNs;
+        if (!dust_control::realtime::SleepUntilNs(release, error)) {
             if (stop_.load()) {
                 break;
             }
             throw std::runtime_error(error);
         }
-        const uint64_t now = wbr::realtime::MonotonicTimeNs();
+        const uint64_t now = dust_control::realtime::MonotonicTimeNs();
         // 不补发错过的控制周期。停顿达到 20 ms 时已超过 MCU 看门狗期限，
         // 必须建立新会话，不能自动重新 Arm。
-        if (now - release >= wbr::bridge::kCommandTimeoutUs * 1000ULL) {
+        if (now - release >= dust_control::host::kCommandTimeoutUs * 1000ULL) {
             throw std::runtime_error(
                 "Control deadline exceeded bridge watchdog");
         }
-        if (now - release >= modules::chassis_config::kControlPeriodNs) {
+        if (now - release >=
+            dust_control::modules::chassis_config::kControlPeriodNs) {
             const auto missed =
-                (now - release) / modules::chassis_config::kControlPeriodNs;
-            release += missed * modules::chassis_config::kControlPeriodNs;
+                (now - release) /
+                dust_control::modules::chassis_config::kControlPeriodNs;
+            release += missed *
+                       dust_control::modules::chassis_config::kControlPeriodNs;
             late_cycles += missed;
         }
-        modules::ControllerInputs input{};
+        dust_control::modules::ControllerInputs input{};
         for (const auto& adapter : devices_.motor_adapters) {
             if (adapter.started && !adapter.started->load()) {
                 continue;
@@ -157,7 +160,7 @@ void ChassisRuntime::Run() {
             input.imu = devices_.imu->Read();
         }
         disabled_observed |= input.remote_disable_pose;
-        const auto tick_start = wbr::realtime::MonotonicTimeNs();
+        const auto tick_start = dust_control::realtime::MonotonicTimeNs();
         const auto output = controller_.Tick(
             input, tick_start / 1000,
             options_.enable_output && disabled_observed &&
@@ -171,10 +174,13 @@ void ChassisRuntime::Run() {
             const auto& motors = devices_.motor_adapters[i].motors;
             const auto state = controller_.state();
             const bool safe =
-                state == modules::ChassisControlState::kDisabled ||
-                state == modules::ChassisControlState::kSafetyStop ||
-                state == modules::ChassisControlState::kActionFault ||
-                state == modules::ChassisControlState::kTiltFault;
+                state ==
+                    dust_control::modules::ChassisControlState::kDisabled ||
+                state ==
+                    dust_control::modules::ChassisControlState::kSafetyStop ||
+                state ==
+                    dust_control::modules::ChassisControlState::kActionFault ||
+                state == dust_control::modules::ChassisControlState::kTiltFault;
             // 仅关节板也必须在 20 ms 租约内收到真实安全命令。
             // 根据当前安全状态重新生成失能指令，不重放历史目标或发送假心跳。
             if (safe && !motors.present[0] && !motors.present[1] &&
@@ -198,7 +204,7 @@ void ChassisRuntime::Run() {
             }
             const auto& batch = batches[i];
             if (!adapter.transmitter->SubmitCan(
-                    wbr::host::CanProducer::kChassis,
+                    dust_control::host::CanProducer::kChassis,
                     {batch.frames.data(), batch.count}, command_sequence,
                     tick_start)) {
                 throw std::runtime_error("Adapter " + adapter.name +
@@ -208,7 +214,7 @@ void ChassisRuntime::Run() {
         }
         sample.monotonic_ns = tick_start;
         sample.control_duration_ns =
-            wbr::realtime::MonotonicTimeNs() - tick_start;
+            dust_control::realtime::MonotonicTimeNs() - tick_start;
         sample.sequence = ++observation_sequence;
         sample.missed_releases = late_cycles;
         sample.queue_drops = observation_drops;
@@ -221,4 +227,4 @@ void ChassisRuntime::Run() {
     std::cout << "Stopped; missed control releases=" << late_cycles
               << std::endl;
 }
-}  // namespace dust::chassis
+}  // namespace dust_control::chassis

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace dust::devices {
+namespace dust_control::devices {
 // 解析器独占的有界拼帧缓冲；不维护通道或设备状态。
 template <size_t Capacity>
 struct ByteStream {
@@ -27,4 +27,4 @@ struct ByteStream {
         bytes[size++] = byte;
     }
 };
-}  // namespace dust::devices
+}  // namespace dust_control::devices

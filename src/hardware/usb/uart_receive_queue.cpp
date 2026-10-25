@@ -3,10 +3,10 @@
 
 #include <mutex>
 
-namespace wbr::host {
+namespace dust_control::host {
 void UartReceiveQueue::PublishUartChunk(uint8_t channel,
                                         UartReceiveChunk chunk) {
-    if (channel < 1 || channel > dust::wire::kUartPortCount) {
+    if (channel < 1 || channel > dust_control::wire::kUartPortCount) {
         return;
     }
     const std::lock_guard lock(mutex_);
@@ -22,7 +22,7 @@ void UartReceiveQueue::PublishUartChunk(uint8_t channel,
 }
 
 bool UartReceiveQueue::TakeUartChunk(uint8_t channel, UartReceiveChunk& chunk) {
-    if (channel < 1 || channel > dust::wire::kUartPortCount) {
+    if (channel < 1 || channel > dust_control::wire::kUartPortCount) {
         return false;
     }
     const std::lock_guard lock(mutex_);
@@ -37,7 +37,7 @@ bool UartReceiveQueue::TakeUartChunk(uint8_t channel, UartReceiveChunk& chunk) {
 }
 
 uint64_t UartReceiveQueue::UartDroppedChunks(uint8_t channel) {
-    if (channel < 1 || channel > dust::wire::kUartPortCount) {
+    if (channel < 1 || channel > dust_control::wire::kUartPortCount) {
         return 0;
     }
     const std::lock_guard lock(mutex_);
@@ -49,4 +49,4 @@ void UartReceiveQueue::ResetUartChunks() {
     const std::lock_guard lock(mutex_);
     uart_queues_ = {};
 }
-}  // namespace wbr::host
+}  // namespace dust_control::host

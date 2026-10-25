@@ -11,7 +11,7 @@
 #include <hardware/remote/vt03_protocol.h>
 #include <string.h>
 
-namespace protocols {
+namespace dust_control::protocols {
 
 namespace {
 
@@ -101,4 +101,4 @@ bool DecodeVt03CustomFrame(const uint8_t *data, size_t len,
     return true;
 }
 
-}  // namespace protocols
+}  // namespace dust_control::protocols

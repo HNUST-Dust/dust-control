@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace wbr::realtime {
+namespace dust_control::realtime {
 
 std::uint64_t MonotonicTimeNs();
 bool ConfigureCurrentThread(int cpu, int priority, std::string& error);
@@ -23,4 +23,4 @@ struct SampleSummary {
 
 SampleSummary Summarize(std::vector<std::int64_t> samples);
 
-}  // namespace wbr::realtime
+}  // namespace dust_control::realtime

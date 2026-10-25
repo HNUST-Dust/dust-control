@@ -21,7 +21,7 @@ constexpr double kRollReferenceRateDegPerSec = 30.0;
 constexpr double kRollCompensationSign = 1;
 }  // namespace
 
-namespace modules {
+namespace dust_control::modules {
 namespace {
 using namespace chassis_config;
 
@@ -389,4 +389,4 @@ void BalanceController::Update(
     calculate_vmc_output(Side::kRight);
 }
 
-}  // namespace modules
+}  // namespace dust_control::modules

@@ -5,7 +5,7 @@
 
 #include "priority_mutex.hpp"
 
-namespace dust::concurrency {
+namespace dust_control::concurrency {
 // 单发布者、多读取者；优先级继承锁内只复制固定大小状态。
 // Read 返回拥有所有权的副本，不暴露锁或内部引用，可能短暂阻塞。
 template <typename T>
@@ -30,4 +30,4 @@ class PublishedSnapshot {
     mutable PriorityMutex mutex_;
     T value_{};
 };
-}  // namespace dust::concurrency
+}  // namespace dust_control::concurrency

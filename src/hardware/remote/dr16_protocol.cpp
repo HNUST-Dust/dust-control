@@ -10,7 +10,7 @@
 
 #include <hardware/remote/dr16_protocol.h>
 
-namespace protocols {
+namespace dust_control::protocols {
 
 namespace {
 
@@ -81,4 +81,4 @@ bool DecodeDr16Frame(const uint8_t *data, size_t len, Dr16Frame *out) {
     return true;
 }
 
-}  // namespace protocols
+}  // namespace dust_control::protocols

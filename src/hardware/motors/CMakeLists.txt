@@ -7,4 +7,4 @@ add_library(dust_motors
 )
 target_link_libraries(dust_motors PUBLIC dust_headers Threads::Threads PRIVATE yaml-cpp)
 target_compile_options(dust_motors PRIVATE -Wall -Wextra -Wpedantic -Werror)
-add_library(dust::motors ALIAS dust_motors)
+add_library(dust_control::motors ALIAS dust_motors)

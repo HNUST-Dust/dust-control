@@ -8,13 +8,11 @@
  * 接口直接处理线协议字节序列。调用方负责提供声明长度的有效缓冲区；解码失败时输出对象内容不应作为有效数据使用。
  */
 
-#ifndef WBR_CONTROL_PROTOCOLS_REMOTE_INPUT_VT03_PROTOCOL_H_
-#define WBR_CONTROL_PROTOCOLS_REMOTE_INPUT_VT03_PROTOCOL_H_
-
+#pragma once
 #include <stddef.h>
 #include <stdint.h>
 
-namespace protocols {
+namespace dust_control::protocols {
 
 constexpr size_t kVt03RemoteFrameLength =
     21;  ///< VT03 基础遥控帧固定长度，单位为字节。
@@ -58,6 +56,4 @@ bool DecodeVt03RemoteFrame(const uint8_t *data, size_t len, Vt03Frame *out);
 bool DecodeVt03CustomFrame(const uint8_t *data, size_t len,
                            Vt03CustomFrame *out);
 
-}  // namespace protocols
-
-#endif /* WBR_CONTROL_PROTOCOLS_REMOTE_INPUT_VT03_PROTOCOL_H_ */
+}  // namespace dust_control::protocols

@@ -64,6 +64,12 @@ with configuration() as config:
         assert (
             values["output_requested"] == "false" and status.hardware_id == "simulation"
         )
+        # 话题数据可能先于 ROS 图节点发现到达；等待被查询节点出现再检查订阅。
+        discovery_deadline = time.monotonic() + 3
+        while ("dust_control", namespace) not in observer.get_node_names_and_namespaces():
+            assert process.poll() is None, (process.returncode, "ROS node exited during discovery")
+            assert time.monotonic() < discovery_deadline, "ROS node discovery timed out"
+            rclpy.spin_once(observer, timeout_sec=0.05)
         subscriptions = observer.get_subscriber_names_and_types_by_node(
             "dust_control", namespace
         )

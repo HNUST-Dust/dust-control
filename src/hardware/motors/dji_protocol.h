@@ -17,12 +17,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace dust::devices {
+namespace dust_control::devices {
 struct MotorFeedback;
 struct MotorTarget;
-}  // namespace dust::devices
+}  // namespace dust_control::devices
 
-namespace protocols {
+namespace dust_control::protocols {
 
 /** @brief 大疆电机标准反馈帧的解码结果。 */
 struct DjiMotorFeedback {
@@ -75,9 +75,9 @@ int EncodeDjiCurrentFrame0x1ff(const int16_t current_cmd[4], uint8_t out[8]);
 int WriteDjiCurrentCommandToSlot(uint16_t motor_can_id, int16_t current_cmd,
                                  uint8_t frame_payload[8]);
 
-}  // namespace protocols
+}  // namespace dust_control::protocols
 
-namespace platform::motor_model {
+namespace dust_control::platform::motor_model {
 // 当前 DJI 电流模式的命令规格，不是控制策略力矩上限。
 // 当前轮电机与减速机构的固定电流/力矩换算，与型号规格一起维护。
 inline constexpr double kDjiCurrentPerNm = 3450.0;
@@ -86,14 +86,14 @@ inline constexpr uint16_t kDjiCommandId = 0x200;
 inline constexpr uint16_t DjiFeedbackId(uint8_t slot) {
     return 0x201 + slot;
 }
-}  // namespace platform::motor_model
+}  // namespace dust_control::platform::motor_model
 
 // 当前轮电机的目标编码和物理反馈换算，与原始线协议接口集中维护。
-namespace protocols {
-bool EncodeDjiMotorTarget(const dust::devices::MotorTarget& target,
+namespace dust_control::protocols {
+bool EncodeDjiMotorTarget(const dust_control::devices::MotorTarget& target,
                           uint8_t command_slot, double command_sign,
                           uint8_t out[8]);
-dust::devices::MotorFeedback DecodeDjiMotorState(const uint8_t* bytes,
-                                                 size_t size,
-                                                 uint64_t sample_us);
-}  // namespace protocols
+dust_control::devices::MotorFeedback DecodeDjiMotorState(const uint8_t* bytes,
+                                                         size_t size,
+                                                         uint64_t sample_us);
+}  // namespace dust_control::protocols

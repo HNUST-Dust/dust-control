@@ -20,8 +20,9 @@ void Check(bool ok) {
 }
 
 // 实际计算必须使用启动配置；修改调用方对象不能污染已构造的控制器。
-void CheckChassisConfiguration(const modules::ChassisConfig& config) {
-    using namespace modules;
+void CheckChassisConfiguration(
+    const dust_control::modules::ChassisConfig& config) {
+    using namespace dust_control::modules;
     Check(config.remote_deadband == 0.1 && config.max_yaw_rate() == 4.0);
     Check(config.joint_torque_limit == 3.0 && config.leg_length_kp == 900.0);
     auto caller_config = config;
@@ -73,22 +74,22 @@ void CheckChassisConfiguration(const modules::ChassisConfig& config) {
 
 int main(int argc, char** argv) {
     try {
-        using namespace dust::devices;
+        using namespace dust_control::devices;
         // 不同 runtime 配置可独立存在；失败加载不能改动已存在的设备。
-        MotorEncoder default_encoder(dust::test::MotorFixture());
-        wbr::host::UartReceiveQueue default_store;
-        dust::test::UsbReportFixture default_decoder(default_store);
+        MotorEncoder default_encoder(dust_control::test::MotorFixture());
+        dust_control::host::UartReceiveQueue default_store;
+        dust_control::test::UsbReportFixture default_decoder(default_store);
         if (argc == 3) {
             bool rejected = false;
             try {
-                dust::app::Robot invalid{std::string(argv[2])};
+                dust_control::app::Robot invalid{std::string(argv[2])};
             } catch (const std::exception&) {
                 rejected = true;
             }
             Check(rejected);
         }
         const std::filesystem::path directory(argv[1]);
-        const auto chassis = modules::LoadChassisConfig(
+        const auto chassis = dust_control::modules::LoadChassisConfig(
             (directory / "chassis_params.yaml").string());
         CheckChassisConfiguration(chassis);
         auto motors =
@@ -110,8 +111,8 @@ int main(int argc, char** argv) {
               motors.dm_range.t_max == 54);
         const auto address = motors.addresses[0];
         Check(address.feedback_id == 0x202 && address.command_slot == 1);
-        wbr::host::UartReceiveQueue store;
-        dust::test::UsbReportFixture decoder(store, false, motors, imu);
+        dust_control::host::UartReceiveQueue store;
+        dust_control::test::UsbReportFixture decoder(store, false, motors, imu);
         MotorEncoder encoder(motors);
         // 构造后修改调用者的配置，不会改变实例路由或编码槽位。
         motors.addresses[0].feedback_id = 0x201;
@@ -139,13 +140,13 @@ int main(int argc, char** argv) {
         Check(original->frames[0].bytes[0] != 0 ||
               original->frames[0].bytes[1] != 0);
 
-        wbr::bridge::UsbInPacket packet{};
-        wbr::bridge::CanReceiveReport report{};
+        dust_control::wire::UsbInPacket packet{};
+        dust_control::wire::CanReceiveReport report{};
         report.header = {10000, 1};
         report.frame_count = 1;
         report.frames[0] = {
             {address.bus, 8, 0, address.feedback_id, {}}, 9000, 0};
-        Check(wbr::bridge::Encode(report, packet));
+        Check(dust_control::wire::Encode(report, packet));
         Check(decoder.Consume(packet, 10000));
         Check(default_decoder.Consume(packet, 10000));
         Check(decoder.Read().control.motors[0].valid);
@@ -159,14 +160,14 @@ int main(int argc, char** argv) {
         report.frames[0].frame.channel = motors.addresses[2].bus;
         const uint8_t mit_feedback[8] = {0x10, 0xff, 0xff, 0x80, 0, 0, 0, 0};
         std::copy_n(mit_feedback, 8, report.frames[0].frame.data);
-        Check(wbr::bridge::Encode(report, packet));
+        Check(dust_control::wire::Encode(report, packet));
         Check(decoder.Consume(packet, 12000));
         Check(decoder.Read().control.motors[2].position_rad == 12.56637F);
         Check(decoder.Read().control.motors[2].torque_nm == -54);
         Check(default_decoder.Consume(packet, 12000));
         Check(default_decoder.Read().control.motors[2].torque_nm == -54);
 
-        modules::ControllerInputs source{};
+        dust_control::modules::ControllerInputs source{};
         for (auto& motor : source.motors) {
             motor.valid = true;
             motor.precise_timestamp_us = 8000;
@@ -175,10 +176,10 @@ int main(int argc, char** argv) {
         source.imu.sequence = 1;
         source.imu.precise_timestamp_us = 8000;
         source.remote.sequence = 1;
-        modules::ChassisInputReader reader(
+        dust_control::modules::ChassisInputReader reader(
             {motors.freshness_us, imu.freshness_us, remote.freshness_us});
-        modules::ChassisInputReader default_reader;
-        modules::ChassisCycleInput input{};
+        dust_control::modules::ChassisInputReader default_reader;
+        dust_control::modules::ChassisCycleInput input{};
         reader.Read(source, input, 10000, .001, false);
         Check((input.motor_stale_mask & 1) != 0 &&
               (input.motor_stale_mask & 2) == 0);
@@ -190,8 +191,8 @@ int main(int argc, char** argv) {
         reader.Read(source, input, 11502, .001, false);
         Check(!input.remote_fresh);
         // 多个不同配置的 runtime 构造互不排斥，不再有进程级单次加载状态。
-        dust::app::Robot first{std::string(argv[1])};
-        dust::app::Robot second{std::string(argv[1])};
+        dust_control::app::Robot first{std::string(argv[1])};
+        dust_control::app::Robot second{std::string(argv[1])};
         std::cout << "Module configuration, independent instances, CAN mapping "
                      "and freshness boundaries passed\n";
     } catch (const std::exception& error) {

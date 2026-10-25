@@ -9,8 +9,8 @@
 #include "concurrency/thread.hpp"
 #include "usb_link.hpp"
 
-namespace wbr::host {
-namespace rt = wbr::realtime;
+namespace dust_control::host {
+namespace rt = dust_control::realtime;
 namespace {
 constexpr uint64_t kQueueRetryNs = 1000000;
 constexpr uint64_t kMaximumCanAgeNs = 20000000;
@@ -119,9 +119,10 @@ void UsbTransmitter::Fail(const std::string& reason) {
     changed_.notify_all();
 }
 
-bool UsbTransmitter::SubmitCan(CanProducer producer,
-                               std::span<const dust::devices::CanFrame> frames,
-                               uint64_t sequence, uint64_t generated_ns) {
+bool UsbTransmitter::SubmitCan(
+    CanProducer producer,
+    std::span<const dust_control::devices::CanFrame> frames, uint64_t sequence,
+    uint64_t generated_ns) {
     bool accepted;
     {
         const std::lock_guard lock(mutex_);
@@ -134,10 +135,10 @@ bool UsbTransmitter::SubmitCan(CanProducer producer,
     return accepted;
 }
 
-bool UsbTransmitter::StoreCan(CanProducer producer,
-                              std::span<const dust::devices::CanFrame> frames,
-                              uint64_t sequence, uint64_t generated_ns,
-                              uint64_t now_ns) {
+bool UsbTransmitter::StoreCan(
+    CanProducer producer,
+    std::span<const dust_control::devices::CanFrame> frames, uint64_t sequence,
+    uint64_t generated_ns, uint64_t now_ns) {
     const auto index = static_cast<size_t>(producer);
     if (!started_ || stop_ || failed_ || index >= sources_.size() ||
         frames.size() > kMaxGroups || !sequence || generated_ns > now_ns) {
@@ -178,7 +179,7 @@ bool UsbTransmitter::StoreCan(CanProducer producer,
 bool UsbTransmitter::SubmitUart(uint8_t channel, std::span<const uint8_t> bytes,
                                 uint64_t generated_ns, uint64_t lifetime_ns) {
     const unsigned bit = channel < 3 ? channel : channel + 1;
-    if (channel < 1 || channel > bridge::kUartPortCount ||
+    if (channel < 1 || channel > dust_control::wire::kUartPortCount ||
         !(link_.capabilities() & (1U << bit))) {
         return false;
     }
@@ -198,7 +199,7 @@ bool UsbTransmitter::StoreUart(uint8_t channel, std::span<const uint8_t> bytes,
                                uint64_t generated_ns, uint64_t lifetime_ns,
                                uint64_t now_ns) {
     if (!started_ || stop_ || failed_ || channel < 1 ||
-        channel > bridge::kUartPortCount || bytes.empty() ||
+        channel > dust_control::wire::kUartPortCount || bytes.empty() ||
         bytes.size() > UartMessage{}.bytes.size() || !lifetime_ns ||
         lifetime_ns > 1000000000 || generated_ns > now_ns ||
         now_ns - generated_ns >= lifetime_ns ||
@@ -308,7 +309,7 @@ UsbTransmitter::Work UsbTransmitter::NextWork(uint64_t now_ns,
 void UsbTransmitter::Run() {
     try {
         std::string error;
-        if (!dust::concurrency::ConfigureThread(
+        if (!dust_control::concurrency::ConfigureThread(
                 {options_.realtime, options_.cpu, options_.priority}, error)) {
             Fail("USB transmit thread setup: " + error);
         }
@@ -366,4 +367,4 @@ void UsbTransmitter::Run() {
     link_.Stop();
     running_ = false;
 }
-}  // namespace wbr::host
+}  // namespace dust_control::host
