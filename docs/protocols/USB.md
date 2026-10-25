@@ -1,15 +1,20 @@
 # USB v4 协议与会话
 
 主机通过 USB Bulk 连接 dust-adapter，主机与固件必须使用配套的 USB v4 协议。
-共享定义位于 `src/hardware/usb/protocol/`，以源码中的消息编号和编解码函数为准。
-修改协议时检查与 MCU 的一致性：
+逐字节格式和交互基准见 [USB v4 线上协议基准](USB_V4_WIRE.md)。
+定义与实现当前位于 `src/hardware/usb/protocol/`；保持线上格式和语义兼容的主机重构
+不需要同步修改 MCU。当前协议实现集中在 `usb_protocol.hpp/.cpp`，不再要求
+与 MCU 保持相同的源码文件组织。可执行固定字节基准检查：
 
 ```bash
+python3 tools/check_usb_protocol.py
+# 可选：用同一组用例编译 MCU 来源，对比报文字节；不修改或刷写 MCU。
 python3 tools/check_usb_protocol.py /path/to/dust-adapter
 ```
 
-`usb_protocol.hpp`、`usb_protocol_codec.hpp`、`usb_session_policy.hpp` 是共享来源文件；
-主机自己的 `usb_report_decoder.hpp` 补充上行报告解码。
+基准记录在 `tests/protocols/usb_v4_vectors.txt`，由重构前实现生成，覆盖全部
+消息类型、CAN 批次数量、六路 UART、安全动作数量及保护签名。
+这验证所列报文的字节兼容性，不替代完整固件行为或实机验证。
 具名消息使用 Encode/Decode，包缓冲区使用 UsbOutRequest、UsbInPacket，
 不直接发送 C++ 结构体内存。旧版本不兼容，不提供自动回退。
 

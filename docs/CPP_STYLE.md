@@ -7,6 +7,7 @@
 
 - `.clang-format`：Google 基础、80 列、4 空格缩进、禁用 Tab。
   `Standard: c++17` 是格式解析选项，项目编译标准仍由 CMake 指定为 C++20。
+- 自有头文件统一使用 `#pragma once`，不使用 `#ifndef/#define` 形式的头文件保护宏。
 - 非空短函数展开，`if/else/for/while` 均使用大括号。
 - 不同含义的变量独立声明；局部变量靠近使用点并缩小作用域。
   跨循环状态放循环前，不以循环内 `static` 隐藏状态寿命。
@@ -20,6 +21,13 @@
 - 接口注明阻塞、复制与缓冲区寿命；明确入队、硬件完成和设备确认的区别。
 - wire 布局变更须由协议层与固件共同维护，不能混入格式整改。
   控制算法、参数、协议、目录重组与行为修改应分别验证。
+
+## 命名空间
+
+- 自有 C++ 代码以 `dust_control` 为根，每个文件的具名命名空间使用完整限定名声明。
+- 不保留 `dust`、`wbr` 等旧根兼容别名；命名空间别名只用于缩短当前子模块引用。
+- 遥控公共输入归 `dust_control::input`，ROS 生成消息归 `dust_control::msg`。
+- 第三方、生成接口和 C ABI 按其来源约定保留，不能把命名整理混入通信格式变更。
 
 ## 模型、所有权与阅读顺序
 
@@ -57,7 +65,6 @@ CLANG_FORMAT="$PWD/.cache/format-venv/bin/clang-format" python3 tools/format_cpp
 不会格式化 `build/`、外部依赖或生成的构建产物。
 `.clang-format-ignore` 统一列出以下例外：
 
-- `src/hardware/usb/protocol/usb_protocol.hpp`、`usb_protocol_codec.hpp`、`usb_session_policy.hpp` 是 MCU 共享源码，保持逐字一致；主机专用 `usb_report_decoder.hpp` 正常参与格式检查。
 - 测试 `bridge_layout.hpp` 标记为生成文件；公共模型头文件由本仓库直接维护并参与格式检查。
 
 格式工具保证一致性，人工仍需检查命名、定义位置、分组和阅读节奏。
@@ -66,8 +73,8 @@ CLANG_FORMAT="$PWD/.cache/format-venv/bin/clang-format" python3 tools/format_cpp
 
 ## 本仓库的验证边界
 
-全仓检查覆盖 `src/` 和 `tests/` 的自有 C++，包括独立 benchmark；三个 MCU 共享
-文件、生成消息/布局及 LQR 系数保持原样。独立基准使用历史协议，不改为 USB v4。
+全仓检查覆盖 `src/` 和 `tests/` 的自有 C++，包括独立 benchmark；生成消息/布局及 LQR 系数保持原样。USB 协议实现参与格式检查，
+以固定字节基准保证通信兼容，不要求与 MCU 保持源码逐字一致。独立基准使用历史协议，不改为 USB v4。
 控制公式、默认参数、遥控优先级、使能门控和 wire 布局不因风格整改而改变。
 结构调整需运行开发回归、独立 benchmark 合约以及平衡控制同输入数值对照。
 工具目录的生成器须与生成内容一并审查，不为排版直接修改生成结果。

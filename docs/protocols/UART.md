@@ -8,7 +8,7 @@ UsbLink 校验报告、会话和块序号，换算主机时间后按每块 Adapt
 
 | 逻辑通道 | 消费者 |
 |---|---|
-| UART 1 | SbusDecoder |
+| UART 1 | WflySbusDecoder |
 | UART 2 | Hi91Decoder |
 | UART 3 | RefereeDecoder |
 | 未绑定通道 | 原始块消费者自行解析 |
@@ -38,7 +38,8 @@ generated_ns, lifetime_ns)。方法线程安全并复制数据；消息最多 51
 
 主机电机映射由 robot.yaml 根节点 motors 指定，各电机用 adapter 指定归属，默认使用
 config/motors_params.yaml；传感器期限来自 config/sensors_params.yaml。MCU 自行维护 CAN 白名单和保护帧。新增设备需同步
-相关主机参数及 MCU 配置。共享协议位于 src/hardware/usb/protocol/：
+相关主机参数及 MCU 配置。协议实现位于 src/hardware/usb/protocol/；
+文件组织独立于 MCU，以下命令核对固定报文字节：
 
 ```bash
 python3 tools/check_usb_protocol.py /path/to/dust-adapter

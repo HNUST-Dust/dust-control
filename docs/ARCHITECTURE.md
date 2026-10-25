@@ -42,7 +42,7 @@ main → DustControlNode → Robot
 ```text
 USB IN → UsbLink 校验报告、会话和序号，换算时间戳
          ├─ CAN       → MotorFeedbackDecoder
-         ├─ 绑定 remote 的 UART → SbusDecoder
+         ├─ 绑定 remote 的 UART → WflySbusDecoder
          ├─ 绑定 hi91 的 UART → Hi91Decoder
          ├─ 绑定 referee 的 UART → RefereeDecoder
          └─ 板载 IMU  → OnboardImu
@@ -147,3 +147,73 @@ MotorFeedback、MotorTarget、MotorTargets、MotorMode 和 ActuatorId 集中在 
 MotorAddress 属于 motor_config.hpp 中的接线配置数据。生产代码没有默认电机地址表，
 默认配置表示没有设备；Robot 必须读取电机 YAML。离线回归的固定接线只在
 tests/support/motor_fixture.hpp 中提供，测试调用方显式传入。
+
+## IMU 协议文件组织
+
+`hi91_protocol.h/.cpp` 集中维护 HI91 原始报文、流式拼帧、CRC、物理量与安装映射、
+有效性检查、设备时钟恢复及 Hi91Decoder 快照发布。Hi91TimeGuard 归设备命名空间，
+恢复帧数、最小观测跨度、候选间隔及设备时间步长使用具名固定常量，数值与原实现一致。
+HI91 控制用样本 ImuSample 直接定义在 hi91_protocol.h，底盘输入从该头引用数据；
+不再保留只含单一设备样本的 imu_protocol.hpp。架构检查仍禁止算法调用设备解析与快照服务。
+`onboard_imu.hpp/.cpp` 独立维护 OnboardImuSample、原始采样接收、重置和快照读取；
+板载设备接口不再放进公共样本头。
+板载 raw 数据的安装坐标和量程尚未确认，继续独立保存，不覆盖 HI91 控制输入。
+`imu_config.*` 仅加载并校验期限；UART 与 Adapter 绑定仍由启动装配管理。
+
+当前只有 HI91 一个控制用 IMU 协议，直接使用 Hi91Decoder，不增加空的工厂、
+协议枚举或虚构编码接口。控制算法只使用公共观测数据；USB 只调用高层 Consume/Read，
+架构检查禁止其直接解析 HI91 帧或操作设备时钟恢复状态。
+
+## 裁判系统文件组织
+
+`referee_protocol.h/.cpp` 集中原始帧与命令载荷定义、单帧解析、流式拼帧、
+RefereeSample 和 RefereeDecoder 快照发布。载荷及拼帧缓存容量直接使用协议常量，
+不再保留独立 referee_decoder 文件，也不增加只有一个协议的公共分派层。
+USB 接收层只提交原始 UART 块及丢块通知，不直接调用裁判帧或命令载荷解析函数。
+现有边界不变：尚未校验 CRC8/CRC16，输出不参与控制许可或功率门控；
+丢块时清空未拼完帧并保留既有观测，Reset 时清空全部状态。
+
+### USB 协议引用
+
+主机直接使用 `hardware/usb/protocol/usb_protocol.hpp` 中的 `dust_control::wire` 类型和编解码接口，
+不再通过 `bridge_protocol.hpp` 转接命名空间。20 ms 命令租约属于主机策略，
+由 `usb_transmitter.hpp` 中的 `dust_control::host::kCommandTimeoutUs` 定义。
+协议目录可以按职责重组；保持线上格式和语义兼容时无需同步修改 MCU。
+重构核对依据见 [USB v4 线上协议基准](protocols/USB_V4_WIRE.md)；涉及通信约定变化时需协调两端。
+
+### USB 文件组织
+
+`protocol/usb_protocol.hpp/.cpp` 集中逻辑消息、收发编解码及 SessionPolicy；
+`dust_usb_protocol` 只依赖公共头，不链接 libusb、设备驱动或业务运行时。
+编解码内部的请求视图与报告构造器留在 cpp，不暴露为新的业务接口。
+
+`usb_link.cpp` 管理 USB 设备发现、异步传输与事件线程；`usb_receive.cpp`
+处理会话报告、确认和传感器分派；`usb_session.cpp` 集中握手、安全配置、Arm/Stop
+及 UsbSession 的资源启停。三者使用原有 UsbLink 状态，没有新增代理或分派层。
+`usb_transmitter.*` 保留独立的发送调度职责，`uart_receive_queue.*` 保留跨线程队列职责。
+
+重构前冻结的 47 项报文/签名通过 `usb.wire_v4_baseline` 检查，避免编解码同改后
+往返测试仍通过却改变线上格式。MCU 来源可用 `tools/check_usb_protocol.py` 额外核对。
+
+### WFLY 遥控文件组织
+
+`hardware/remote/wfly_sbus_protocol.h/.cpp` 同时提供原始 SBUS 帧解码和
+`WflySbusDecoder` 的持续接收、拼帧、固定标定、开关映射、丢帧超时及快照读取。
+不再单独维护 sbus_decoder 文件，类名明确其 WFLY 专用控制映射。
+`remote_input_state.hpp` 保留为业务使用的公共输入模型；DR16、VT03 各自保留
+协议实现，尚未接入当前 WFLY 的持续接收与映射流程。
+USB 只调用高层 Consume/Read、断流及超时接口，不直接解析 SBUS 字段。
+
+### 根命名空间
+
+自有 C++ 代码统一使用 `dust_control`，文件中声明具名命名空间时写完整限定名。
+原 `dust` 和 `wbr` 统一为该根；算法 `modules`、设备帧 `protocols` 和模型 `platform`
+收为其子命名空间。设备、USB 主机、实时调度、应用和 ROS 封装分别使用
+`dust_control::devices`、`host`、`realtime`、`app` 和 `ros`。
+
+遥控公共输入使用 `dust_control::input`，ROS 生成消息继续使用
+`dust_control::msg`；两者职责不同，不通过旧根别名兼容。
+独立压力基准的自有代码位于 `dust_control::benchmarks`；外部生成的
+`bridge_layout.hpp` 保留原始 `bridge_wire` 接口，基准在使用边界导入布局数据。
+第三方、ROS 生成代码及 libusb 的 C 接口维持各自约定。
+命名空间只影响源码与 C++ 符号，不改变通信字节、ROS 包名和话题名。
