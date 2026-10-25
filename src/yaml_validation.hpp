@@ -1,3 +1,4 @@
+
 /* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
 #include <yaml-cpp/yaml.h>
@@ -7,9 +8,10 @@
 #include <stdexcept>
 #include <string>
 
-namespace dust::config_yaml {
+namespace dust::yaml_validation {
 inline void ValidateKeys(const YAML::Node &node,
-                         const std::set<std::string> &allowed) {
+                         const std::set<std::string> &allowed,
+                         const std::set<std::string> &optional = {}) {
     if (!node.IsMap()) {
         throw std::runtime_error("Configuration must be a mapping");
     }
@@ -17,14 +19,17 @@ inline void ValidateKeys(const YAML::Node &node,
     std::set<std::string> seen;
     for (const auto &entry : node) {
         const auto key = entry.first.as<std::string>();
-        if (!allowed.count(key) || !seen.insert(key).second) {
+        if ((!allowed.count(key) && !optional.count(key)) ||
+            !seen.insert(key).second) {
             throw std::runtime_error(
                 "Unknown or duplicate configuration key: " + key);
         }
     }
 
-    if (seen != allowed) {
-        throw std::runtime_error("Missing configuration keys");
+    for (const auto &key : allowed) {
+        if (!seen.contains(key)) {
+            throw std::runtime_error("Missing configuration key: " + key);
+        }
     }
 }
 
@@ -61,4 +66,4 @@ inline YAML::Node LoadSensorFile(const std::string &file) {
     }
     return root;
 }
-}  // namespace dust::config_yaml
+}  // namespace dust::yaml_validation

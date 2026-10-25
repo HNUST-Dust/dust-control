@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "remote_config.hpp"
 
-#include "hardware/config_yaml.hpp"
+#include "yaml_validation.hpp"
 
 namespace dust::devices {
 RemoteConfig LoadRemoteConfig(const std::string& file) {
-    using namespace dust::config_yaml;
+    using namespace dust::yaml_validation;
     const auto root = LoadSensorFile(file);
     ValidateKeys(root["remote"], {"freshness_deadline_us"});
     return {ParseFreshnessDeadline(root["remote"]["freshness_deadline_us"],
