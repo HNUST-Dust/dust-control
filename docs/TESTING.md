@@ -1,43 +1,67 @@
-# 测试与构建隔离
+# 构建与测试
 
-生产：`cmake --preset production`，默认不构建测试或 MPC 开发应用。
-开发：`./scripts/test.sh`，启用 MPC、开发应用和控制回归。
-无 SDK：`./scripts/test.sh headless`，保持 MPC 回归但不下载 Foxglove。
-
-Python3 / PyYAML 用于自动回归，生产代码不再生成 YAML 参数头。
-额外的 WebSocket 测试客户端可单独安装：
+## 运行方式
 
 ```bash
-python3 -m venv --system-site-packages .cache/test-venv
-.cache/test-venv/bin/pip install -r tools/foxglove/requirements-test.txt
-cmake --preset development -DPython3_EXECUTABLE="$PWD/.cache/test-venv/bin/python"
-cmake --build --preset development --parallel 2
-ctest --preset development
+# 生产应用：需要已安装并 source ROS2 Humble
+source /opt/ros/humble/setup.bash
+./scripts/build.sh
+
+# 开发构建与回归，启用 MPC 和开发工具
+./scripts/test.sh
+
+# 无 ROS 的模块回归，不生成生产应用
+./scripts/test.sh headless
 ```
 
-CMake 检测到 WebSocket 客户端时注册 `telemetry.native_websocket`，否则该测试不注册。
-该项检查原生订阅、有效值、过期、源停更、端口占用及 SDK 线程 CPU/调度隔离。
-其余控制契约、USB mock 生命周期/重连、遥测队列与序列化测试不依赖 Foxglove 客户端。
-MPC 测试随对应模块开启，Release 下保留测试断言。
+应用集成测试统一运行 dust_control_node。无 ROS 构建保留控制、设备、线程生命周期
+和配置校验测试；纯 C++ 测试程序不是另一个生产入口。
+Python3 / PyYAML 用于回归，生产代码不生成 YAML 参数头。
 
-可选 `DUST_REFERENCE_CHASSIS_DIR` 指向原 MCU 的 chassis 控制源码时，还会注册
-原始 MCU 数值对照。`chassis_balance_fixture` 始终在测试构建中可用，便于与迁移前
-主机同输入输出比较。所有自动测试都不打开真实电机输出。
+MPC 首次构建需要获取固定版本 OSQP；可用 FETCHCONTENT_SOURCE_DIR_OSQP 指定本地源码。
+可选 Foxglove 测试需要系统安装 foxglove_bridge，Python 依赖见
+[tests/requirements.txt](../tests/requirements.txt)。不下载原生 Foxglove SDK。
 
-首次依赖获取需要联网。OSQP 可用 `FETCHCONTENT_SOURCE_DIR_OSQP` 指定本地已获取
-的源码；Foxglove 可用 `DUST_FOXGLOVE_SDK_DIR` 指定匹配平台的已解压官方发行包。
+## 覆盖范围
 
-EtherCAT 构建和回归只在 `dev/wbr_infantry_ethercat` 执行。共享 realtime 统计
-测试独立放在 `tests/runtime`，不依赖下位机通讯方案。
+| 测试 | 主要检查 |
+|---|---|
+| `chassis.contracts` | 控制行为、状态机和运行时参数的实际作用 |
+| `chassis.original_balance_parity` | 可选原 MCU 同输入数值对照，需 DUST_REFERENCE_CHASSIS_DIR |
+| `chassis.observation_queue` | 有界队列饱和、回绕与并发读写 |
+| `chassis.runtime_lifecycle` | 底盘独立运行、停止与借用资源边界 |
+| `runtime.business_lifecycle` | 云台/UI 线程、绑定与资源回收，无虚假 CAN 来源 |
+| `configuration.startup_loading` | 参数实际生效、非法配置提前失败、实例配置互不污染 |
+| `configuration.robot_topology` | 两/三板绑定、跨板电机路由与 ID 隔离、延迟握手、故障回收、空板不 Arm |
+| `chassis.disabled_smoke` | ROS 节点按 YAML 模拟运行，禁止模拟开启真实输出 |
+| `usb.lifecycle`、`usb.reconnect` | USB mock 身份筛选、握手、拒绝、断连与重连 |
+| `usb.*`、`devices.*` | wire 边界、UART、CAN 调度、设备编解码和快照并发 |
+| `architecture.dependencies` | 控制、设备、传输与装配之间的引用和链接边界 |
+| `ros.telemetry_contracts` | 字段、时间戳、NaN、左右腿有效性与源停更 |
+| `ros.node_integration` | 真实 ROS 图、观测发布、参数约束、退出和 USB 故障传播 |
+| `ros.foxglove_bridge` | 可选真实 Bridge、多节点共享、CDR 解码与 Bridge 独立重启 |
+| `mpc.*` | 按构建选项启用的 MPC 数学和 QP 回归 |
 
-`configuration.startup_loading` 验证实际路由、每电机阈值、HI91/遥控微秒边界、
-轮输出方向、电流换算与限幅、固定型号 MIT 编解码量程、旧协议字段拒绝、非法配置启动失败、失败不影响已有设备、构造配置副本、独立实例共存与 HI91 恢复阈值隔离。
+头文件和实现保持可独立编译。C++ 格式检查见 [编码风格](CPP_STYLE.md)。
+chassis_balance_fixture 始终在测试构建中可用，可与迁移前主机同输入输出比较。
+Release 测试中的必要断言仍然启用，自动测试不打开真实电机输出。
 
-`chassis.runtime_lifecycle` 验证底盘可独立离线运行、禁止重复启动，以及 Stop/析构
-不会停止借用的 USB 发送器；USB 会话只能由其所有者停止，停止后不能重新启动。
+配置回归包括电机路由、方向、电流换算与限幅、传感器超时、机构几何、控制增益、
+气弹簧、关节限幅和倾角保护；检查缺失、未知、重复、非有限值、非法范围与版本。
+多会话测试覆盖两/三块同时活动的 mock Adapter，验证跨板电机子集、相同 CAN ID 隔离、
+延迟握手、后续板 Arm 失败、运行断连及正常停止；不代表已验证实体多板的时序。
+纯 C++ 分支直接检查装配与启动前校验，ROS 分支额外检查节点启动和信号退出。
 
-`chassis.contracts` 同时验证运行时注入的轮力矩预算用于转向分配。
+## 环境与结果
 
-底盘配置回归覆盖运行时几何与零偏、VMC 增益、气弹簧开关、关节限幅、
-倾角保护和指令换算的实际效果，以及构造副本隔离、缺失文件/字段、未知字段、
-重复字段、非有限数、零尺寸、范围倒置与版本拒绝。底盘 YAML 不参与参数头生成。
+OrbStack 用于日常开发和功能调试。USB mock 和模拟节点仍保留原 20 ms 保护阈值，
+虚拟机调度停顿可能触发租约、控制看门狗或传感器流超时；失败必须记录，不能通过
+放宽保护、静默重试或删除断言把结果改成通过。
+
+Bridge 集成测试将 Bridge/DDS 负载移出 CPU 3，用于功能验证，不作为实时性能验收。
+1 kHz 状态、Foxglove、实际多板 USB 和完整控制时序留到目标机器人主机测量。
+性能工具与历史数据见 [性能记录](benchmarks/README.md)，不作为带固定频率阈值的 CTest。
+
+逐次结果及失败记录见 [验证历史](history/VALIDATION.md)。旧记录中的构建目录、
+命令、参数和测试数量仅对应当时版本，不能作为当前接口说明。
+EtherCAT 构建和回归在开发分支执行，见 [分支约定](BRANCHES.md)。

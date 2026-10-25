@@ -4,19 +4,19 @@
       "title": "姿态 (deg)",
       "paths": [
         {
-          "value": "/wbr/chassis.pitch_deg",
+          "value": "/dust_control/chassis/telemetry.pitch_deg",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "pitch"
         },
         {
-          "value": "/wbr/chassis.yaw_deg",
+          "value": "/dust_control/chassis/telemetry.yaw_deg",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "yaw"
         },
         {
-          "value": "/wbr/chassis.roll_deg",
+          "value": "/dust_control/chassis/telemetry.roll_deg",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "roll"
@@ -35,13 +35,13 @@
       "title": "左右等效腿长 (m)",
       "paths": [
         {
-          "value": "/wbr/chassis.left_length_m",
+          "value": "/dust_control/chassis/telemetry.left_length_m",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "left"
         },
         {
-          "value": "/wbr/chassis.right_length_m",
+          "value": "/dust_control/chassis/telemetry.right_length_m",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "right"
@@ -60,13 +60,13 @@
       "title": "髋部到轮轴竖直距离 (m)",
       "paths": [
         {
-          "value": "/wbr/chassis.left_height_m",
+          "value": "/dust_control/chassis/telemetry.left_height_m",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "left"
         },
         {
-          "value": "/wbr/chassis.right_height_m",
+          "value": "/dust_control/chassis/telemetry.right_height_m",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "right"
@@ -85,31 +85,31 @@
       "title": "有效性 / 遥测连接",
       "paths": [
         {
-          "value": "/wbr/chassis.source_connected",
+          "value": "/dust_control/chassis/telemetry.source_connected",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "source_connected"
         },
         {
-          "value": "/wbr/chassis.imu_fresh",
+          "value": "/dust_control/chassis/telemetry.imu_fresh",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "imu_fresh"
         },
         {
-          "value": "/wbr/chassis.left_leg_fresh",
+          "value": "/dust_control/chassis/telemetry.left_leg_fresh",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "left_leg_fresh"
         },
         {
-          "value": "/wbr/chassis.right_leg_fresh",
+          "value": "/dust_control/chassis/telemetry.right_leg_fresh",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "right_leg_fresh"
         },
         {
-          "value": "/wbr/chassis.simulated",
+          "value": "/dust_control/chassis/telemetry.simulated",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "simulated"
@@ -128,7 +128,7 @@
       "title": "控制计算与 USB 提交耗时 (us)",
       "paths": [
         {
-          "value": "/wbr/chassis.control_duration_us",
+          "value": "/dust_control/chassis/telemetry.control_duration_us",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "control duration (us)"
@@ -147,13 +147,13 @@
       "title": "漏周期 / 遥测丢样计数",
       "paths": [
         {
-          "value": "/wbr/chassis.missed_releases",
+          "value": "/dust_control/chassis/telemetry.missed_releases",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "missed_releases"
         },
         {
-          "value": "/wbr/chassis.queue_drops",
+          "value": "/dust_control/chassis/telemetry.queue_drops",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "queue_drops"

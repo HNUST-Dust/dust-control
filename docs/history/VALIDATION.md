@@ -1,4 +1,144 @@
-# 初次重构验证记录（2026-10-22）
+# 重构与验证记录（2026-10-22 起）
+
+> 历史记录：保留当时的决策、路径、命令和结果，不作为当前使用说明。
+> 当前入口见 [文档索引](../README.md)。
+
+## 文档结构整理（2026-10-26）
+
+- 新增 docs/README.md 阅读索引；现行架构、配置、ROS2、测试说明按当前单节点入口整理。
+- USB/CAN 说明合并到 protocols/USB.md，UART 接口归 protocols/UART.md。
+  迁移、参数筛选、验证记录和来源清单归 history，发布及性能结果保留历史语义。
+- 修正过时的外部指令队列/仲裁描述和启动入口，更新引用与协议文档安装路径。
+- 62 个本地文档链接、4 个标题锚点和 diff 检查通过；CMake 配置与协议文档安装通过。
+  两份来源 JSON 清单与迁移前逐字节一致。本轮不改运行逻辑，不重跑性能测试。
+
+## 统一 ROS2 应用入口（2026-10-26）
+
+- 删除 standalone_main.cpp、chassis_controller 可执行与安装目标，清理已知构建目录中的旧二进制。
+  应用统一由 main.cpp 启动 dust_control_node，模拟模式继续从 execution 加载。
+- run.sh 默认启动构建目录中的 ROS2 节点，并补充消息类型支持库搜索路径；
+  外部配置通过原生 ROS config_directory 参数指定。无 ROS 构建仅用于库与模块测试，
+  缺少 ROS 的非测试生产构建明确报错。
+- 应用集成回归迁入 ROS2 入口，纯 C++ 配置和双会话测试仍直接验证 Robot 及各模块。
+  root、development、无 ROS 三种构建通过；development 完整 24/24，模块版 18/18 通过。
+- 主构建最新完整回归 22/23，usb.lifecycle 发生 USB mock 租约断言；单项复查为
+  传感器流超时，延续 OrbStack 已记录的时序不稳定，保护阈值和 mock 契约未放宽。
+  初测另有消息类型支持库路径遗漏，已修复；初轮并发编译时 ROS 节点提前退出，
+  最终在构建结束后回归，ros.node_integration 通过。
+- 全新安装只包含 ROS2 生产入口；启动脚本与安装后的节点均能读取临时模拟 YAML，
+  并通过退出信号正常回收线程。格式、Python 语法、依赖边界、shell 语法及 diff 检查通过。
+- 未连接实际硬件，不进行 ROS2/Foxglove 或实时性能验收。
+
+## 启动配置统一到 robot.yaml（2026-10-26）
+
+- 删除 options.*，execution 严格保留 simulate、realtime、enable_output 三个布尔字段。
+  字段必须完整，未知/重复字段及模拟开启真实输出在创建线程前拒绝。
+- Robot 从 YAML 获取执行模式，业务模块继续接收强类型数值配置；运行循环不解析 YAML。
+  CLI 只保留 --config/--help，ROS 只保留只读 config_directory；旧运行参数不再覆盖 YAML。
+  删除运行期限，使用 SIGINT/SIGTERM 正常停止，脚本支持默认或外部配置目录。
+- 暂不接入外部规划：移除 ROS 运动目标订阅、MotionCommand 消息、底盘目标队列与仲裁，
+  控制输入保留物理遥控，ROS 底盘观测发布与其 QoS 不变。
+- 初轮清理旧 ROS 消息生成缓存后，主构建、development、纯 C++ 完整回归分别
+  23/23、24/24、20/20 通过。全新安装的 launch 只显示 config_directory，
+  脚本和安装后的 ROS 入口可从临时 YAML 模拟运行并正常退出。
+- 安装检查出现一次虚拟机 20 ms 控制看门狗失败，短时启动复查通过；修正测试工具
+  向整个进程组发送退出信号，避免 ros2 run 包装进程退出后遗留子节点。
+  后续主 build 回归为 22/23，ROS USB mock 租约断言失败；单项复查仍出现传感器流超时。
+  最终 development 24/24、纯 C++ 20/20 通过，主 build 的 ROS USB mock 时序仍有波动。
+  73/73 头文件独立编译及格式、Python 语法、依赖边界、diff 检查通过。
+  保护阈值和 mock 契约均未放宽。
+- 本轮不进行 ROS2/Foxglove 或实时性能验收，也未连接实际硬件。
+
+## YAML 多线程与多 Adapter 装配（2026-10-25）
+
+- 新增 robot.yaml，统一声明具名 Adapter、模块启用与绑定，以及业务、USB RX/TX
+  线程的 CPU 和调度优先级。配置在开线程前完整校验；多板要求不同的完整序列号。
+- Robot 显式装配 chassis、gimbal、ui；每块板独立拥有会话与设备状态，模块借用接口。
+  每板启动后立即启动对应业务线程，全局就绪许可在全部启动成功后开放；停机先撤销许可。
+- 空云台/UI 不注册虚假 CAN 生产者，没有真实 CAN 生产者的会话保持 idle，不打开或 Arm。
+  双会话测试覆盖独立状态、共享板绑定、实际 CPU 亲和性及普通调度，不代表双实板验证。
+- 主 build、development、纯 C++ 静态构建与独立历史基准目标均编译通过。
+  完整 CTest 分别 24/24、25/25、21/21 通过；76/76 项目头文件独立编译通过。
+  格式、Python 语法、依赖边界、diff 检查通过，balance fixture 与原基线逐字节一致。
+- 全新安装到 /tmp/dust-topology-install 成功；安装后的 launch 参数可查询，模拟 ROS 节点
+  从安装目录加载配置并按 run_seconds 正常退出。未连接实际硬件。
+- 本轮不运行 ROS2、Foxglove 或控制周期性能基准；实机性能与双板硬件验证待上机完成。
+
+## 1 kHz 最新状态与通讯性能（2026-10-25）
+
+- 底盘每控制周期生成观测；ROS 1 ms 回调有界消费队列、只发布最近状态，
+  QoS KeepLast(1) / BestEffort / Volatile。Bridge 同话题最佳努力订阅且深度限制为 1。
+  诊断约 50 Hz，标准 IMU/关节话题最多 100 Hz，避免附带字符串诊断一起升至 1 kHz。
+- 新增独立、默认不构建不安装的 1 kHz 忙等待测试发布者，以及包含 ROS、真实 Bridge
+  WebSocket 和慢订阅者三场景的性能脚本。测试应用与生产代码分开，没有引入生产忙等待。
+- 两种测试源各预热 2 秒、测量约 10 秒/场景：独立 1 kHz 源下，ROS+Bridge 同时订阅时
+  ROS 997.35 Hz、样本年龄 P99 0.588 ms；WebSocket 999.63 Hz、P99 1.243 ms。
+  慢 ROS 订阅者 19.04 Hz，样本年龄 P99 0.993 ms，未积压历史。
+- 本机 OrbStack 普通调度下完整模拟节点端到端仅约 320 Hz；1 ms sleep 中位约 2.993 ms。
+  使用 sudo、无限 memlock、原有实时配置的长对照触发 20 ms 控制看门狗，未完成测量。
+  通讯链路容量通过，完整节点在此虚拟机中达到稳定 1 kHz 的结论不成立；未放宽保护阈值。
+- 根 build 与单独基准目标编译通过，最终完整 CTest 23/23 通过；格式、Python 语法、
+  依赖边界与 diff 检查通过。初测 ROS USB mock 有超时与 abort，单项复测后完整回归通过；
+  mock 仅新增失败位置日志，未移除契约或修改租约。
+- 环境、CPU、RSS、载荷、完整分位数与原始统计见
+  [性能报告](../benchmarks/ros_state_1khz_2026-10-25.md)。无实际 Adapter、跨机网络或 GUI 渲染负载。
+
+## ROS 观测发布 100 Hz（2026-10-25）
+
+- ROS 发布回调由 20 ms 改为 10 ms，逐条发布观测队列中的样本，不主动合并。
+  空队列不重复发布新鲜样本；保留源停更超过 200 ms 后的失效状态发布。
+- 根 build 编译、格式与 diff 检查通过。ROS 消息转换、节点集成与真实 Bridge
+  回归 3/3 通过。真实 ROS 订阅模拟节点约 1.5 秒：150 条观测，99.91 Hz，
+  序号无跳变、无重复；未连接实际硬件。
+
+## 底盘观测归属与 UDP 清理（2026-10-25）
+
+- 删除 src/telemetry、TelemetryPublisher、UDP JSON 序列化与 --telemetry-port；
+  Robot 和 ChassisRuntime 不再借用或拥有遥测发布器，移除 dust_telemetry 构建/安装目标。
+- ChassisObservation、ChassisObservationQueue 归 src/chassis/chassis_observation.hpp；
+  保留预分配单生产者单消费者队列，满时不等待。queue_drops 改为该观测队列的累计丢样，
+  随下一次成功入队的样本上报。ROS 消息转换仍归 src/chassis_telemetry.*。
+- 三种构建通过，74/74 头文件独立编译通过；格式、依赖边界、diff 检查通过。
+  原队列饱和/回绕/并发测试迁为 chassis.observation_queue，删除无使用者的 UDP 测试。
+- 完整回归：主 build 初测 22/23、development 初测 23/24，通过项包含观测队列、
+  ROS 消息转换和真实 Bridge 多节点验证；两者失败项均为已有非实时 ROS USB mock 超时，
+  单独复测最终均通过（development 中间一次复测仍超时）。未放宽看门狗或屏蔽断连断言。
+  纯 C++ 静态构建完整 20/20 通过。
+- balance fixture 与此前基线逐字节一致。旧 UDP 参数在启动前被拒绝；新安装目录
+  无 libdust_telemetry，保留 ROS 消息与独立 Bridge launch。未连接实际硬件。
+
+## ROS 2 统一 Foxglove Bridge（2026-10-25）
+
+- 移除内嵌 Foxglove SDK、下载脚本、JSON schema 生成及旧 CLI/节点端口参数；
+  新增独立 foxglove.launch.py，系统共用一个只读 WebSocket 入口，默认本机 8765。
+- ChassisTelemetry 保留原 28 个遥测字段，通过非实时 ROS 发布回调输出；
+  控制线程仍只提交有界观测，左右腿独立新鲜度、NaN、源停更及样本时间转换有契约测试。
+- 主 build 23/23、development（含 MPC）24/24、纯 C++ 静态构建 20/20 通过。
+  真实官方 Humble Bridge 3.6.0 从临时解包目录运行，验证两独立节点共用端口、
+  自定义消息 schema/CDR、只读能力，以及两次 Bridge 启停后控制样本序列继续递增。
+  系统未安装 Bridge 包，部署依赖已声明于 package.xml，安装/启动见 tools/foxglove/README.md。
+- 初测非实时 ROS mock 曾触发控制源超时；将测试观察端/Bridge/DDS 负载移出 CPU 3 后，
+  最终三套完整回归通过；没有放宽控制、USB 或 CAN 来源的看门狗阈值。
+- 74/74 自有头文件独立编译通过；格式、模块依赖和 diff 检查通过。
+  底盘 balance fixture 与此前基线逐字节一致；安装目录包含消息定义及独立 Bridge launch，
+  安装后 ROS launch 参数解析与模拟节点短时运行通过。以上均未连接实际硬件。
+
+## 云台与 UI 空线程架构（2026-10-25）
+
+- 新增 src/gimbal、src/ui 及独立构建目标，由模块各自持有 dust-gimbal、dust-ui
+  线程。当前为普通调度的条件变量等待，不空转、不注册 CAN 来源或生成设备命令。
+- Robot 装配并启动底盘、云台、UI；先回收业务线程，再停止 USB，最后回收遥测。
+  UI 借用底盘板的裁判 Decoder 和 UART 提交端口；云台先离线，提供第二块板的
+  反馈与 CAN 端口装配接口，尚未打开第二板或使用底盘电机配置代替云台配置。
+- CanCommandPort 与 UartFramePort 为非拥有能力端口，只开放注册/提交，不开放
+  USB 生命周期。新合约覆盖真实线程名、Start/Stop/析构、重复启动拒绝、借用
+  会话不被关闭、空云台不占 CAN 注册以及 Robot 的模拟/USB mock 装配与回收。
+- 更新 Foxglove 回归，分别识别三条业务线程；SDK 线程 CPU/调度隔离校验保留。
+  线程条目退出检查允许 /proc 在 join 后短暂回收，不更改生产 Stop 的同步 join。
+- 三种构建通过：根目录 build 22/22、静态无 ROS/Foxglove 20/20 测试通过；
+  development 其余 23 项首次通过，ROS mock 一度传感器流超时，独立重跑通过。
+  73/73 头文件独立检查、格式、依赖边界和 diff 空白检查通过，默认平衡 fixture
+  输出逐字节一致。全部为离线/mock 验证。
 
 ## 遥控固定标定与参数生成移除（2026-10-25）
 
@@ -226,3 +366,28 @@ WebSocket、MPC 数学与限制、MPC Link 编解码及 EtherCAT ABI/安全逻�
 后续需在实际机器人主机验证重构版本的时序和对应硬件链路。
 
 源码来源：`IMPORT_MANIFEST.json`；原仓库和未提交工作树保持原样。
+
+## 2026-10-26 多 Adapter 电机子集与跨板底盘
+
+- 开发构建成功，`ctest --test-dir build/development --output-on-failure`：24/24 通过，42.85 秒。
+- `configuration.robot_topology` 增加两板和三板同时活动的 mock 会话：独立序列号、每板电机子集、
+  跨板相同 CAN 通道/ID、反馈归属、命令路由、后续板延迟 35 ms 握手、第三个启动会话 Arm 拒绝、
+  运行断连及整体回收。缺失/重复电机、未知/重复板引用、缺失文件及轮电流换算不一致均在启动前拒绝。
+- 初次跨板回归失败：空 CAN 命令批次触发 mock 生成非法零帧反馈，且 mock 传感器流错误地依赖命令。
+  已改为每个 USB context 独立状态，并在多板模式独立产生传感器报告，保留命令序列与租约校验。
+- 发现并修复生产生命周期问题：顺序停止时每板 25 ms 保护等待使其他板超过 20 ms 租约。
+  现在先请求全部发送线程停止，再逐一等待和关闭会话。仅关节板在安全状态下每 10 个周期
+  重新生成真实失能命令，避免沿用单板 100 周期失能间隔而缺少可续租的安全命令。
+- USB 身份筛选回归曾因 0.3 秒后提前 SIGINT 打断 ROS 初始化而失败；预期启动失败的身份用例
+  现在等待进程自然失败退出并核验诊断，未放宽控制看门狗、MCU 租约或传感器期限。
+- 所有验证均为离线/mock；未连接真实电机、未刷写固件，尚未完成实体两/三板与目标主机实时验收。
+
+## 2026-10-26 逐电机 Adapter 归属
+
+- 将归属移到每台电机的 adapter 字段，地址校验使用 adapter + bus + CAN ID。
+  robot.yaml 使用 schema 2、根节点 motors 引用唯一设备文件；电机文件使用 schema 5。
+  移除底盘 motor_adapters 和每板 motors 文件绑定，chassis.sensor_adapter 仅选择传感器来源。
+- 全量文件按 adapter 自动生成每板子集；单会话 Encoder/Decoder 明确拒绝混合多板配置。
+- 两/三板实际活动 mock 回归仍通过；新增同 bus/ID 两电机的独立解码、同板冲突拒绝、
+  未知/缺失/空 Adapter 归属和旧版模块绑定拒绝检查。未修改实机租约及控制超时阈值。
+- 开发构建成功，完整 CTest 24/24 通过，43.01 秒；验证范围仍为离线/mock，未做实机验收。

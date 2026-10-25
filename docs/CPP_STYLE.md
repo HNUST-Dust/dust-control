@@ -35,7 +35,7 @@
 
 ## 格式化与检查
 
-使用 clang-format 18（本轮验证版本 18.1.8）或更新版本：
+使用 clang-format 18（仓库配置已用 18.1.8 验证）或更新版本：
 
 ```bash
 python3 tools/format_cpp.py
@@ -62,7 +62,7 @@ CLANG_FORMAT="$PWD/.cache/format-venv/bin/clang-format" python3 tools/format_cpp
 
 格式工具保证一致性，人工仍需检查命名、定义位置、分组和阅读节奏。
 格式检查不能替代编译及现有合约测试；离线回归不能代替硬件验收。
-整改不包含刷板、启动机器人、使能电机、提交或推送。
+格式化只调整源码排版，不执行刷板、启动或电机操作。
 
 ## 本仓库的验证边界
 

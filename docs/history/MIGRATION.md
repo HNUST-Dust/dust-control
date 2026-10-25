@@ -1,14 +1,17 @@
 # 从 wbr_control_companion 迁移
 
+> 历史记录：保留当时的决策、路径、命令和结果，不作为当前使用说明。
+> 当前入口见 [文档索引](../README.md)。
+
 来源：`NoneOfEver/wbr_control_companion` 的当前生产清理基线及本地 Foxglove 工作树。
-精确原提交和每个导入文件的原始 SHA256 见 `IMPORT_MANIFEST.json`；旧 MCU 导入来源
-见 `MCU_SOURCE_MANIFEST.json`。源仓库、未提交修改、硬件结果和 NUC 均未被改写。
+精确原提交和每个导入文件的原始 SHA256 见 [导入清单](IMPORT_MANIFEST.json)；旧 MCU 导入来源
+见 [MCU 来源清单](MCU_SOURCE_MANIFEST.json)。源仓库、未提交修改、硬件结果和 NUC 均未被改写。
 目标仓库保留已有 Apache-2.0 LICENSE，并在其初始 main 提交上前进。
 
 | 旧位置 | 新位置 |
 |---|---|
 | `chassis_controller/control` | `src/chassis` |
-| `chassis_controller/runtime` | `src/main.cpp`、`src/hardware/usb`、`src/telemetry` |
+| `chassis_controller/runtime` | `src/main.cpp`、`src/hardware/usb`、`src/chassis/chassis_observation.hpp` |
 | `chassis_controller/include` | 按职责归入 `src/hardware/motors、src/hardware/remote、src/hardware/imu、src/hardware/referee`、`src/chassis`、`src/hardware/usb` 等目录，与实现相邻 |
 | `chassis_controller/config` | 遥控固定标定和其他稳定默认值归使用模块代码；底盘、电机、传感器启动配置在 `config` |
 | `chassis_controller/telemetry` | `tools/foxglove` |
