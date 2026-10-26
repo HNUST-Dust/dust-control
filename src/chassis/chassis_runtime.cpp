@@ -8,10 +8,10 @@
 #include <stdexcept>
 
 #include "chassis/runtime/realtime_loop.hpp"
+#include "hardware/ethercat/commands.hpp"
 #include "hardware/imu/hi91_protocol.h"
 #include "hardware/motors/motor_protocol.hpp"
 #include "hardware/remote/wfly_sbus_protocol.h"
-#include "hardware/usb/usb_transmitter.hpp"
 
 namespace dust_control::chassis {
 ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
@@ -101,7 +101,7 @@ void ChassisRuntime::Run() {
     pthread_setname_np(pthread_self(), "dust-chassis");
     std::cout << "Chassis: 1 kHz, "
               << (devices_.motor_adapters.empty() ? "offline"
-                                                  : "USB Bulk / CAN WBD")
+                                                  : "IgH EtherCAT / CAN")
               << ", output="
               << (options_.enable_output ? "remote-gated" : "disabled")
               << std::endl;

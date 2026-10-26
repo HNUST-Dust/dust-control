@@ -16,7 +16,7 @@ constexpr auto kPublicationPeriod = std::chrono::milliseconds(1);
 
 DustControlNode::DustControlNode(const rclcpp::NodeOptions& options)
     : Node("dust_control", options) {
-    // 所有 ROS 实体先于实时控制线程创建；回调不执行 USB 或电机操作。
+    // 所有 ROS 实体先于实时控制线程创建；回调不执行 EtherCAT 或电机操作。
     dust_control_ =
         std::make_unique<app::DustControl>(DeclareConfigurationDirectory());
     imu_publisher_ = create_publisher<sensor_msgs::msg::Imu>(
@@ -139,9 +139,7 @@ void DustControlNode::PublishStatusReport(
     diagnostic.hardware_id =
         dust_control_->configuration().execution.simulate
             ? "simulation"
-            : dust_control_->configuration()
-                  .adapters.at(dust_control_->configuration().chassis.adapter)
-                  .usb.product;
+            : "ethercat:" + dust_control_->configuration().chassis.adapter;
     diagnostic.level = sample.input.feedback_valid && sample.input.imu_fresh &&
                                sample.input.remote_fresh
                            ? diagnostic_msgs::msg::DiagnosticStatus::OK

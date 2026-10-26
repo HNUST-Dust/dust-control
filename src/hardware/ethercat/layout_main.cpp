@@ -37,9 +37,8 @@ void PrintImage(const ProcessImageLayout& image) {
 int main(int argc, char** argv) {
     const bool json = argc == 3 && std::string(argv[2]) == "--json";
     if (argc < 2 || argc > 3 || (argc == 3 && !json)) {
-        std::cerr
-            << "Usage: dust_ethercat_layout CONFIG.yaml [--json]\n"
-               "Offline candidate layout only; no hardware configuration.\n";
+        std::cerr << "Usage: dust_ethercat_layout CONFIG.yaml [--json]\n"
+                     "Layout preview only; no hardware access.\n";
         return 2;
     }
     try {
@@ -47,7 +46,7 @@ int main(int argc, char** argv) {
             dust_control::ethercat::LoadPdoConfig(argv[1]));
         if (json) {
             std::cout << "{\"layout_version\":" << layout.version
-                      << ",\"runtime_connected\":false,\"master_index\":"
+                      << ",\"hardware_accessed\":false,\"master_index\":"
                       << layout.master_index
                       << ",\"cycle_time_us\":" << layout.cycle_time_us
                       << ",\"total_rx_bytes\":" << layout.total_rx_bytes
@@ -73,10 +72,9 @@ int main(int argc, char** argv) {
             }
             std::cout << "}}\n";
         } else {
-            std::cout
-                << "Offline candidate PDO layout (runtime not connected)\n"
-                << "master=" << layout.master_index
-                << " cycle=" << layout.cycle_time_us << " us\n";
+            std::cout << "PDO layout preview (hardware not accessed)\n"
+                      << "master=" << layout.master_index
+                      << " cycle=" << layout.cycle_time_us << " us\n";
             for (const auto& [name, adapter] : layout.adapters) {
                 std::cout << name << ": alias=" << adapter.alias
                           << " position=" << adapter.position

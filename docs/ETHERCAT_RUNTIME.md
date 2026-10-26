@@ -1,0 +1,152 @@
+# IgH EtherCAT 运行时与从站契约
+
+本分支已移除 USB/libusb 后端。ROS 入口、DustControl 装配与底盘/云台/UI 端口使用
+`src/hardware/ethercat`；生产构建启用 IgH。原 USB 源码可从 main/USB 分支查看。
+
+主机代码和离线回归不等于已完成 HPM5E31 固件或实机验收。
+用户提供的 HPM6750 USB 固件不能直接与本主机通信；本次没有修改该外部仓库。
+下面是当前主机实现要求的从站契约，后续协议修改须同步主从。
+
+## 构建与配置
+
+```bash
+source /opt/ros/humble/setup.bash
+# 需要先安装与运行主机内核匹配的 IgH master，并配置专用网口。
+cmake --preset production \
+  -DIGH_INCLUDE_DIR=/opt/etherlab/include \
+  -DIGH_LIBRARY=/opt/etherlab/lib/libethercat.so
+cmake --build --preset production --parallel 2
+```
+
+`DUST_BUILD_IGH=ON` 找不到 ecrt.h/libethercat 时配置失败。OFF 只供离线/测试，
+真实启动会明确失败，不回退其他后端。ROS 模拟模式不申请主站。
+
+`dust_control.yaml` schema 3 包含 execution、motors、ethercat、adapters、modules。
+`ethercat.pdo_file` 相对应用配置文件解析，读取 [ethercat_pdo.yaml](../config/ethercat_pdo.yaml)。
+板卡集合必须一致；传感器绑定必须有对应 UART 接收容量，电机必须有对应 CAN 反馈容量，
+注册命令组必须装得下 CAN 发送槽。所有检查先于主站启动。
+
+PDO 文件每板增加 `vendor_id`、`product_code`（u32），来自从站实际注册身份。
+默认 0 是未配置标记，真实 IgH 启动拒绝它；不猜测厂商号。
+alias/position 定位仍在该文件，周期仅支持 1000 us。布局预览：
+
+```bash
+cmake --preset ethercat-ci
+cmake --build --preset ethercat-ci --parallel 2
+./build/ethercat-ci/src/hardware/ethercat/dust_ethercat_layout config/ethercat_pdo.yaml
+```
+
+## 主站线程与启停
+
+- 一个线程拥有 master 的申请、配置、Receive/Send 与释放；多板不并行调用 IgH。
+- 按 YAML 的字段映射配置 SM2/RxPDO、SM3/TxPDO；Rx SM 看门狗启用。
+  每个条目由 IgH 注册返回实际 domain 偏移，再按条目复制，不能假定本板偏移等于 domain 偏移。
+- 使用单调绝对时间按 1 ms 唤醒；跳过错过的释放点，不突发补发历史目标。
+  停顿达到 20 ms 终止会话；可读取 cycles/missed_periods/max_lateness_ns 统计。
+- 启动等待最多 5 s，要求所有板 OP、完整 domain WKC、有效业务影像。
+  全板发现后统一请求 Arm；全板确认 Active 后才启动业务来源期限并发布就绪。
+- Arm 仅允许转发业务（包括安全失能 CAN），不是自动开放电机力矩；
+  原 enable_output、遥控失能确认、传感器新鲜度、控制器状态机继续生效。
+- 运行中任一板 OP/WKC、ABI、签名、启动标识、会话或来源期限失效，停止整个主站。
+  故障不可自动重新 Arm；必须重建应用/会话并重新经过门控。
+- 退出前全板影像清空并设置 Stop，统一发送 25 个 1 ms 停止周期，然后释放主站。
+  传输失败时无法保证 Stop 送达；从站必须独立看门狗和本地保护。
+
+## 版本与公共头
+
+使用 [布局生成器](ETHERCAT_PDO_CONFIGURATION.md)产生的字段与偏移。
+显式小端；magic 为 `0x31435444`（DTC1），ABI major=1、minor=0。
+这是新 EtherCAT 协议，不兼容旧 MPC PDO 或 USB 包格式。
+
+Rx control_flags：Discover=1、Arm=2、Stop=4。Stop 区不携带业务目标。
+Tx business_state：Ready=1、Active=2、Protected=3；fault_flags 非零触发主机停止。
+capability_mask 的 bit31 必须表示固件本地 CAN 保护和控制期限机制已安装可用。
+低位沿用 CAN=bit0、UART1/2=bit1/2、IMU=bit3、UART3～6=bit4～7；
+bit16～19 逐位表示 CAN0～3 可用。主机检查所有映射/注册需要的通道能力。
+
+Rx session_id 为每次启动产生的非零 64 位随机标识；expected_boot_id 回显从站当前非零
+启动标识。Tx accepted_session_id 在 Active 时必须等于主机新会话。
+从站复位必须更新 boot_id；老影像不能被当作新授权。
+同 session 的 Arm 是幂等维持状态，不延长任何来源期限，不自动解除 Protected。
+
+公共头历史名称 configuration_signature 在当前实现承载布局 CRC32，
+不是 CAN 保护表签名。原设备白名单与安全保护仍须由从站独立维护，不能因布局一致而绕过。
+Tx publish_sequence 每次发布新影像递增；重复影像不重新解析设备，也不刷新采样时间，
+连续 20 ms 无新影像停止。CAN 批次、UART 块、IMU 样本各有独立序号。
+
+## 从站启动对象 0x2100
+
+以下 u32 对象由 IgH 作为启动 SDO 配置写入；下载失败/拒绝会阻止正常 OP/业务握手。
+
+| subindex | 含义 |
+|---:|---|
+| 1 | layout_signature |
+| 2 | cycle_time_us，必须为 1000 |
+| 3 | 控制看门狗上限，20000 us |
+| 4～5 | chassis/gimbal CAN tx_slots |
+| 6～9 | CAN0～3 rx_slots |
+| 10～21 | UART1～6 tx_bytes/rx_bytes，逐路交替 |
+| 22 | onboard_imu，0/1 |
+
+从站须先提供支持上限内的候选对象/映射能力；容量 SDO 不是让主机在从站中创建任意对象。
+IgH 对 SDO 与 PDO 的配置顺序不作为创建对象的前提。固件在全部参数与实际映射一致后
+回显签名并进入 Ready，拒绝超资源、版本不兼容或局部配置。与主机生产输出分离。
+
+从站必须实现 0x1600/0x1A00 系列动态映射、0x1C12/0x1C13 分配及工具输出的对象。
+SM 长度、三缓冲 RAM、邮箱与 EEPROM/ESI 应由固件工程验证。本仓库不提供虚假的可刷写 ESI。
+首版未启用 DC，避免把主机单调时间误当 EtherCAT 纪元时间。
+
+## CAN
+
+固定两来源分区（可由 YAML 设槽数为 0 省略）。来源注册禁止命令组冲突；
+SubmitCan 同步复制最新完整批次，拒绝旧序号、未来时间、过期目标和未注册的 bus/ID。
+每来源序号仅在业务线程生成新目标时推进；周期交换序号、UART 流量不续控制期限。
+空批次可表达来源活性，不重放上次 CAN。
+
+接纳新 source_sequence 才向 CAN 派发一次；重复 PDO 不重复派发。
+remaining_valid_us 已扣主机等待时间；从站首次接纳时建立截止时间，同序号不可延长。
+active_source_mask 在 Arm 时锁定；来源首帧等待不超过 20 ms，任何来源失效触发整板保护。
+本地保护表和波特率沿用编译期 YAML 职责，不由普通 PDO 改写。
+
+上行不确认、不可靠重传，按总线发布最新的有界原始事件窗口；溢出丢旧且累计计数。
+主机按 batch_sequence 去重，按 bus_sequence 检测缺帧；发现缺口/丢弃变化重置本板电机
+解码状态，避免对缺失的角度样本继续展开。新样本恢复前原设备新鲜度门控仍有效。
+
+## UART 与 IMU
+
+UART flags：data_valid=1、ack_valid=2、discontinuity=4。
+块序号从 1 开始，u32 按半空间规则比较和回绕，ACK 有效位区分初始 0。
+每路独立 4 块窗口，累计确认，发送端在未确认窗口内按序循环发送；
+接收端只交付期望下一块，重复不重复写串口/解析，缺口不推进 ACK。
+
+每路主机消息 FIFO 16 条、每条最多 512 B；分块大小来自 YAML。
+尚未开始的过期消息可丢弃；已部分转交窗口的消息或在途块过期，终止整机会话，
+不拼接旧消息尾部与新消息头部。首次发送后 20 ms 无对应 ACK 也终止会话。
+从站确认前须预留完整块输出空间；UART 活动不得维持 CAN 来源期限。
+接收 discontinuity 表示固件明确丢块/重置流，主机通知原设备解析器丢弃半帧。
+
+slave_now_us/capture_time_us 来自同一从站时钟，差值必须小于 20 ms；
+主机保守加 1 ms 周期传输年龄，真实单程误差还需实机测量，不能宣称时钟已同步。
+原电机/HI91 的 3 ms 新鲜度不放宽。板载 IMU 保留 25 字节原始样本、温度和序号，
+不取代 HI91；从站本地温控不由通信会话停机替代。
+
+## 状态查询与诊断
+
+每周期读取 224 B 诊断，可通过 Session::diagnostics() 复制快照。
+RequestStatus(target, channel, page) 请求原 USB 等价的详细状态分页，target=0会话/1CAN/2UART，
+page=0..63，线上的 status_target = (page << 2) | target。
+从站在处理后回显 status_reply_sequence，回复位于诊断最后 16 B：result:i32 + 3×u32。
+Session::status_reply() 读取结果；接纳与 CAN/UART 实际完成必须区分。
+
+第一页以原 USB 状态结构字段顺序每页 3 个 u32 排列：
+会话从 armed/configured/stop_reason 开始，后续 rejected/can_drops/sensor_drops、
+stop_errors/reply_drops/transport_send_errors、transport_receive_drops/endpoint_errors/protection_signature、
+max_lease_us/0/0；CAN 依次 received/submitted/completed、errors/dropped/queue_depth、
+controller_state/tx_errors/rx_errors；UART 为 received_blocks/dropped_blocks/completed_writes、tx_errors/0/0。
+无效页/通道返回负错误码（建议 -EINVAL）；具体固件错误枚举后续统一。
+
+## 验证边界
+
+原生测试使用可注入的测试传输验证单线程、多板、错签名、WKC 丢失、重启、
+旧数据、来源期限、UART 窗口和整机离线生命周期。测试后端只在测试中构造，生产固定 IgH。
+真实 ecrt.h/libethercat 编译检查与硬件交换验收分别记录；没有从站固件时不能进行后者。

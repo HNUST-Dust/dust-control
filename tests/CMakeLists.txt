@@ -1,26 +1,3 @@
-add_executable(chassis_contracts chassis/contracts.cpp)
-target_link_libraries(chassis_contracts PRIVATE dust_usb dust_chassis)
-add_test(NAME chassis.contracts COMMAND chassis_contracts)
-add_library(production_usb_mock SHARED chassis/usb_mock.cpp)
-target_link_libraries(production_usb_mock PRIVATE dust_usb_protocol dust_imu dust_chassis Threads::Threads PkgConfig::LIBUSB)
-set(DUST_TEST_NODE "")
-if(DUST_BUILD_ROS2)
-  set(DUST_TEST_NODE "$<TARGET_FILE:dust_control_node>")
-  add_test(NAME chassis.disabled_smoke COMMAND ${Python3_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/runtime/startup_smoke.py" "${DUST_TEST_NODE}")
-  add_test(NAME usb.lifecycle COMMAND ${Python3_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/chassis/usb_integration.py" "${DUST_TEST_NODE}" $<TARGET_FILE:production_usb_mock>)
-  set_tests_properties(chassis.disabled_smoke usb.lifecycle PROPERTIES
-    ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH};ROS_LOCALHOST_ONLY=1;ROS_DOMAIN_ID=169;ROS_LOG_DIR=/tmp/dust-control-startup-test-logs"
-    RUN_SERIAL TRUE)
-  set_tests_properties(usb.lifecycle PROPERTIES TIMEOUT 40)
-endif()
-add_executable(usb_reconnect_contract chassis/usb_reconnect.cpp)
-target_link_libraries(usb_reconnect_contract PRIVATE dust_usb)
-add_test(NAME usb.reconnect COMMAND ${CMAKE_COMMAND} -E env
-  LD_PRELOAD=$<TARGET_FILE:production_usb_mock> WBR_MOCK_STALE_SESSION=1 WBR_MOCK_REQUIRE_PREPOST=1
-  $<TARGET_FILE:usb_reconnect_contract>)
-set_tests_properties(usb.reconnect PROPERTIES TIMEOUT 10)
 add_executable(chassis_observation_queue chassis/observation_queue.cpp)
 target_link_libraries(chassis_observation_queue PRIVATE dust_chassis Threads::Threads)
 add_test(NAME chassis.observation_queue COMMAND chassis_observation_queue)
@@ -67,30 +44,6 @@ if(DUST_BUILD_MPC AND DUST_BUILD_TOOLS)
   target_link_libraries(leg_mpc_demo PRIVATE dust_mpc)
 endif()
 
-add_executable(runtime_config_contracts runtime/config_contracts.cpp)
-target_link_libraries(runtime_config_contracts PRIVATE dust_startup)
-add_test(NAME configuration.startup_loading COMMAND ${Python3_EXECUTABLE}
-  "${CMAKE_CURRENT_SOURCE_DIR}/runtime/config_loading.py"
-  $<TARGET_FILE:runtime_config_contracts> "${PROJECT_SOURCE_DIR}/config" "${DUST_TEST_NODE}")
-set_tests_properties(configuration.startup_loading PROPERTIES TIMEOUT 35
-  ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH};ROS_LOCALHOST_ONLY=1;ROS_DOMAIN_ID=170;ROS_LOG_DIR=/tmp/dust-control-config-test-logs")
-
-add_executable(adapter_protocol_contracts protocols/adapter_protocol.cpp)
-target_link_libraries(adapter_protocol_contracts PRIVATE dust_usb_protocol)
-add_test(NAME usb.generic_protocol_contracts COMMAND adapter_protocol_contracts)
-
-add_executable(uart_channel_contracts protocols/uart_channels.cpp)
-target_link_libraries(uart_channel_contracts PRIVATE dust_usb)
-target_compile_options(uart_channel_contracts PRIVATE -UNDEBUG)
-add_test(NAME usb.uart_channels COMMAND uart_channel_contracts)
-
-add_executable(uart_roundtrip_contracts protocols/uart_roundtrip.cpp)
-target_link_libraries(uart_roundtrip_contracts PRIVATE dust_usb)
-target_compile_options(uart_roundtrip_contracts PRIVATE -UNDEBUG)
-add_test(NAME usb.uart_roundtrip COMMAND ${CMAKE_COMMAND} -E env
-  LD_PRELOAD=$<TARGET_FILE:production_usb_mock> WBR_MOCK_ALL_UARTS=1
-  $<TARGET_FILE:uart_roundtrip_contracts>)
-set_tests_properties(usb.uart_roundtrip PROPERTIES TIMEOUT 10)
 
 add_executable(motor_device_contracts protocols/motor_devices.cpp)
 target_link_libraries(motor_device_contracts PRIVATE dust_motors)
@@ -112,50 +65,25 @@ set_tests_properties(devices.snapshot_concurrency PROPERTIES TIMEOUT 20)
 add_test(NAME architecture.dependencies COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/architecture_boundaries.py" "${PROJECT_SOURCE_DIR}")
 
-add_executable(usb_transmitter_contracts protocols/usb_transmitter.cpp)
-target_link_libraries(usb_transmitter_contracts PRIVATE dust_usb)
-target_compile_options(usb_transmitter_contracts PRIVATE -UNDEBUG)
-add_test(NAME usb.transmit_scheduling COMMAND usb_transmitter_contracts)
-add_executable(usb_transmit_integration chassis/usb_transmit_integration.cpp)
-target_link_libraries(usb_transmit_integration PRIVATE dust_usb)
-target_compile_options(usb_transmit_integration PRIVATE -UNDEBUG)
-add_test(NAME usb.transmit_multi_producer COMMAND ${CMAKE_COMMAND} -E env
-  LD_PRELOAD=$<TARGET_FILE:production_usb_mock> WBR_MOCK_ALL_UARTS=1
-  $<TARGET_FILE:usb_transmit_integration>)
-set_tests_properties(usb.transmit_multi_producer PROPERTIES TIMEOUT 10)
-
-add_executable(chassis_runtime_lifecycle chassis/runtime_lifecycle.cpp)
-target_link_libraries(chassis_runtime_lifecycle PRIVATE dust_chassis_runtime)
-target_compile_options(chassis_runtime_lifecycle PRIVATE -UNDEBUG)
-add_test(NAME chassis.runtime_lifecycle COMMAND ${CMAKE_COMMAND} -E env
-  LD_PRELOAD=$<TARGET_FILE:production_usb_mock>
-  $<TARGET_FILE:chassis_runtime_lifecycle>)
-set_tests_properties(chassis.runtime_lifecycle PROPERTIES TIMEOUT 10)
-
-add_executable(business_runtime_lifecycle runtime/business_lifecycle.cpp)
-target_link_libraries(business_runtime_lifecycle PRIVATE dust_startup)
-target_compile_options(business_runtime_lifecycle PRIVATE -UNDEBUG)
-add_test(NAME runtime.business_lifecycle COMMAND ${CMAKE_COMMAND} -E env
-  LD_PRELOAD=$<TARGET_FILE:production_usb_mock>
-  $<TARGET_FILE:business_runtime_lifecycle> "${PROJECT_SOURCE_DIR}/config")
-set_tests_properties(runtime.business_lifecycle PROPERTIES TIMEOUT 10)
-
-add_executable(dust_control_topology_contracts runtime/dust_control_topology.cpp)
-target_link_libraries(dust_control_topology_contracts PRIVATE dust_startup)
-target_compile_options(dust_control_topology_contracts PRIVATE -UNDEBUG)
-add_test(NAME configuration.dust_control_topology COMMAND ${Python3_EXECUTABLE}
-  "${CMAKE_CURRENT_SOURCE_DIR}/runtime/dust_control_topology.py"
-  $<TARGET_FILE:dust_control_topology_contracts> $<TARGET_FILE:production_usb_mock>
-  "${PROJECT_SOURCE_DIR}/config" "${DUST_TEST_NODE}")
-set_tests_properties(configuration.dust_control_topology PROPERTIES TIMEOUT 35 RUN_SERIAL TRUE
-  ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH};ROS_LOCALHOST_ONLY=1;ROS_DOMAIN_ID=171;ROS_LOG_DIR=/tmp/dust-control-topology-test-logs")
-
-add_executable(usb_wire_vectors protocols/usb_wire_vectors.cpp)
-target_link_libraries(usb_wire_vectors PRIVATE dust_usb_protocol)
-add_test(NAME usb.wire_v4_baseline COMMAND ${Python3_EXECUTABLE}
-  "${CMAKE_CURRENT_SOURCE_DIR}/protocols/check_usb_vectors.py"
-  $<TARGET_FILE:usb_wire_vectors> "${CMAKE_CURRENT_SOURCE_DIR}/protocols/usb_v4_vectors.txt")
 
 add_test(NAME ethercat.pdo_layout COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/pdo_layout.py"
   $<TARGET_FILE:dust_ethercat_layout> "${PROJECT_SOURCE_DIR}/config/ethercat_pdo.yaml")
+
+add_executable(ethercat_runtime_contracts ethercat/runtime.cpp)
+target_link_libraries(ethercat_runtime_contracts PRIVATE dust_startup)
+target_compile_definitions(ethercat_runtime_contracts PRIVATE DUST_TEST_IGH=$<BOOL:${DUST_BUILD_IGH}>)
+target_compile_options(ethercat_runtime_contracts PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME ethercat.runtime COMMAND ethercat_runtime_contracts "${PROJECT_SOURCE_DIR}/config")
+set_tests_properties(ethercat.runtime PROPERTIES TIMEOUT 15)
+
+add_executable(ethercat_config_probe ethercat/config_probe.cpp)
+target_link_libraries(ethercat_config_probe PRIVATE dust_startup)
+add_test(NAME ethercat.configuration COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/configuration.py"
+  $<TARGET_FILE:ethercat_config_probe> "${PROJECT_SOURCE_DIR}/config")
+
+add_executable(chassis_control_contracts chassis/control_contracts.cpp)
+target_link_libraries(chassis_control_contracts PRIVATE dust_chassis dust_motors)
+target_compile_options(chassis_control_contracts PRIVATE -UNDEBUG)
+add_test(NAME chassis.control_contracts COMMAND chassis_control_contracts)

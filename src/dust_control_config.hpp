@@ -4,13 +4,10 @@
 #include <string>
 
 #include "concurrency/thread.hpp"
-#include "hardware/usb/usb_link.hpp"
-#include "hardware/usb/usb_transmitter.hpp"
-
+#include "hardware/ethercat/session.hpp"
 namespace dust_control::app {
 struct AdapterConfig {
-    dust_control::host::UsbOptions usb;
-    dust_control::host::UsbTransmitOptions transmit;
+    host::EthercatDeviceOptions devices;
 };
 struct ModuleConfig {
     bool enabled = true;
@@ -18,14 +15,13 @@ struct ModuleConfig {
     concurrency::ThreadOptions thread;
 };
 struct ExecutionConfig {
-    bool simulate = false;
-    bool realtime = true;
-    bool enable_output = false;
+    bool simulate = false, realtime = true, enable_output = false;
 };
-// 描述启动方式与装配；控制参数、设备协议和线程循环仍归各模块所有。
 struct DustControlConfig {
     ExecutionConfig execution;
     std::string motors_file = "motors_params.yaml";
+    ethercat::PdoConfig pdo;
+    concurrency::ThreadOptions ethercat_thread{true, 3, 80};
     std::map<std::string, AdapterConfig> adapters{{"base", {}}};
     ModuleConfig chassis{true, "base", {true, 3, 80}};
     ModuleConfig gimbal;

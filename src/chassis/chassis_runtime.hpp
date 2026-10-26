@@ -16,7 +16,7 @@ class WflySbusDecoder;
 class Hi91Decoder;
 }  // namespace dust_control::devices
 namespace dust_control::host {
-class UsbTransmitter;
+class EthercatTransmitter;
 }
 namespace dust_control::chassis {
 struct ChassisRuntimeOptions {
@@ -29,7 +29,7 @@ struct ChassisRuntimeOptions {
 struct ChassisMotorAdapter {
     std::string name;
     const devices::MotorFeedbackDecoder* feedback = nullptr;
-    dust_control::host::UsbTransmitter* transmitter = nullptr;
+    dust_control::host::EthercatTransmitter* transmitter = nullptr;
     devices::MotorConfig motors;
     // DustControl 在握手和发送线程就绪后置 true；独立调用者可省略。
     const std::atomic<bool>* started = nullptr;
@@ -48,7 +48,7 @@ class ChassisRuntime {
                    dust_control::chassis::ChassisConfig config = {});
     ~ChassisRuntime();
     void Start();
-    // 只停止并回收本模块线程，不停止借用的 USB 资源。
+    // 只停止并回收本模块线程，不停止借用的 EtherCAT 资源。
     void Stop();
     bool finished() const {
         return finished_.load();

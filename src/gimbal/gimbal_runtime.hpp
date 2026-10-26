@@ -8,7 +8,7 @@
 #include <thread>
 
 #include "concurrency/thread.hpp"
-#include "hardware/usb/usb_transmitter.hpp"
+#include "hardware/ethercat/commands.hpp"
 
 namespace dust_control::devices {
 class MotorFeedbackDecoder;

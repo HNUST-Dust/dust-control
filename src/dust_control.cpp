@@ -28,11 +28,7 @@ DustControl::DustControl(DustControlConfig config,
         imu_ = devices::LoadImuConfig(
             (directory / "sensors_params.yaml").string());
     }
-    // 配置先完整加载；此处不打开 USB，也不启动线程。
-    for (auto& [name, adapter] : config_.adapters) {
-        adapter.usb.thread_name = "usb-" + name + "-rx";
-        adapter.transmit.thread_name = "usb-" + name + "-tx";
-    }
+    // 配置先完整加载；此处不申请主站或启动线程。
     if (config_.chassis.enabled) {
         chassis_motors_ = devices::LoadMotorConfig(
             (directory / config_.motors_file).string());
@@ -90,29 +86,23 @@ void DustControl::Start() {
     }
 }
 void DustControl::CreateAdapters() {
-    if (!config_.execution.simulate) {
-        for (const auto& [name, adapter] : config_.adapters) {
-            const bool motor_source =
-                config_.chassis.enabled && motor_configs_.contains(name);
-            const bool used =
-                motor_source ||
-                (config_.chassis.enabled && config_.chassis.adapter == name) ||
-                (config_.gimbal.enabled && config_.gimbal.adapter == name) ||
-                (config_.ui.enabled && config_.ui.adapter == name);
-            if (!used) {
-                continue;
-            }
-            auto usb = adapter.usb;
-            auto transmit = adapter.transmit;
-            usb.realtime = transmit.realtime = config_.execution.realtime;
-            const auto motors = motor_configs_.find(name);
-            usb.decode_motors = motors != motor_configs_.end();
-            auto session = std::make_unique<dust_control::host::UsbSession>(
-                usb,
-                usb.decode_motors ? motors->second : devices::MotorConfig{},
-                imu_, transmit);
-            adapters_.try_emplace(name, std::move(session));
-        }
+    if (config_.execution.simulate) {
+        return;
+    }
+    auto thread = config_.ethercat_thread;
+    thread.realtime = config_.execution.realtime;
+    master_ = std::make_unique<ethercat::EthercatMaster>(config_.pdo, thread);
+    const auto layout = ethercat::BuildPdoLayout(config_.pdo);
+    for (const auto& [name, adapter] : config_.adapters) {
+        auto devices = adapter.devices;
+        const auto motors = motor_configs_.find(name);
+        devices.decode_motors = motors != motor_configs_.end();
+        auto session = std::make_unique<host::EthercatSession>(
+            config_.pdo.adapters.at(name), layout.adapters.at(name), devices,
+            devices.decode_motors ? motors->second : devices::MotorConfig{},
+            imu_);
+        master_->Attach(name, *session);
+        adapters_.try_emplace(name, std::move(session));
     }
 }
 
@@ -125,18 +115,17 @@ void DustControl::CreateChassis() {
         control.enable_output = config_.execution.enable_output;
         control.startup_ready = &startup_ready_;
         chassis::ChassisDevices devices;
-        if (auto* usb = SessionFor(config_.chassis.adapter)) {
-            devices.remote = &usb->link().wfly_sbus_decoder();
-            devices.imu = &usb->link().hi91_decoder();
+        if (auto* bus = SessionFor(config_.chassis.adapter)) {
+            devices.remote = &bus->wfly_sbus_decoder();
+            devices.imu = &bus->hi91_decoder();
         }
         for (const auto& [name, config] : motor_configs_) {
-            if (auto* usb = SessionFor(name)) {
+            if (auto* bus = SessionFor(name)) {
                 if (std::any_of(config.present.begin(), config.present.end(),
                                 [](bool value) { return value; })) {
                     devices.motor_adapters.push_back(
-                        {name, &usb->link().motor_decoder(),
-                         &usb->transmitter(), config,
-                         &adapters_.at(name).started});
+                        {name, &bus->motor_decoder(), &bus->transmitter(),
+                         config, &adapters_.at(name).started});
                 }
             }
         }
@@ -151,12 +140,12 @@ void DustControl::CreateChassis() {
 void DustControl::CreateGimbal() {
     if (config_.gimbal.enabled) {
         gimbal::GimbalDevices devices;
-        if (auto* usb = SessionFor(config_.gimbal.adapter)) {
+        if (auto* bus = SessionFor(config_.gimbal.adapter)) {
             if (motor_configs_.contains(config_.gimbal.adapter)) {
-                devices.motors = &usb->link().motor_decoder();
+                devices.motors = &bus->motor_decoder();
             }
-            devices.imu = &usb->link().hi91_decoder();
-            devices.can.emplace(usb->transmitter(),
+            devices.imu = &bus->hi91_decoder();
+            devices.can.emplace(bus->transmitter(),
                                 dust_control::host::CanProducer::kGimbal);
         }
         auto thread = config_.gimbal.thread;
@@ -168,9 +157,9 @@ void DustControl::CreateGimbal() {
 void DustControl::CreateUi() {
     if (config_.ui.enabled) {
         ui::UiDevices devices;
-        if (auto* usb = SessionFor(config_.ui.adapter)) {
-            devices.referee = &usb->link().referee_decoder();
-            devices.uart.emplace(usb->transmitter());
+        if (auto* bus = SessionFor(config_.ui.adapter)) {
+            devices.referee = &bus->referee_decoder();
+            devices.uart.emplace(bus->transmitter());
         }
         auto thread = config_.ui.thread;
         thread.realtime = config_.execution.realtime;
@@ -179,30 +168,19 @@ void DustControl::CreateUi() {
 }
 
 void DustControl::StartAdapters() {
-    // 每块板就绪后立即启动绑定的模块，避免等待其他板时耗尽本板租约。
-    // 输出仍受 startup_ready_ 限制；任一后续启动失败均回收全部会话。
+    if (master_ && !master_->Start()) {
+        throw std::runtime_error("EtherCAT startup: " + master_->error());
+    }
+    for (auto& [name, adapter] : adapters_) {
+        adapter.started = true;
+        std::cout << "EtherCAT adapter " << name << " ready" << std::endl;
+    }
     for (const auto& [name, config] : config_.adapters) {
-        const auto found = adapters_.find(name);
-        if (found != adapters_.end()) {
-            auto& adapter = found->second;
-            if (adapter.session->transmitter().HasCanProducers()) {
-                if (!adapter.session->Start()) {
-                    throw std::runtime_error("Adapter " + name + ": " +
-                                             adapter.session->error());
-                }
-                adapter.started = true;
-                std::cout << "Adapter " << name << ": Bridge capabilities=0x"
-                          << std::hex << adapter.session->link().capabilities()
-                          << std::dec << std::endl;
-            } else {
-                std::cout << "Adapter " << name
-                          << ": configured, idle (no CAN producer)"
-                          << std::endl;
-            }
-        }
+        (void)config;
         StartModulesFor(name);
     }
 }
+
 void DustControl::StartModulesFor(const std::string& adapter) {
     if (gimbal_ && config_.gimbal.adapter == adapter) {
         gimbal_->Start();
@@ -212,7 +190,7 @@ void DustControl::StartModulesFor(const std::string& adapter) {
     }
 }
 
-dust_control::host::UsbSession* DustControl::SessionFor(
+dust_control::host::EthercatSession* DustControl::SessionFor(
     const std::string& name) {
     const auto found = adapters_.find(name);
     return found == adapters_.end() ? nullptr : found->second.session.get();
@@ -230,18 +208,17 @@ void DustControl::Stop() {
     if (ui_) {
         ui_->Stop();
     }
-    // 各发送线程并发提交 Stop；单板的保护等待不能消耗其他板的租约。
-    for (auto& [name, adapter] : adapters_) {
-        adapter.session->transmitter().RequestStop();
-    }
-    for (auto& [name, adapter] : adapters_) {
-        adapter.session->Stop();
+    if (master_) {
+        master_->Stop();
     }
     stopped_ = true;
 }
 bool DustControl::finished() const {
     if (stopped_ || (chassis_ && chassis_->finished()) ||
         (gimbal_ && gimbal_->finished()) || (ui_ && ui_->finished())) {
+        return true;
+    }
+    if (master_ && !master_->healthy()) {
         return true;
     }
     for (const auto& [name, adapter] : adapters_) {
@@ -252,6 +229,9 @@ bool DustControl::finished() const {
     return false;
 }
 std::string DustControl::error() const {
+    if (master_ && !master_->error().empty()) {
+        return "EtherCAT: " + master_->error();
+    }
     if (chassis_ && chassis_->finished() && !chassis_->error().empty()) {
         return "chassis: " + chassis_->error();
     }
@@ -286,7 +266,7 @@ ui::UiRuntime& DustControl::ui() {
     }
     return *ui_;
 }
-const dust_control::host::UsbSession& DustControl::adapter(
+const dust_control::host::EthercatSession& DustControl::adapter(
     const std::string& name) const {
     return *adapters_.at(name).session;
 }

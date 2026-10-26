@@ -18,8 +18,8 @@
 | 文档 | 内容 |
 |---|---|
 | [C++ 风格](CPP_STYLE.md) | 排版、命名、所有权与维护规则 |
-| [USB 协议与会话](protocols/USB.md) | 板卡发现、USB v4 报告、握手和保护边界 |
-| [UART 接口](protocols/UART.md) | 六路通道分配、原始队列与发送规则 |
+| [EtherCAT 运行时](ETHERCAT_RUNTIME.md) | IgH 主站、动态 PDO、握手与从站保护契约 |
+| [PDO 配置](ETHERCAT_PDO_CONFIGURATION.md) | YAML 通道容量、布局签名与实际主站映射 |
 | [MPC](MPC.md) | 在研算法、开发程序与验证入口 |
 | [分支约定](BRANCHES.md) | USB 正式分支、EtherCAT 开发分支及 CI |
 | [Foxglove 使用](../tools/foxglove/README.md) | 独立 Bridge、统一端口与布局 |
@@ -32,11 +32,15 @@
 - [性能报告](benchmarks/README.md)：历史测量、环境和原始数据。
 - [v0.1 发布记录](releases/v0.1.md)：发布时的源码与验证范围。
 
-OrbStack 用于开发和功能调试。实际多板 USB、控制周期、ROS2 话题和 Foxglove
+OrbStack 用于开发和功能调试。实际多板 EtherCAT、控制周期、ROS2 话题和 Foxglove
 性能留到目标机器人主机验证，历史虚拟机测量不构成实机性能承诺。
 
 EtherCAT IgH 方案：[通信协议讨论稿](ETHERCAT_PROTOCOL_DISCUSSION.md)（网关职责已确认，协议尚未冻结）。
 
 EtherCAT [PDO 布局提案 v0](ETHERCAT_PDO_LAYOUT_V0.md)：每板容量、分区偏移、候选交付规则与三板预算。
 
-EtherCAT [YAML 可配置 PDO](ETHERCAT_PDO_CONFIGURATION.md)：已实现配置检查、映射生成与离线工具；IgH/从站交互待接入。
+EtherCAT [YAML 可配置 PDO](ETHERCAT_PDO_CONFIGURATION.md)：已实现配置检查、映射生成与 IgH 主机路径；配套从站固件待实现。
+
+[EtherCAT 运行时与从站契约](ETHERCAT_RUNTIME.md)：当前有效的握手、SDO、序号、保护与状态查询规则。
+
+旧 [USB 协议](protocols/USB.md)和 [UART 文档](protocols/UART.md)保留为历史对照，不是本分支当前传输契约。

@@ -1,26 +1,20 @@
 # Standalone communication benchmarks
 
-These tools remain available for performance investigations and are deliberately
-outside the default production dependency graph. The legacy CAN/USB tools use
-historical firmware protocols and remain independent of the current USB v4
-controller; the ROS state benchmark below uses the current message and node. The active MPC algorithm is in src/chassis/mpc; EtherCAT
-code is maintained on its separate development branch. Run
-`bash tests/benchmarks/can_usb_stress_test/tools/build_native.sh` inside Linux to build
-and run the benchmark's offline checks. Real-device benchmark commands retain
-their original opt-in requirements and are not launched by the main build.
+The legacy CAN/USB stress tools have been removed with the USB backend; use main
+for historical experiments. Current tools measure the ROS state and Foxglove paths.
 
 ## Current ROS 2 state / Foxglove benchmark
 
 `ros_state_performance.py` measures the production simulated controller separately
 from a synthetic 1 kHz publisher. The latter busy-waits in a **test-only process**
 to isolate transport capacity from VM timer wakeup limits; it consumes one CPU and
-is neither installed nor built by default. Neither path opens USB or enables motors.
+is neither installed nor built by default. Neither path opens an EtherCAT master or enables motors.
 
 With ROS, the generated Python messages and `tests/requirements.txt` available:
 
 ```bash
 source /opt/ros/humble/setup.bash
-cmake -S . -B build -DBUILD_TESTING=ON -DDUST_BUILD_ROS2=ON
+cmake -S . -B build -DBUILD_TESTING=ON -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF
 cmake --build build --target dust_control_node ros_state_benchmark_publisher --parallel 2
 export PYTHONPATH="$PWD/build/rosidl_generator_py:$PYTHONPATH"
 export LD_LIBRARY_PATH="$PWD/build:$LD_LIBRARY_PATH"

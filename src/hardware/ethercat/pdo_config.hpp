@@ -16,6 +16,8 @@ struct UartCapacity {
 struct AdapterPdoConfig {
     uint16_t alias = 0;
     uint16_t position = 0;
+    uint32_t vendor_id = 0;
+    uint32_t product_code = 0;
     std::array<uint8_t, 2> can_tx_slots{};  // chassis, gimbal
     std::array<uint8_t, 4> can_rx_slots{};
     std::array<UartCapacity, 6> uart{};

@@ -1,5 +1,5 @@
 add_library(dust_ui ui_runtime.cpp)
-target_link_libraries(dust_ui PUBLIC dust_headers Threads::Threads dust_usb)
+target_link_libraries(dust_ui PUBLIC dust_headers Threads::Threads dust_ethercat)
 target_link_libraries(dust_ui PRIVATE dust_realtime)
 target_compile_options(dust_ui PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(dust_control::ui ALIAS dust_ui)

@@ -7,11 +7,9 @@ root = Path(sys.argv[1])
 violations = []
 rules = {
     "src/chassis": ("hardware/", "runtime/"),
-    "src/hardware/usb": (),
-    "src/hardware/usb/protocol": ("libusb", "hardware/", "chassis/", "runtime/"),
     "src/gimbal": ("chassis/chassis_runtime.hpp", "ui/ui_runtime.hpp"),
     "src/ui": ("chassis/chassis_runtime.hpp", "gimbal/gimbal_runtime.hpp"),
-    **{f"src/hardware/{group}": ("hardware/usb/", "chassis/", "runtime/")
+    **{f"src/hardware/{group}": ("hardware/ethercat/", "chassis/", "runtime/")
        for group in ("motors", "remote", "imu", "referee")},
 }
 # 底盘只引用设备侧的被动数据定义，不能引用 Decoder、Encoder 或通信实现。
@@ -25,11 +23,11 @@ for directory, forbidden in rules.items():
         for number, line in enumerate(path.read_text().splitlines(), 1):
             match = re.match(r'\s*#\s*include\s*[<"]([^>"]+)', line)
             if (directory in ("src/gimbal", "src/ui") and match and
-                    match[1] in ("dust_control.hpp", "dust_control_config.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp")):
-                violations.append(f"{path.relative_to(root)}:{number}: business module owns startup/USB lifecycle")
+                    match[1] in ("dust_control.hpp", "dust_control_config.hpp", "hardware/ethercat/master.hpp", "hardware/ethercat/session.hpp", "hardware/ethercat/transport.hpp")):
+                violations.append(f"{path.relative_to(root)}:{number}: business module owns startup/EtherCAT lifecycle")
             is_chassis_runtime = directory == "src/chassis" and path.name in ("chassis_runtime.cpp", "chassis_runtime.hpp", "chassis_config_loading.cpp")
             if is_chassis_runtime and path.name != "chassis_config_loading.cpp" and match and match[1] in (
-                "dust_control.hpp", "dust_control_config.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp",
+                "dust_control.hpp", "dust_control_config.hpp", "hardware/ethercat/master.hpp", "hardware/ethercat/session.hpp", "hardware/ethercat/transport.hpp",
                 "yaml_validation.hpp",
             ):
                 violations.append(f"{path.relative_to(root)}:{number}: chassis runtime owns startup dependency")
@@ -44,11 +42,6 @@ for directory, forbidden in rules.items():
                 if ((match and match[1].startswith(("hardware/", "chassis/", "runtime/")))
                         or "protocols::" in line):
                     violations.append(f"{path.relative_to(root)}:{number}: data header depends on implementation")
-            if directory == "src/hardware/usb" and match and match[1].endswith("_protocol.h") and match[1] not in ("hardware/imu/hi91_protocol.h", "hardware/referee/referee_protocol.h", "hardware/remote/wfly_sbus_protocol.h"):
-                violations.append(f"{path.relative_to(root)}:{number}: USB includes device wire protocol")
-            if directory == "src/hardware/usb" and re.search(
-                    r"\b(DecodeWflySbusFrame|WflySbusFrame|DecodeHi91Frame|CalculateHi91FrameCrc|Hi91TimeGuard|Hi91Sample|DecodeRefereeFrame|DecodeRefereeGameStatus|DecodeRefereeRobotStatus|DecodeRefereeShootData|RefereeFrame)\b", line):
-                violations.append(f"{path.relative_to(root)}:{number}: USB parses device wire data")
             # 公共协议头集中数据定义；算法仍不能使用设备服务。
             if directory == "src/chassis" and not is_chassis_runtime and re.search(
                     r"\b(MotorEncoder|MotorFeedbackDecoder|DecodeMotorFeedback|WflySbusDecoder|Hi91Decoder|Hi91TimeGuard|OnboardImu|RefereeDecoder)\b", line):
@@ -57,9 +50,7 @@ for directory, forbidden in rules.items():
                 violations.append(f"{path.relative_to(root)}:{number}: protocol type")
 
 # 自有代码使用统一根；外部工具生成的历史布局保留其接口。
-generated_namespace_headers = {
-    "tests/benchmarks/can_usb_stress_test/host/bridge_layout.hpp",
-}
+generated_namespace_headers = set()
 for directory in ("src", "tests"):
     for path in (root / directory).rglob("*"):
         if path.suffix not in (".cpp", ".cc", ".h", ".hpp"):
@@ -82,10 +73,17 @@ for directory in ("src", "tests"):
 
 links = (root / "src/chassis/CMakeLists.txt").read_text()
 for block in re.findall(r"target_link_libraries\(dust_chassis\s+([^)]*)\)", links):
-    for dependency in ("dust_usb", "dust_motors", "dust_remote", "dust_imu", "dust_referee", "dust_chassis_runtime", "dust_startup", "yaml-cpp"):
+    for dependency in ("dust_ethercat", "dust_motors", "dust_remote", "dust_imu", "dust_referee", "dust_chassis_runtime", "dust_startup", "yaml-cpp"):
         if dependency in block.split():
             violations.append(f"dust_chassis links {dependency}")
 
 if violations:
     raise SystemExit("\n".join(violations))
 print("Controller/device/transport dependency boundaries passed")
+
+# EtherCAT branch must not retain USB source or link dependencies.
+for path in (root / "src").rglob("*"):
+    if path.suffix in (".cpp", ".hpp", ".h", ".cc", ".txt"):
+        text = path.read_text()
+        if "libusb" in text or "hardware/usb/" in text or "dust_usb" in text:
+            raise SystemExit(f"USB dependency remains: {path}")

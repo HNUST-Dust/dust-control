@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <set>
 #include <stdexcept>
 
@@ -41,30 +42,25 @@ void ValidateDustControlConfig(const DustControlConfig& config) {
         !config.ui.enabled) {
         throw std::invalid_argument("At least one module must be enabled");
     }
-    std::set<std::string> serials;
+    (void)ethercat::BuildPdoLayout(config.pdo);
+    concurrency::ValidateThreadOptions(config.ethercat_thread);
+    if (config.adapters.size() != config.pdo.adapters.size()) {
+        throw std::invalid_argument("Application/PDO adapter sets must match");
+    }
     for (const auto& [name, adapter] : config.adapters) {
-        // Linux 线程名最多 15 字节，名称同时用于 usb-<name>-rx/tx。
-        if (name.empty() || name.size() > 8 ||
-            !std::all_of(name.begin(), name.end(), [](unsigned char value) {
-                return std::isalnum(value) || value == '_';
-            })) {
-            throw std::invalid_argument(
-                "Adapter name must contain 1..8 letters, digits or "
-                "underscores");
+        if (!config.pdo.adapters.contains(name)) {
+            throw std::invalid_argument("Missing PDO adapter: " + name);
         }
-        if (config.adapters.size() > 1 && adapter.usb.serial.empty()) {
-            throw std::invalid_argument(
-                "Multiple adapters require explicit USB serials");
+        adapter.devices.uart_sensors.Validate();
+        const auto& capacity = config.pdo.adapters.at(name);
+        for (const auto port : {adapter.devices.uart_sensors.remote,
+                                adapter.devices.uart_sensors.hi91,
+                                adapter.devices.uart_sensors.referee}) {
+            if (port && !capacity.uart[port - 1].rx_bytes) {
+                throw std::invalid_argument(
+                    "Sensor binding requires UART RX capacity");
+            }
         }
-        if (!adapter.usb.serial.empty() &&
-            !serials.insert(adapter.usb.serial).second) {
-            throw std::invalid_argument("Duplicate adapter USB serial");
-        }
-        adapter.usb.uart_sensors.Validate();
-        concurrency::ValidateThreadOptions(
-            {true, adapter.usb.cpu, adapter.usb.priority});
-        concurrency::ValidateThreadOptions(
-            {true, adapter.transmit.cpu, adapter.transmit.priority});
     }
     for (const auto* module : {&config.chassis, &config.gimbal, &config.ui}) {
         concurrency::ValidateThreadOptions(module->thread);
@@ -84,13 +80,21 @@ void ValidateDustControlConfig(const DustControlConfig& config) {
 DustControlConfig LoadDustControlConfig(const std::string& file) {
     const auto root = YAML::LoadFile(file);
     yaml_validation::ValidateKeys(
-        root, {"schema_version", "execution", "adapters", "modules", "motors"});
-    if (yaml_validation::ParseUnsignedInteger(root["schema_version"], 2) != 2) {
+        root, {"schema_version", "execution", "adapters", "modules", "motors",
+               "ethercat"});
+    if (yaml_validation::ParseUnsignedInteger(root["schema_version"], 3) != 3) {
         throw std::invalid_argument(
             "Unsupported application configuration version");
     }
     DustControlConfig config;
     config.motors_file = root["motors"].as<std::string>();
+    const auto bus = root["ethercat"];
+    yaml_validation::ValidateKeys(bus, {"pdo_file", "thread"});
+    config.ethercat_thread = ReadThread(bus["thread"]);
+    config.pdo =
+        ethercat::LoadPdoConfig((std::filesystem::path(file).parent_path() /
+                                 bus["pdo_file"].as<std::string>())
+                                    .string());
     const auto execution = root["execution"];
     yaml_validation::ValidateKeys(execution,
                                   {"simulate", "realtime", "enable_output"});
@@ -105,20 +109,12 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     for (const auto& entry : adapters) {
         const auto name = entry.first.as<std::string>();
         const auto node = entry.second;
-        yaml_validation::ValidateKeys(
-            node, {"serial", "receive_thread", "send_thread"},
-            {"product", "pid", "strict_hi91_crc", "uart_sensors"});
+        yaml_validation::ValidateKeys(node, {"uart_sensors"},
+                                      {"strict_hi91_crc"});
         AdapterConfig adapter;
-        adapter.usb.serial = node["serial"].as<std::string>();
-        if (node["product"]) {
-            adapter.usb.product = node["product"].as<std::string>();
-        }
-        if (node["pid"] && !node["pid"].IsNull()) {
-            adapter.usb.pid = uint16_t(
-                yaml_validation::ParseUnsignedInteger(node["pid"], 65535));
-        }
         if (node["strict_hi91_crc"]) {
-            adapter.usb.strict_hi91_crc = node["strict_hi91_crc"].as<bool>();
+            adapter.devices.strict_hi91_crc =
+                node["strict_hi91_crc"].as<bool>();
         }
         if (const auto sensors = node["uart_sensors"]) {
             yaml_validation::ValidateKeys(sensors,
@@ -135,16 +131,10 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
                 }
                 return static_cast<uint8_t>(parsed);
             };
-            adapter.usb.uart_sensors = {channel(sensors["remote"]),
-                                        channel(sensors["hi91"]),
-                                        channel(sensors["referee"])};
+            adapter.devices.uart_sensors = {channel(sensors["remote"]),
+                                            channel(sensors["hi91"]),
+                                            channel(sensors["referee"])};
         }
-        const auto receive = ReadThread(node["receive_thread"]);
-        const auto send = ReadThread(node["send_thread"]);
-        adapter.usb.cpu = receive.cpu;
-        adapter.usb.priority = receive.priority;
-        adapter.transmit.cpu = send.cpu;
-        adapter.transmit.priority = send.priority;
         if (!config.adapters.emplace(name, std::move(adapter)).second) {
             throw std::invalid_argument("Duplicate adapter name: " + name);
         }

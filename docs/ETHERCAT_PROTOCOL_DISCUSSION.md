@@ -1,6 +1,6 @@
 > 当前实现：支持 [YAML 配置 PDO 布局](ETHERCAT_PDO_CONFIGURATION.md)。
 > 本文早期固定容量/偏移建议已被替代；字段类型保留，通道容量与偏移由 YAML 推导。
-> IgH 动态映射下发与从站对象字典尚未接通。
+> IgH 主机运行时已接通；从站固件/对象字典仍需实现，见 [运行时契约](ETHERCAT_RUNTIME.md)。
 
 # IgH EtherCAT 通信协议讨论稿
 

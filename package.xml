@@ -2,7 +2,7 @@
 <package format="3">
   <name>dust_control</name>
   <version>0.1.0</version>
-  <description>ROS 2 chassis node with an independent USB and realtime control loop.</description>
+  <description>ROS 2 chassis node with an IgH EtherCAT gateway and realtime control loop.</description>
   <maintainer email="maintainers@hnust-dust.org">HNUST-Dust</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -13,7 +13,6 @@
   <depend>diagnostic_msgs</depend>
   <depend>std_msgs</depend>
   <depend>eigen</depend>
-  <depend>libusb-1.0</depend>
   <depend>yaml-cpp</depend>
   <test_depend>python3-yaml</test_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>

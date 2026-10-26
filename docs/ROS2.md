@@ -1,7 +1,7 @@
 # ROS2 节点使用与接口
 
 已在 Ubuntu 22.04 / ROS 2 Humble 验证。对外为单个 `dust_control` 节点；
-控制算法、USB v4 协议和保护帧不变。`src/main.cpp` 是唯一应用入口，
+控制算法与原设备协议保留，通信后端改为 IgH EtherCAT。`src/main.cpp` 是唯一应用入口，
 通过 `src/dust_control.*` 装配各模块，模拟模式也使用此入口。
 
 ## 构建和离线启动
@@ -10,14 +10,14 @@
 source /opt/ros/humble/setup.bash
 colcon --log-base build/colcon-log build --base-paths . \
   --build-base build/colcon --install-base build/ros-install \
-  --cmake-args -DDUST_BUILD_ROS2=ON \
+  --cmake-args -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF \
     -DPython3_EXECUTABLE=/usr/bin/python3 -DPYTHON_EXECUTABLE=/usr/bin/python3
 source build/ros-install/setup.bash
 # 先在配置目录的 dust_control.yaml 中设置 simulate: true、realtime: false
 ros2 launch dust_control dust_control.launch.py
 ```
 
-该命令不打开 USB。Ctrl+C 停止并回收控制线程。真实运行时默认禁止输出；
+simulate:true 时该命令不申请 EtherCAT 主站。Ctrl+C 停止并回收控制线程。真实运行时默认禁止输出；
 YAML `execution.enable_output: true` 仍须满足物理遥控失能姿态确认、遥控使能、
 传感器新鲜度及原状态机门控。无运行期使能服务，不自动重新 Arm。
 
@@ -63,7 +63,7 @@ ros2 launch dust_control dust_control.launch.py config_directory:=/path/to/confi
 simulate、realtime、enable_output 统一由 dust_control.yaml 的 execution 段加载。
 旧 ROS 参数与命令行运行开关不再支持，不保留覆盖 YAML 的第二配置入口。
 不提供 run_seconds，使用 Ctrl+C 正常停止；模块禁用时也可正常退出。
-线程、Adapter、序列号及 CPU 配置见 [装配文档](DUST_CONTROL_CONFIGURATION.md)。
+线程、Adapter、EtherCAT 身份及 CPU 配置见 [装配文档](DUST_CONTROL_CONFIGURATION.md)。
 
 ROS2 话题和 Foxglove 性能验收留到实机；OrbStack 用于构建与功能调试。
 

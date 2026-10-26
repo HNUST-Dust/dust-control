@@ -7,10 +7,10 @@
 #include "chassis/chassis_runtime.hpp"
 #include "dust_control_config.hpp"
 #include "gimbal/gimbal_runtime.hpp"
+#include "hardware/ethercat/master.hpp"
 #include "hardware/imu/imu_config.hpp"
 #include "hardware/motors/motor_config.hpp"
 #include "hardware/remote/remote_config.hpp"
-#include "hardware/usb/usb_session.hpp"
 #include "ui/ui_runtime.hpp"
 
 namespace dust_control::app {
@@ -34,7 +34,7 @@ class DustControl {
         return config_;
     }
     // 只读检查已装配的会话；绑定空模块的会话可能尚未启动。
-    const dust_control::host::UsbSession& adapter(
+    const dust_control::host::EthercatSession& adapter(
         const std::string& name) const;
 
    private:
@@ -44,7 +44,7 @@ class DustControl {
     void CreateUi();
     void StartAdapters();
     void StartModulesFor(const std::string& adapter);
-    dust_control::host::UsbSession* SessionFor(const std::string& name);
+    dust_control::host::EthercatSession* SessionFor(const std::string& name);
     dust_control::chassis::ChassisConfig chassis_config_;
     DustControlConfig config_;
     devices::MotorConfig chassis_motors_;
@@ -52,12 +52,14 @@ class DustControl {
     devices::ImuConfig imu_;
     devices::RemoteConfig remote_;
     struct Adapter {
-        std::unique_ptr<dust_control::host::UsbSession> session;
+        std::unique_ptr<dust_control::host::EthercatSession> session;
         std::atomic<bool> started{false};
-        explicit Adapter(std::unique_ptr<dust_control::host::UsbSession> value)
+        explicit Adapter(
+            std::unique_ptr<dust_control::host::EthercatSession> value)
             : session(std::move(value)) {}
     };
     std::map<std::string, Adapter> adapters_;
+    std::unique_ptr<ethercat::EthercatMaster> master_;
     std::atomic<bool> startup_ready_{false};
     std::unique_ptr<chassis::ChassisRuntime> chassis_;
     std::unique_ptr<gimbal::GimbalRuntime> gimbal_;

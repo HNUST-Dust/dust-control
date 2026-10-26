@@ -1,5 +1,4 @@
-# Offline PDO configuration, consumed by dust_ethercat_layout.
-# The ROS DustControl runtime still uses dust_control.yaml (USB).
+# Shared PDO configuration: loaded by the IgH runtime and dust_ethercat_layout.
 # tx = host -> slave (RxPDO); rx = slave -> host (TxPDO).
 schema_version: 1
 ethercat:
@@ -14,6 +13,9 @@ adapters:
   base:
     alias: 0
     position: 0
+    # Replace with actual registered slave identity. Zero prevents hardware startup.
+    vendor_id: 0
+    product_code: 0
     pdo:
       can:
         # Independent controller capacities; 0 omits a source partition.

@@ -14,7 +14,8 @@
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": "OFF",
         "DUST_BUILD_MPC": "OFF",
-        "DUST_BUILD_TOOLS": "OFF"
+        "DUST_BUILD_TOOLS": "OFF",
+        "DUST_BUILD_IGH": "ON"
       }
     },
     {
@@ -24,7 +25,8 @@
       "cacheVariables": {
         "BUILD_TESTING": "ON",
         "DUST_BUILD_MPC": "ON",
-        "DUST_BUILD_TOOLS": "ON"
+        "DUST_BUILD_TOOLS": "ON",
+        "DUST_BUILD_IGH": "OFF"
       }
     },
     {
@@ -32,15 +34,17 @@
       "inherits": "development",
       "binaryDir": "${sourceDir}/build/headless",
       "cacheVariables": {
-        "DUST_BUILD_ROS2": "OFF"
+        "DUST_BUILD_ROS2": "OFF",
+        "DUST_BUILD_IGH": "OFF"
       }
     },
     {
-      "name": "wbr-infantry-usb-ci",
+      "name": "ethercat-ci",
       "inherits": "production",
-      "binaryDir": "${sourceDir}/build/wbr-infantry-usb-ci",
+      "binaryDir": "${sourceDir}/build/ethercat-ci",
       "cacheVariables": {
-        "BUILD_TESTING": "ON"
+        "BUILD_TESTING": "ON",
+        "DUST_BUILD_IGH": "OFF"
       }
     }
   ],
@@ -58,8 +62,8 @@
       "configurePreset": "headless"
     },
     {
-      "name": "wbr-infantry-usb-ci",
-      "configurePreset": "wbr-infantry-usb-ci"
+      "name": "ethercat-ci",
+      "configurePreset": "ethercat-ci"
     }
   ],
   "testPresets": [
@@ -78,8 +82,8 @@
       }
     },
     {
-      "name": "wbr-infantry-usb-ci",
-      "configurePreset": "wbr-infantry-usb-ci",
+      "name": "ethercat-ci",
+      "configurePreset": "ethercat-ci",
       "output": {
         "outputOnFailure": true
       }

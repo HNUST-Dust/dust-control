@@ -248,11 +248,18 @@ PdoConfig LoadPdoConfig(const std::string& file) {
     for (const auto& item : adapters) {
         const auto name = item.first.as<std::string>();
         const auto node = item.second;
-        validation::ValidateKeys(node, {"alias", "position", "pdo"});
+        validation::ValidateKeys(node, {"alias", "position", "pdo"},
+                                 {"vendor_id", "product_code"});
         AdapterPdoConfig adapter;
         adapter.alias = static_cast<uint16_t>(Number(node["alias"], 65535));
         adapter.position =
             static_cast<uint16_t>(Number(node["position"], 65535));
+        if (node["vendor_id"]) {
+            adapter.vendor_id = Number(node["vendor_id"], UINT32_MAX);
+        }
+        if (node["product_code"]) {
+            adapter.product_code = Number(node["product_code"], UINT32_MAX);
+        }
         const auto pdo = node["pdo"];
         validation::ValidateKeys(pdo, {"can", "uart", "onboard_imu"});
         const auto can = pdo["can"];
