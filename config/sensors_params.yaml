@@ -1,0 +1,5 @@
+schema_version: 1
+hi91:
+  freshness_deadline_us: 3000
+remote:
+  freshness_deadline_us: 1000000

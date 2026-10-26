@@ -14,7 +14,6 @@
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": "OFF",
         "DUST_BUILD_MPC": "OFF",
-        "DUST_BUILD_ETHERCAT": "OFF",
         "DUST_BUILD_TOOLS": "OFF"
       }
     },
@@ -25,7 +24,6 @@
       "cacheVariables": {
         "BUILD_TESTING": "ON",
         "DUST_BUILD_MPC": "ON",
-        "DUST_BUILD_ETHERCAT": "ON",
         "DUST_BUILD_TOOLS": "ON"
       }
     },
@@ -34,7 +32,7 @@
       "inherits": "development",
       "binaryDir": "${sourceDir}/build/headless",
       "cacheVariables": {
-        "DUST_ENABLE_FOXGLOVE": "OFF"
+        "DUST_BUILD_ROS2": "OFF"
       }
     },
     {
@@ -42,16 +40,7 @@
       "inherits": "production",
       "binaryDir": "${sourceDir}/build/wbr-infantry-usb-ci",
       "cacheVariables": {
-        "BUILD_TESTING": "ON",
-        "DUST_ENABLE_FOXGLOVE": "ON"
-      }
-    },
-    {
-      "name": "ethercat-development",
-      "inherits": "development",
-      "binaryDir": "${sourceDir}/build/ethercat-development",
-      "cacheVariables": {
-        "DUST_BUILD_ETHERCAT": "ON"
+        "BUILD_TESTING": "ON"
       }
     }
   ],
@@ -71,10 +60,6 @@
     {
       "name": "wbr-infantry-usb-ci",
       "configurePreset": "wbr-infantry-usb-ci"
-    },
-    {
-      "name": "ethercat-development",
-      "configurePreset": "ethercat-development"
     }
   ],
   "testPresets": [
@@ -95,13 +80,6 @@
     {
       "name": "wbr-infantry-usb-ci",
       "configurePreset": "wbr-infantry-usb-ci",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "ethercat-development",
-      "configurePreset": "ethercat-development",
       "output": {
         "outputOnFailure": true
       }

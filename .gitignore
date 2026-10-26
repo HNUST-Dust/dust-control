@@ -14,4 +14,3 @@ results/
 *.mcap
 .DS_Store
 *~
-/dist/
