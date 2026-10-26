@@ -1,32 +1,227 @@
-# 模块边界与运行规则
+# 架构与数据流
 
-`dust_chassis` 依赖协议类型、Eigen、生成参数和只读运行配置；不依赖 USB、EtherCAT、Foxglove
-或 Linux 线程。`FrameSink` 是电机帧输出边界，`ControllerInputs` 是冻结的输入，
-`Tick` 的可选同步观测快照不进行 I/O。
+应用通过 `src/main.cpp` 启动一个 ROS2 节点。DustControl 负责读取启动配置、拥有资源、
+装配模块和协调启停；底盘、云台和 UI 各自拥有业务线程，每块活动 Adapter 拥有
+独立 USB 会话及收发线程。控制算法和设备协议保持独立于 ROS2。
 
-`dust_usb` 拥有单一 libusb 事件线程和 SensorStore；USB 接收与 1 kHz 控制循环解耦。
-`dust_realtime` 提供 Linux 单调时钟、绝对周期等待及调度配置，供不同通讯应用复用。
-`src/main.cpp` 编排启动、输入快照、控制调用、输出门控和退出停止。
+## 模块与所有权
 
-`dust_telemetry` 只读取观测快照，控制侧每 10 ms 尝试压入预分配 SPSC 队列；
-队列满立即丢遥测，不等待。普通调度的消费线程负责 JSON 和 SDK，SDK 网络线程
-继承避开控制/USB CPU 的亲和性。USB 库不依赖遥测库。
+```text
+main → DustControlNode → DustControl
+                         ├─ ChassisRuntime → 底盘控制线程
+                         ├─ GimbalRuntime  → 云台线程
+                         ├─ UiRuntime      → UI 线程
+                         └─ 按名字拥有 UsbSession
+                            ├─ UsbLink → USB 事件与接收线程
+                            ├─ 各设备 Decoder → 最新状态快照
+                            ├─ 原始 UART 队列
+                            └─ UsbTransmitter → USB 发送线程
+```
 
-`dust_mpc` 是单独的 OSQP 控制算法库，`usb_mpc` 开发应用保留原控制与安全策略。
-将 MPC 作为新的 `ChassisController` 算法接入仍是独立开发工作。
-EtherCAT 实现、专用协议/安全策略、应用和测试仅在 `dev/wbr_infantry_ethercat` 分支；
-当前 USB 正式分支没有相应源码或构建入口。
+| 位置 | 职责 |
+|---|---|
+| `src/dust_control_node.*` | 配置目录参数、ROS 观测转换与发布、模块状态检查 |
+| `src/dust_control.*`、`src/dust_control_config.*` | YAML 装配关系、会话所有权和整机生命周期 |
+| `src/chassis/chassis_runtime.*` | 读取输入、调用算法、编码并提交底盘命令 |
+| `src/chassis` / `dust_chassis` | 状态机、控制算法、运动学与只读数值配置 |
+| `src/gimbal`、`src/ui` | 各自的业务线程及借用接口，目前为空实现 |
+| `src/hardware/usb` | 设备发现、会话、报告分发与发送调度 |
+| `src/hardware/motors` | DJI、DM、CubeMars 协议、电机映射、反馈和命令编码 |
+| `src/hardware/remote` | 遥控协议、SBUS 拼帧与输入映射；保留 DR16、VT03、WFLY 支持 |
+| `src/hardware/imu`、`src/hardware/referee` | IMU 与裁判协议、拼帧、恢复状态和快照 |
+| `src/concurrency` | 有界快照、优先级继承锁与线程调度配置 |
+| `src/yaml_validation.hpp` | 配置加载器共用的字段与数值校验辅助函数 |
 
-公共 `wbr::`、`modules::` 等命名空间、线协议和配置字段暂保留，避免将大规模
-符号改名和行为变更混入本次结构重构。CMake 对外提供 `dust::chassis`、`dust::usb`、
-`dust::telemetry`、`dust::mpc` 等目标。
+模块借用 Decoder 和发送端口，不创建或关闭共享 USB 会话。每块板的设备状态、
+序号和发送调度独立，同板模块共用收发线程。默认底盘和 UI 绑定 base，云台离线。
+没有真实 CAN 生产者的会话保持空闲，不打开板卡或 Arm。配置方法与启动限制见
+[运行配置](DUST_CONTROL_CONFIGURATION.md)。
 
-默认生产构建只产生当前底盘应用与依赖。MPC 开发模块、开发应用和测试
-由构建选项显式开启，不由设备探测结果自动替换正式控制路径。
+## 接收与控制
 
-## 启动配置
+```text
+USB IN → UsbLink 校验报告、会话和序号，换算时间戳
+         ├─ CAN       → MotorFeedbackDecoder
+         ├─ 绑定 remote 的 UART → WflySbusDecoder
+         ├─ 绑定 hi91 的 UART → Hi91Decoder
+         ├─ 绑定 referee 的 UART → RefereeDecoder
+         └─ 板载 IMU  → OnboardImu
 
-`dust_config` 通过 yaml-cpp 在 main 的启动阶段验证两个运行配置文件，完整验证后
-一次发布只读配置；控制和采集线程只读已加载状态。电机映射由反馈路由和执行器
-共享同一张表，避免启动加载后仍使用旧的 constexpr 地址副本。
-`modules/chassis/defaults` 保存其余编译期参数；日常调试入口仅为 `config` 中两个 YAML。
+Decoder 最新快照 → ChassisRuntime → ControllerInputs → controller.Tick()
+```
+
+设备解析器各自维护拼帧、恢复状态和最新快照；解析状态由接收线程独占，Read()
+通过优先级继承互斥锁返回状态副本。快照锁只保护数据复制，不用于协议解析。
+不同设备不是原子采样，底盘输入层分别检查时间戳和有效期限。
+
+六路原始 UART 块另由 UartReceiveQueue 保存，未绑定通道的消费者自行解析。
+新会话 Ready 重置设备状态、拼帧缓存和原始队列；静默遥控仍会触发超时处理。
+裁判解析目前只检查帧边界，不校验 CRC8/CRC16，不参与控制许可或功率限制。
+板载 IMU 不覆盖控制用 HI91。通道细节见 [UART 接口](protocols/UART.md)。
+
+当前底盘运动输入来自物理遥控，暂不接入外部规划目标。控制线程不调用 ROS、
+不解析 YAML、不枚举 USB。算法只接收数值输入和执行器目标，不处理协议字节。
+设备的被动数据类型归各设备模块，ControllerInputs 归底盘；没有集中 model 目录。
+DR16、VT03、CubeMars 协议虽然尚未接入当前设备链路，仍保留并参与编译。
+
+## 编码与发送
+
+```text
+controller.Tick() → MotorTargets → MotorEncoder.Encode()
+    → UsbTransmitter.SubmitCan() → 对应板的发送线程 → UsbLink → USB OUT
+
+UI 编码完整消息 → UartFramePort → 同一发送线程 → USB OUT
+```
+
+MotorEncoder 返回拥有载荷的完整 CAN 批次，不持有传输资源。编码失败停止底盘，
+不提交部分结果或复用上一周期命令。每个 CAN 来源启动前注册完整
+(bus, command_id) 命令组，同一会话内每组只有一个所有者，包括 DJI 帧内全部槽位。
+发送层不合并电机槽位，也不理解电机协议。
+
+CAN 提交线程安全，每来源最多 16 帧，最新批次覆盖尚未发送的旧批次。单个 USB
+请求最多 6 帧；跨请求不保证 MCU 原子执行，已经进入 libusb 的请求无法撤回。
+生成时间与递增序号用于拒绝过期或倒退目标。空批次只提交一次，不周期重放续租。
+
+UART 提交完整消息并复制数据，最多 512 字节、FIFO 最多 16 条，满时返回 false。
+未开始的过期消息丢弃，开始后按顺序发完，分块最多 96 字节，CAN 在块间优先。
+默认 UART 总预算 8000 字节/秒，为 CAN 预留两个 USB OUT 槽位。
+提交成功只表示主机接收，不表示 MCU 确认或 UART 已发送完成。
+
+每个注册 CAN 来源独立检查期限，最大 20 ms；任一来源超时即停止整个 USB 会话。
+其他控制来源或 UI 流量不能掩盖停顿。没有独立续租心跳，不自动重新 Arm。
+主机与 MCU 的会话保护边界见 [USB 协议](protocols/USB.md)。
+
+## 观测与 ROS2
+
+底盘每控制周期尝试向预分配的 ChassisObservationQueue 压入观测；队列满时丢样
+并计数，不等待 ROS。ROS 每 1 ms 有界消费，只发布最近观测，不补发旧样本。
+高频状态使用 KeepLast(1) / BestEffort / Volatile；IMU、关节和诊断以较低频率发布。
+具体字段、频率和时间语义见 [ROS2 接口](ROS2.md#ros-接口)。
+
+Foxglove 使用独立 Bridge 消费 ROS2 话题，与其他节点共用一个可视化入口。
+没有额外遥测线程、UDP 调试出口或原生 Foxglove SDK。
+
+## 配置与生命周期
+
+DustControl 在创建线程前加载 dust_control.yaml 及所需设备、底盘文件，完整校验后再装配。
+配置加载器归使用模块；算法接收只读数值副本，不依赖 YAML。稳定算法参数和协议
+规格保留在所属代码中；不生成参数头，不提供全局配置或热更新。
+
+底盘从每台电机的 adapter 归属推导需要借用的板，汇集反馈并分发命令；
+启动时从唯一电机文件生成每板设备子集。遥控与 HI91 取自 chassis.sensor_adapter。
+底盘线程先运行，板就绪后立即提交安全命令，避免等待下一块板握手时耗尽本板租约。
+仅关节板在安全状态下每 10 周期重新生成失能命令，以满足 20 ms 租约。
+全部所需会话处理成功前，底盘的整机启动许可保持关闭；以后云台实际输出也必须
+沿用该许可。Arm 成功不等于电机使能，实际输出还受 YAML、遥控和状态机门控。
+
+退出先撤销整机输出许可，停止并回收全部业务线程，向所有发送器请求停止，再等待并回收各板的发送与接收资源，避免顺序等待耗尽其他板租约。
+部分启动失败采用相同清理顺序。任一已启动会话或业务线程故障，整体停止。
+DustControl 本身没有工作线程，业务模块不能停止借用的会话。
+
+## 开发边界
+
+MPC 作为独立在研算法模块保留，默认关闭，尚未接入正式控制路径，见 [MPC](MPC.md)。
+EtherCAT 仅在开发分支维护，见 [分支约定](BRANCHES.md)。控制单位沿用现有约定：
+轮速度 rpm、IMU 姿态 deg、关节 rad/rad/s/N·m，避免结构调整同时改变算法。
+
+`architecture.dependencies` 检查模块引用和链接边界。OrbStack 的功能回归不替代
+实机多板、时序或吞吐验收；测试范围见 [测试说明](TESTING.md)。
+
+设备接收路由由每块 Adapter 的 `uart_sensors` 配置决定，默认 1/2/3，详见装配说明。
+电机接线由 `motors_params.yaml` 每台具名设备的 adapter、bus 和 ID 配置；protocol 指定通信协议，
+设备层按配置执行反馈解码、命令编码及 ID 路由。设备排列顺序不影响底盘角色映射。
+控制层使用固定的六路反馈/目标数组，顺序为左轮、右轮、左 B/D、右 B/D，不另设角色访问包装。
+
+## 电机协议文件组织
+
+每种电机协议集中在对应的 `dji_protocol.h/.cpp`、`dm_protocol.h/.cpp`、
+`cubemars_protocol.h/.cpp` 中。DJI/DM 文件包含原始报文、固定型号规格、
+执行器目标编码和物理反馈换算；CubeMars 保留现有独立报文编解码，尚未接入底盘。
+`motor_protocol.hpp/.cpp` 仅负责按配置分派协议、组装 CAN 批次、匹配本板反馈及发布快照；
+不持有 USB 资源。`motor_config.*` 负责 YAML 加载、设备归属和校验。
+MotorFeedback、MotorTarget、MotorTargets、MotorMode 和 ActuatorId 集中在 motor_protocol.hpp，
+底盘输入与控制输出通过公共头使用这些数据类型。架构检查禁止控制算法调用电机编解码和快照服务。
+离线默认轮力矩预算保留
+为控制层数值常量，正式运行由设备层从协议规格计算并注入。
+
+MotorAddress 属于 motor_config.hpp 中的接线配置数据。生产代码没有默认电机地址表，
+默认配置表示没有设备；DustControl 必须读取电机 YAML。离线回归的固定接线只在
+tests/support/motor_fixture.hpp 中提供，测试调用方显式传入。
+
+## IMU 协议文件组织
+
+`hi91_protocol.h/.cpp` 集中维护 HI91 原始报文、流式拼帧、CRC、物理量与安装映射、
+有效性检查、设备时钟恢复及 Hi91Decoder 快照发布。Hi91TimeGuard 归设备命名空间，
+恢复帧数、最小观测跨度、候选间隔及设备时间步长使用具名固定常量，数值与原实现一致。
+HI91 控制用样本 ImuSample 直接定义在 hi91_protocol.h，底盘输入从该头引用数据；
+不再保留只含单一设备样本的 imu_protocol.hpp。架构检查仍禁止算法调用设备解析与快照服务。
+`onboard_imu.hpp/.cpp` 独立维护 OnboardImuSample、原始采样接收、重置和快照读取；
+板载设备接口不再放进公共样本头。
+板载 raw 数据的安装坐标和量程尚未确认，继续独立保存，不覆盖 HI91 控制输入。
+`imu_config.*` 仅加载并校验期限；UART 与 Adapter 绑定仍由启动装配管理。
+
+当前只有 HI91 一个控制用 IMU 协议，直接使用 Hi91Decoder，不增加空的工厂、
+协议枚举或虚构编码接口。控制算法只使用公共观测数据；USB 只调用高层 Consume/Read，
+架构检查禁止其直接解析 HI91 帧或操作设备时钟恢复状态。
+
+## 裁判系统文件组织
+
+`referee_protocol.h/.cpp` 集中原始帧与命令载荷定义、单帧解析、流式拼帧、
+RefereeSample 和 RefereeDecoder 快照发布。载荷及拼帧缓存容量直接使用协议常量，
+不再保留独立 referee_decoder 文件，也不增加只有一个协议的公共分派层。
+USB 接收层只提交原始 UART 块及丢块通知，不直接调用裁判帧或命令载荷解析函数。
+现有边界不变：尚未校验 CRC8/CRC16，输出不参与控制许可或功率门控；
+丢块时清空未拼完帧并保留既有观测，Reset 时清空全部状态。
+
+### USB 协议引用
+
+主机直接使用 `hardware/usb/protocol/usb_protocol.hpp` 中的 `dust_control::wire` 类型和编解码接口，
+不再通过 `bridge_protocol.hpp` 转接命名空间。20 ms 命令租约属于主机策略，
+由 `usb_transmitter.hpp` 中的 `dust_control::host::kCommandTimeoutUs` 定义。
+协议目录可以按职责重组；保持线上格式和语义兼容时无需同步修改 MCU。
+重构核对依据见 [USB v4 线上协议基准](protocols/USB_V4_WIRE.md)；涉及通信约定变化时需协调两端。
+
+### USB 文件组织
+
+`protocol/usb_protocol.hpp/.cpp` 集中逻辑消息、收发编解码及 SessionPolicy；
+`dust_usb_protocol` 只依赖公共头，不链接 libusb、设备驱动或业务运行时。
+编解码内部的请求视图与报告构造器留在 cpp，不暴露为新的业务接口。
+
+`usb_link.cpp` 管理 USB 设备发现、异步传输与事件线程；`usb_receive.cpp`
+处理会话报告、确认和传感器分派；`usb_session.cpp` 集中握手、安全配置、Arm/Stop
+及 UsbSession 的资源启停。三者使用原有 UsbLink 状态，没有新增代理或分派层。
+`usb_transmitter.*` 保留独立的发送调度职责，`uart_receive_queue.*` 保留跨线程队列职责。
+
+重构前冻结的 47 项报文/签名通过 `usb.wire_v4_baseline` 检查，避免编解码同改后
+往返测试仍通过却改变线上格式。MCU 来源可用 `tools/check_usb_protocol.py` 额外核对。
+
+### WFLY 遥控文件组织
+
+`hardware/remote/wfly_sbus_protocol.h/.cpp` 同时提供原始 SBUS 帧解码和
+`WflySbusDecoder` 的持续接收、拼帧、固定标定、开关映射、丢帧超时及快照读取。
+不再单独维护 sbus_decoder 文件，类名明确其 WFLY 专用控制映射。
+`remote_input_state.hpp` 保留为业务使用的公共输入模型；DR16、VT03 各自保留
+协议实现，尚未接入当前 WFLY 的持续接收与映射流程。
+USB 只调用高层 Consume/Read、断流及超时接口，不直接解析 SBUS 字段。
+
+### 根命名空间
+
+自有 C++ 代码统一使用 `dust_control`，文件中声明具名命名空间时写完整限定名。
+原 `dust` 和 `wbr` 统一为该根；底盘算法与运行时统一归 `dust_control::chassis`，
+设备帧 `protocols` 和模型 `platform` 为其余子命名空间。设备、USB 主机、实时调度、应用和 ROS 封装分别使用
+`dust_control::devices`、`host`、`realtime`、`app` 和 `ros`。
+
+遥控公共输入使用 `dust_control::input`，ROS 生成消息继续使用
+`dust_control::msg`；两者职责不同，不通过旧根别名兼容。
+独立压力基准的自有代码位于 `dust_control::benchmarks`；外部生成的
+`bridge_layout.hpp` 保留原始 `bridge_wire` 接口，基准在使用边界导入布局数据。
+第三方、ROS 生成代码及 libusb 的 C 接口维持各自约定。
+命名空间只影响源码与 C++ 符号，不改变通信字节、ROS 包名和话题名。
+
+### USB 与 EtherCAT 的维护边界
+
+USB 与 EtherCAT 方案分别维护，不要求同一仓库运行时随时切换后端。当前不为这一
+可替换目标引入 CAN/UART 抽象接口，也不批量迁移 UsbLink 的设备所有权。
+控制算法与设备协议保持独立；USB 业务运行时和 DustControl 装配可以依赖具体 USB 实现。
+后续按实际阅读、维护和调试问题整理职责，例如区分控制停顿期限与 USB 会话租约。
+此前的完整解耦讨论保留于 USB_DECOUPLING_PLAN.md，状态为暂不实施。

@@ -1,115 +1,43 @@
-# Foxglove 原生 C++ 遥测
+# 统一 Foxglove 接入
 
-使用控制器内置的非实时遥测线程和官方 C++ SDK，不需要 Python 转发服务。
+每套 ROS 2 系统启动一个独立的 `foxglove_bridge`，所有业务节点通过 ROS 2
+话题提供数据。dust-control 不再内嵌 Foxglove SDK，不监听 WebSocket 端口。
+底盘、云台、UI 线程不创建各自的 ROS 节点或 Foxglove 服务。
 
-本目录保留：
-
-- `schema.json`：`/wbr/chassis` 消息定义，CMake 嵌入 C++，构建所需。
-- `debug-layout.json`：Foxglove 原生 Plot 布局，可导入客户端。
-- `requirements-test.txt`：仅端到端测试使用的 Python WebSocket 客户端依赖。
-- `README.md`：使用说明。
-
-## 构建与运行
-
-Orb Ubuntu 仓库：`~/dust-control`。
+安装系统对应版本的 Bridge，并构建、source 本工程的 ROS 安装目录：
 
 ```bash
-cd ~/dust-control
-./scripts/build.sh
-# 有真实 USB 输入，默认禁止电机输出：
-sudo ./scripts/run.sh --foxglove
+sudo apt install ros-$ROS_DISTRO-foxglove-bridge
+# 先在 dust_control.yaml 中设置 execution.simulate: true、execution.realtime: false
+ros2 launch dust_control dust_control.launch.py
+# 另一个已 source ROS 和工程安装目录的终端；全系统只启动一次：
+ros2 launch dust_control foxglove.launch.py
 ```
 
-默认监听 `127.0.0.1:8765`；`--foxglove-port N` 指定端口。
-不传 Foxglove 选项时不创建服务。启动前用 Ctrl-C 停止先前可能仍在运行的
-Python 演示进程，避免端口冲突；旧转发脚本现已删除。
+Foxglove 选择 Foxglove WebSocket，连接 `ws://127.0.0.1:8765`，导入
+`debug-layout.json`。实际硬件运行时去掉 simulate/realtime 覆盖项。
+已有系统级 Bridge 时直接复用，不再启动本工程的 Bridge launch。
+Bridge 默认仅监听本机；远程查看可传 `address:=0.0.0.0`，端口可用 `port:=8765` 指定。
+Bridge 只启用 connectionGraph 能力，保留话题订阅，不提供客户端发布、参数修改或服务调用。
+业务节点与 Bridge 的 ROS_DOMAIN_ID、DDS 发现和 QoS 必须兼容。
 
-仅现场操作人员在准备完成后使用原有 `--enable-output` 允许遥控门控输出：
+底盘曲线话题默认 `/dust_control/chassis/telemetry`，消息定义在
+`msg/ChassisTelemetry.msg`。命名空间或节点名改变后，布局中的话题路径也需同步。
+观测由控制线程每周期生成（目标 1 kHz），ROS 回调每 1 ms 发布当前最近观测，
+不补发历史样本；控制线程不做 ROS 序列化或网络发送。话题使用 BestEffort / Volatile /
+KeepLast(1)，Bridge 对该话题也使用 BestEffort，并将订阅深度限制为 1。
+同一高频状态话题同时供算法节点和 Foxglove 使用；诊断约 50 Hz，标准 IMU/关节话题最多 100 Hz。
+云台和 UI 当前为空线程，尚无观测话题。
+其他 ROS 2 节点直接发布自己的话题，由同一个 Bridge 接入，不经过 dust-control。
 
-```bash
-sudo ./scripts/run.sh --foxglove --enable-output
-```
+原生遥测字段全部保留；JSON null 改为 ROS 浮点 NaN。左右腿分别判定新鲜度，
+不能只用整体 feedback_valid 判断单腿是否有效。height_m = -hz（轮轴低于髋部时为正）。
+header.stamp 由 ROS 当前时间减去样本单调时钟年龄估算；monotonic_ns 供同主机内部
+计算，不能直接当 ROS 时间。control_duration_us 包含控制计算、编码和发送队列提交。
+queue_drops 统计底盘观测队列满时的累计丢样，随下一次成功入队的样本上报；
+sequence 跳变可能来自发布回调主动选择最新样本、队列丢样或下游传输丢包，missed_releases 为错过控制周期。
+源停更超过 200 ms 后 source_connected=false、测量字段为 NaN；进程退出后无新消息，
+查看时也应关注消息接收时间。Bridge 停止、重启或端口占用不影响控制程序的生命周期。
 
-遥控启动失能确认、输入超时、故障停止和 MCU command lease 保持原策略。
-Foxglove 服务只读，不能使能机器人。
-
-离线模式运行真实控制核心，但没有传感器，测量字段为 null：
-
-```bash
-./scripts/run.sh --simulate --no-rt --foxglove --seconds 10
-```
-
-首次构建下载并校验固定版本 Foxglove SDK 0.27.0 的 Linux x86_64 包。
-也可配置 `-DDUST_FOXGLOVE_SDK_DIR=/path/to/foxglove` 使用已解压 SDK；
-`-DDUST_ENABLE_FOXGLOVE=OFF` 可完全关闭原生 SDK 依赖。
-
-## Mac 连接
-
-Mac 已有 8766 → Orb 8765 隧道时可直接使用；重建命令：
-
-```bash
-ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8766:127.0.0.1:8765 ubuntu@orb
-```
-
-在 Foxglove 中选择 **Open connection → Foxglove WebSocket**，
-填写 `ws://127.0.0.1:8766`。导入本目录 `debug-layout.json`，Mac 路径为：
-
-```text
-$HOME/OrbStack/ubuntu/home/<linux-user>/dust-control/tools/foxglove/debug-layout.json
-```
-
-需要支持官方 SDK `foxglove.sdk.v1` 子协议的客户端。
-客户端布局导入与视觉效果尚待确认。
-
-## 字段与有效性
-
-统一 topic：`/wbr/chassis`。
-
-| 字段 | 含义 |
-|---|---|
-| `pitch_deg` / `yaw_deg` / `roll_deg` | HI91 姿态，度，原控制坐标约定 |
-| `left_length_m` / `right_length_m` | 左右等效腿长，米 |
-| `left_height_m` / `right_height_m` | `-leg.hz`，髋部到轮轴的有符号竖直距离，米 |
-| `left_angle_rad` / `right_angle_rad` | 校准后腿角，弧度 |
-| `left_length_rate_m_s` / `right_length_rate_m_s` | 腿长变化率，米/秒 |
-| `imu_fresh` / `left_leg_fresh` / `right_leg_fresh` | 对应测量的新鲜度与有效性 |
-| `feedback_valid` / `motor_stale_mask` | 控制输入整体有效性、六电机过期位图 |
-| `source_connected` / `transport_age_ms` | 遥测源状态、队列传递年龄 |
-| `state` | 原控制状态编号，见 `modules/chassis/chassis_types.h` |
-| `control_duration_us` | Tick、快照复制与 USB Send 耗时，微秒，仅采样周期 |
-| `missed_releases` / `queue_drops` | 控制漏周期、生产队列满时丢样累计计数 |
-| `sequence` / `monotonic_ns` / `simulated` | 样本序号、单调采样时间、是否模拟数据 |
-
-竖直距离不是世界坐标离地高度：未补偿机身姿态、轮半径或接触状态。
-腿部数据直接来自当前控制周期，复用原运动学、零点和方向。
-Yaw 保留 HI91 原始范围，跨包角边界可能跳变，未作连续解包。
-过期测量发 null，不将缓存值当作新鲜数据；左右腿独立判定。
-
-## 线程与局限
-
-1 kHz 控制线程每 10 ms 向预分配 SPSC 队列复制一个观测样本；
-队列满立即丢遥测，无等待、动态分配、JSON 或网络 I/O。
-消费线程使用 SCHED_OTHER，CPU affinity 排除控制/USB CPU，合并积压样本，
-在其中初始化 SDK、序列化和发布。SDK 还会创建网络线程，它们继承该调度和亲和性。
-慢客户端使用有界发送积压。`queue_drops` 不含消费端合并或客户端丢样，可通过
-`sequence` 观察间断。
-
-超过 200 ms 未更新时，仍在运行的消费线程发布失联状态并清空测量；
-整个进程退出则 WebSocket 断开。时间有效性使用单调时钟，启动时的固定偏移
-用于映射 Unix log time，不以系统校时影响 watchdog。
-100 Hz 降采样不覆盖完整 1 kHz 瞬态，不能据此推断最坏控制执行时间。
-原生接入尚无 MCAP CLI 录制选项；硬件 RT 时序尚待验证。
-
-## 测试
-
-常规构建执行控制回归，以及队列/本地 UDP 序列化契约测试。
-UDP 通道保留用于这些测试，不需要转发服务。原生 WebSocket 端到端测试：
-
-```bash
-python3 -m venv .cache/foxglove-test-venv
-.cache/foxglove-test-venv/bin/pip install -r tools/foxglove/requirements-test.txt
-.cache/foxglove-test-venv/bin/python tests/chassis/foxglove_native_integration.py
-```
-
-覆盖消息定义/订阅、数值与单位、单侧过期、源停更、生产入口、SDK 线程调度与
-CPU 隔离，以及端口冲突时在控制开始前失败。所有测试均不连接真实硬件。
+原 `--foxglove`、`--foxglove-port`、节点 `foxglove_port` 参数及 SDK 构建选项已删除。
+原 UDP 调试输出和 `--telemetry-port` 已删除；观测与队列归底盘模块所有。

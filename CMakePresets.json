@@ -32,7 +32,7 @@
       "inherits": "development",
       "binaryDir": "${sourceDir}/build/headless",
       "cacheVariables": {
-        "DUST_ENABLE_FOXGLOVE": "OFF"
+        "DUST_BUILD_ROS2": "OFF"
       }
     },
     {
@@ -40,8 +40,7 @@
       "inherits": "production",
       "binaryDir": "${sourceDir}/build/wbr-infantry-usb-ci",
       "cacheVariables": {
-        "BUILD_TESTING": "ON",
-        "DUST_ENABLE_FOXGLOVE": "ON"
+        "BUILD_TESTING": "ON"
       }
     }
   ],

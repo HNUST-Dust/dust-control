@@ -1,40 +1,50 @@
-# Motor CAN wiring. Physical controllers/pins/bitrates remain in board DTS.
-schema_version: 1
-
-left_wheel:
-  freshness_deadline_us: 3000
-  bus: 3
-  command_id: 0x200
-  feedback_id: 0x201
-  command_slot: 0
-
-right_wheel:
-  freshness_deadline_us: 3000
-  bus: 2
-  command_id: 0x200
-  feedback_id: 0x201
-  command_slot: 0
-
-left_joint_b:
-  freshness_deadline_us: 3000
-  bus: 3
-  command_id: 0x000
-  feedback_id: 0x010
-
-left_joint_d:
-  freshness_deadline_us: 3000
-  bus: 3
-  command_id: 0x003
-  feedback_id: 0x013
-
-right_joint_b:
-  freshness_deadline_us: 3000
-  bus: 2
-  command_id: 0x001
-  feedback_id: 0x011
-
-right_joint_d:
-  freshness_deadline_us: 3000
-  bus: 2
-  command_id: 0x002
-  feedback_id: 0x012
+# 每台电机显式声明 adapter、bus 和 CAN ID；protocol 表示通信协议。
+# adapter 引用 dust_control.yaml 的板名，修改后重启生效。
+schema_version: 5
+motors:
+  - name: left_wheel
+    adapter: base
+    bus: 3
+    protocol: dji
+    command_id: 0x200
+    feedback_ids: [0x201]
+    command_slot: 0
+    command_sign: -1.0
+    freshness_deadline_us: 3000
+  - name: left_joint_b
+    adapter: base
+    bus: 3
+    protocol: dm
+    command_id: 0x000
+    feedback_ids: [0x010]
+    freshness_deadline_us: 3000
+  - name: left_joint_d
+    adapter: base
+    bus: 3
+    protocol: dm
+    command_id: 0x003
+    feedback_ids: [0x013]
+    freshness_deadline_us: 3000
+  - name: right_wheel
+    adapter: base
+    bus: 2
+    protocol: dji
+    command_id: 0x200
+    feedback_ids: [0x201]
+    command_slot: 0
+    command_sign: 1.0
+    freshness_deadline_us: 3000
+  - name: right_joint_b
+    adapter: base
+    bus: 2
+    protocol: dm
+    command_id: 0x001
+    feedback_ids: [0x011]
+    freshness_deadline_us: 3000
+  - name: right_joint_d
+    adapter: base
+    bus: 2
+    protocol: dm
+    command_id: 0x002
+    feedback_ids: [0x012]
+    freshness_deadline_us: 3000

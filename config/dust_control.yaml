@@ -1,0 +1,34 @@
+schema_version: 2
+
+# 全部电机的配置；每台电机在此文件内声明所属 Adapter。
+motors: motors_params.yaml
+
+execution:
+  simulate: false
+  realtime: true
+  enable_output: false
+
+# 一块板一个名字。多板必须填写不同的完整 USB 序列号。
+adapters:
+  base:
+    serial: ""
+    uart_sensors: {remote: 1, hi91: 2, referee: 3}
+    receive_thread: {cpu: 3, priority: 80}
+    send_thread: {cpu: 3, priority: 79}
+
+# cpu: null 不绑定 CPU；priority: 0 为普通调度，1..99 为 FIFO 实时优先级。
+# 云台/UI 的 adapter: null 代表离线接口；enabled: false 不创建模块。
+# chassis.sensor_adapter 只选择遥控和 HI91 来源；电机归属在 motors 文件逐台指定。
+modules:
+  chassis:
+    enabled: true
+    sensor_adapter: base
+    thread: {cpu: 3, priority: 80}
+  gimbal:
+    enabled: true
+    adapter: null
+    thread: {cpu: null, priority: 0}
+  ui:
+    enabled: true
+    adapter: base
+    thread: {cpu: null, priority: 0}

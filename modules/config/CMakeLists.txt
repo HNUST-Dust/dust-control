@@ -1,7 +1,0 @@
-find_package(yaml-cpp REQUIRED)
-add_library(dust_config runtime_config.cpp)
-target_link_libraries(dust_config PUBLIC dust_headers PRIVATE yaml-cpp)
-target_include_directories(dust_config PRIVATE "${DUST_GENERATED_DIR}")
-add_dependencies(dust_config dust_parameters)
-target_compile_options(dust_config PRIVATE -Wall -Wextra -Wpedantic -Werror)
-set_target_properties(dust_config PROPERTIES POSITION_INDEPENDENT_CODE ON)

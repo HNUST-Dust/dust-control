@@ -1,3 +1,6 @@
+> 本目录为独立历史协议基准，文中“正式工程”指当时配套的 MCU 工程。
+> 当前 dust-control 使用 USB v4；本基准不属于当前链路的验收入口。
+
 # 正式通信链路的六电机 CAN + USB 1 kHz 测试
 
 目标板：dust-hpm6750。测试链接并启动正式工程的 CAN 调度、USB 会话和
@@ -82,7 +85,7 @@ NUC 已部署 PyUSB/libusb 和匹配 VID/PID 的权限规则。
 JSON 和终端日志保存到 `~/wbr_realtime_lab/results/can_usb_stress_test/<时间戳>/`。
 也可在有 PyUSB/libusb 的其他主机执行 `tools/run.py --seconds 65`。
 
-USB 使用正式会话的 VID/PID 0x34b7/0xffff，接口 0，OUT 0x01 / IN 0x81，
+此历史测试工具使用固定 VID/PID 0x34b7/0xffff（不适用于动态 PID 的通用 v2 固件），接口 0，OUT 0x01 / IN 0x81，
 Vendor Interrupt，非串口。每包固定 64 字节：小端 magic 0x53545253、序号、
 上一包主机 RTT（整数 µs），之后 52 字节为校验负载。板端完整回显。
 主机默认使用独立 OUT/IN 线程进行双向测试，最多 8 包在途，并按序号完整校验回显。
