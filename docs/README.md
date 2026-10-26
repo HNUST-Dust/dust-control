@@ -34,3 +34,5 @@
 
 OrbStack 用于开发和功能调试。实际多板 USB、控制周期、ROS2 话题和 Foxglove
 性能留到目标机器人主机验证，历史虚拟机测量不构成实机性能承诺。
+
+EtherCAT IgH 方案：[通信协议讨论稿](ETHERCAT_PROTOCOL_DISCUSSION.md)（未冻结，待确认从站职责与硬件）。
