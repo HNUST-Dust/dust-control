@@ -1,0 +1,24 @@
+# 设计基线示例：尚未接入 DustControl 配置加载器，不能直接用作运行配置。
+# 字段名待与完整 EtherCAT 配置 schema 一起冻结。
+# 保留 config/motors_params.yaml、sensors_params.yaml 的设备与协议语义。
+ethercat:
+  master_index: 0
+  cycle_time_us: 1000
+  # 所有板由同一个周期线程统一交换。
+  thread: {cpu: 3, priority: 80}
+  # DC 是否启用待固件验证，不通过开启 DC 隐式缩短周期。
+  distributed_clocks: false
+
+chassis:
+  control_period_us: 1000
+
+execution:
+  enable_output: false
+
+# 实际启用 1～3 块板；保留现有 base 名称以匹配电机与模块绑定。
+# alias/position 是定位配置，vendor_id/product_code/固件能力须另行核对后填写。
+adapters:
+  base:
+    alias: 0
+    position: 0
+    uart_sensors: {remote: 1, hi91: 2, referee: 3}
