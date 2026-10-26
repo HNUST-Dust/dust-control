@@ -110,3 +110,8 @@ adapters:
 业务模块读取其所绑定 Adapter 上的设备；该配置只改变接收路由，
 不改变 MCU UART 波特率、物理接线或 UI 发送时指定的通道。修改后重启生效。
 传感器新鲜度仍在 `sensors_params.yaml` 配置；禁用控制传感器会使底盘缺少有效反馈。
+
+## EtherCAT PDO 布局配置
+
+`ethercat_pdo.yaml` 由独立离线工具加载，支持每板通道及容量配置，
+不会被当前 USB ROS 节点自动加载。构建、使用和限制见 [PDO 配置说明](../docs/ETHERCAT_PDO_CONFIGURATION.md)。

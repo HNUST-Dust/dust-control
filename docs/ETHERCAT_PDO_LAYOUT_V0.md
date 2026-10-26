@@ -1,6 +1,8 @@
 # EtherCAT 网关 PDO 布局提案 v0
 
-状态：**候选布局，待评审与 HPM5E31 从站资源验证；不是冻结 ABI**。
+状态：**历史容量提案，已由 YAML 可配置布局取代，不是当前固定布局或冻结 ABI**。
+当前实现与用法见 [YAML 配置 PDO](ETHERCAT_PDO_CONFIGURATION.md)。
+下表保留为字段设计参考；实际偏移、条目与长度以工具输出为准。
 周期：1000 us；1～3 块板；RxPDO/TxPDO 以从站视角命名。
 依据：[协议讨论稿](ETHERCAT_PROTOCOL_DISCUSSION.md)中的已确认范围。
 

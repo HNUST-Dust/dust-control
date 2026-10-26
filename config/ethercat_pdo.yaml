@@ -1,0 +1,32 @@
+# Offline PDO configuration, consumed by dust_ethercat_layout.
+# The ROS DustControl runtime still uses dust_control.yaml (USB).
+# tx = host -> slave (RxPDO); rx = slave -> host (TxPDO).
+schema_version: 1
+ethercat:
+  master_index: 0
+  cycle_time_us: 1000
+  # Planning guards, not verified HPM5E31 ESC resource limits.
+  limits:
+    max_rxpdo_bytes: 4096
+    max_txpdo_bytes: 4096
+    max_wire_time_us: 800
+adapters:
+  base:
+    alias: 0
+    position: 0
+    pdo:
+      can:
+        # Independent controller capacities; 0 omits a source partition.
+        tx_slots: {chassis: 16, gimbal: 16}
+        # Omitted/zero buses are not mapped. Original logical numbering.
+        rx_slots: {0: 8, 1: 8, 2: 8, 3: 8}
+      uart:
+        # Both zero/omitted removes a channel. One-way channels retain
+        # a reverse header so acknowledgements remain possible.
+        1: {tx_bytes: 16, rx_bytes: 16}
+        2: {tx_bytes: 128, rx_bytes: 128}
+        3: {tx_bytes: 32, rx_bytes: 32}
+        4: {tx_bytes: 32, rx_bytes: 32}
+        5: {tx_bytes: 32, rx_bytes: 32}
+        6: {tx_bytes: 32, rx_bytes: 32}
+      onboard_imu: true

@@ -1,3 +1,6 @@
+> EtherCAT 分支进展：已实现 [YAML 可配置 PDO 布局工具](docs/ETHERCAT_PDO_CONFIGURATION.md)，
+> 主机业务运行时目前仍使用 USB；IgH 与从站动态映射尚未接通。
+
 > 当前主机使用 USB v4，需配套同版本 dust-adapter 固件。
 > v0.1 固件不兼容。当前分支保留原控制算法/遥控门控，尚未完成机器人上板验收。
 

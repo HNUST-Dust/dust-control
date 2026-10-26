@@ -155,3 +155,7 @@ target_link_libraries(usb_wire_vectors PRIVATE dust_usb_protocol)
 add_test(NAME usb.wire_v4_baseline COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/protocols/check_usb_vectors.py"
   $<TARGET_FILE:usb_wire_vectors> "${CMAKE_CURRENT_SOURCE_DIR}/protocols/usb_v4_vectors.txt")
+
+add_test(NAME ethercat.pdo_layout COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/pdo_layout.py"
+  $<TARGET_FILE:dust_ethercat_layout> "${PROJECT_SOURCE_DIR}/config/ethercat_pdo.yaml")

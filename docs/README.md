@@ -38,3 +38,5 @@ OrbStack 用于开发和功能调试。实际多板 USB、控制周期、ROS2 �
 EtherCAT IgH 方案：[通信协议讨论稿](ETHERCAT_PROTOCOL_DISCUSSION.md)（网关职责已确认，协议尚未冻结）。
 
 EtherCAT [PDO 布局提案 v0](ETHERCAT_PDO_LAYOUT_V0.md)：每板容量、分区偏移、候选交付规则与三板预算。
+
+EtherCAT [YAML 可配置 PDO](ETHERCAT_PDO_CONFIGURATION.md)：已实现配置检查、映射生成与离线工具；IgH/从站交互待接入。
