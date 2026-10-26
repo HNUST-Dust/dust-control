@@ -1,13 +1,13 @@
 # 架构与数据流
 
-应用通过 `src/main.cpp` 启动一个 ROS2 节点。Robot 负责读取启动配置、拥有资源、
+应用通过 `src/main.cpp` 启动一个 ROS2 节点。DustControl 负责读取启动配置、拥有资源、
 装配模块和协调启停；底盘、云台和 UI 各自拥有业务线程，每块活动 Adapter 拥有
 独立 USB 会话及收发线程。控制算法和设备协议保持独立于 ROS2。
 
 ## 模块与所有权
 
 ```text
-main → DustControlNode → Robot
+main → DustControlNode → DustControl
                          ├─ ChassisRuntime → 底盘控制线程
                          ├─ GimbalRuntime  → 云台线程
                          ├─ UiRuntime      → UI 线程
@@ -21,7 +21,7 @@ main → DustControlNode → Robot
 | 位置 | 职责 |
 |---|---|
 | `src/dust_control_node.*` | 配置目录参数、ROS 观测转换与发布、模块状态检查 |
-| `src/robot.*`、`src/robot_config.*` | YAML 装配关系、会话所有权和整机生命周期 |
+| `src/dust_control.*`、`src/dust_control_config.*` | YAML 装配关系、会话所有权和整机生命周期 |
 | `src/chassis/chassis_runtime.*` | 读取输入、调用算法、编码并提交底盘命令 |
 | `src/chassis` / `dust_chassis` | 状态机、控制算法、运动学与只读数值配置 |
 | `src/gimbal`、`src/ui` | 各自的业务线程及借用接口，目前为空实现 |
@@ -35,7 +35,7 @@ main → DustControlNode → Robot
 模块借用 Decoder 和发送端口，不创建或关闭共享 USB 会话。每块板的设备状态、
 序号和发送调度独立，同板模块共用收发线程。默认底盘和 UI 绑定 base，云台离线。
 没有真实 CAN 生产者的会话保持空闲，不打开板卡或 Arm。配置方法与启动限制见
-[运行配置](ROBOT_CONFIGURATION.md)。
+[运行配置](DUST_CONTROL_CONFIGURATION.md)。
 
 ## 接收与控制
 
@@ -103,7 +103,7 @@ Foxglove 使用独立 Bridge 消费 ROS2 话题，与其他节点共用一个可
 
 ## 配置与生命周期
 
-Robot 在创建线程前加载 robot.yaml 及所需设备、底盘文件，完整校验后再装配。
+DustControl 在创建线程前加载 dust_control.yaml 及所需设备、底盘文件，完整校验后再装配。
 配置加载器归使用模块；算法接收只读数值副本，不依赖 YAML。稳定算法参数和协议
 规格保留在所属代码中；不生成参数头，不提供全局配置或热更新。
 
@@ -116,7 +116,7 @@ Robot 在创建线程前加载 robot.yaml 及所需设备、底盘文件，完�
 
 退出先撤销整机输出许可，停止并回收全部业务线程，向所有发送器请求停止，再等待并回收各板的发送与接收资源，避免顺序等待耗尽其他板租约。
 部分启动失败采用相同清理顺序。任一已启动会话或业务线程故障，整体停止。
-Robot 本身没有工作线程，业务模块不能停止借用的会话。
+DustControl 本身没有工作线程，业务模块不能停止借用的会话。
 
 ## 开发边界
 
@@ -145,7 +145,7 @@ MotorFeedback、MotorTarget、MotorTargets、MotorMode 和 ActuatorId 集中在 
 为控制层数值常量，正式运行由设备层从协议规格计算并注入。
 
 MotorAddress 属于 motor_config.hpp 中的接线配置数据。生产代码没有默认电机地址表，
-默认配置表示没有设备；Robot 必须读取电机 YAML。离线回归的固定接线只在
+默认配置表示没有设备；DustControl 必须读取电机 YAML。离线回归的固定接线只在
 tests/support/motor_fixture.hpp 中提供，测试调用方显式传入。
 
 ## IMU 协议文件组织
@@ -207,8 +207,8 @@ USB 只调用高层 Consume/Read、断流及超时接口，不直接解析 SBUS 
 ### 根命名空间
 
 自有 C++ 代码统一使用 `dust_control`，文件中声明具名命名空间时写完整限定名。
-原 `dust` 和 `wbr` 统一为该根；算法 `modules`、设备帧 `protocols` 和模型 `platform`
-收为其子命名空间。设备、USB 主机、实时调度、应用和 ROS 封装分别使用
+原 `dust` 和 `wbr` 统一为该根；底盘算法与运行时统一归 `dust_control::chassis`，
+设备帧 `protocols` 和模型 `platform` 为其余子命名空间。设备、USB 主机、实时调度、应用和 ROS 封装分别使用
 `dust_control::devices`、`host`、`realtime`、`app` 和 `ros`。
 
 遥控公共输入使用 `dust_control::input`，ROS 生成消息继续使用
@@ -217,3 +217,11 @@ USB 只调用高层 Consume/Read、断流及超时接口，不直接解析 SBUS 
 `bridge_layout.hpp` 保留原始 `bridge_wire` 接口，基准在使用边界导入布局数据。
 第三方、ROS 生成代码及 libusb 的 C 接口维持各自约定。
 命名空间只影响源码与 C++ 符号，不改变通信字节、ROS 包名和话题名。
+
+### USB 与 EtherCAT 的维护边界
+
+USB 与 EtherCAT 方案分别维护，不要求同一仓库运行时随时切换后端。当前不为这一
+可替换目标引入 CAN/UART 抽象接口，也不批量迁移 UsbLink 的设备所有权。
+控制算法与设备协议保持独立；USB 业务运行时和 DustControl 装配可以依赖具体 USB 实现。
+后续按实际阅读、维护和调试问题整理职责，例如区分控制停顿期限与 USB 会话租约。
+此前的完整解耦讨论保留于 USB_DECOUPLING_PLAN.md，状态为暂不实施。

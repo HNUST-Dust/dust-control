@@ -1,10 +1,10 @@
 # 线程、Adapter 与设备装配
 
-`robot.yaml` 描述 USB 板、线程和模块启动方式；`motors_params.yaml` 描述每个电机的
+`dust_control.yaml` 描述 USB 板、线程和模块启动方式；`motors_params.yaml` 描述每个电机的
 归属与协议参数。设备地址为 **adapter + bus + CAN ID**，接收和发送使用同一份配置。
 
 ```text
-Robot
+DustControl
 ├─ 按名字拥有 UsbSession：每板独立 USB 接收线程、Decoder 和发送线程
 ├─ ChassisRuntime：一个底盘线程，汇集所有底盘电机反馈并按所属板分发目标
 ├─ GimbalRuntime：独立云台线程，目前为空实现
@@ -16,7 +16,7 @@ Robot
 
 ## 板卡定义与设备归属
 
-robot.yaml 使用 schema 2，默认文件见 [robot.yaml](../config/robot.yaml)：
+dust_control.yaml 使用 schema 2，默认文件见 [dust_control.yaml](../config/dust_control.yaml)：
 
 ```yaml
 schema_version: 2
@@ -80,7 +80,7 @@ motors:
 
 上面是片段；启用底盘时必须在同一电机文件中完整定义六个具名电机。
 默认六台全部写 adapter: base；拆成两/三块板时只需修改各电机的 adapter、bus 和 ID，
-并在 robot.yaml 的 adapters 定义对应板和序列号。无需填写底盘 motor_adapters 列表，
+并在 dust_control.yaml 的 adapters 定义对应板和序列号。无需填写底盘 motor_adapters 列表，
 也无需把电机文件拆成每板一份。总线和设备的排列顺序不影响归属。
 同一 Adapter 内不允许 CAN 路由冲突，不同 Adapter 可以复用相同 bus 和 ID。
 
@@ -119,7 +119,7 @@ serial 对应完整 USB 序列号；多板必须填写不同的完整序列号�
 单板 serial 可留空，但发现多个匹配设备时不会任意选择。
 可选身份字段为 product、pid、strict_hi91_crc；身份配置统一来自 YAML。
 
-Robot 在启动线程与打开 USB 前完成全部配置校验，包括未知/重复字段、未知 Adapter、
+DustControl 在启动线程与打开 USB 前完成全部配置校验，包括未知/重复字段、未知 Adapter、
 重复板名/序列号、电机缺失/重名/地址冲突及非法线程参数。未使用的板不启动。
 仅有空 UI/云台且未注册真实 CAN 来源的板保持 configured, idle，不握手、不 Arm、不续租。
 
@@ -130,12 +130,12 @@ Robot 在启动线程与打开 USB 前完成全部配置校验，包括未知/�
 避免单板 25 ms 保护等待使其他板超时。部分启动失败采用相同清理顺序。
 
 入口为 ROS 节点，只读参数 config_directory 指定配置目录；默认脚本和 launch 使用
-仓库/安装目录。目录包含 robot.yaml、其 motors 引用文件及所需传感器/底盘文件。
+仓库/安装目录。目录包含 dust_control.yaml、其 motors 引用文件及所需传感器/底盘文件。
 不支持热更新或旧 CLI 身份参数。离线/mock 回归不替代实体多板及目标主机实时验收。
 
 ## 旧配置迁移
 
-robot.yaml 从 schema 1 升级为 2：motors 文件路径移到根节点；删除 adapters 下的 motors
+dust_control.yaml 从 schema 1 升级为 2：motors 文件路径移到根节点；删除 adapters 下的 motors
 和 chassis.motor_adapters；chassis.adapter 改名为 sensor_adapter。
 电机文件从 schema 4 升级为 5：can_buses/devices 展开为 motors 列表，
 每台设备增加 adapter 和 bus，保留 name、protocol、命令/反馈 ID、期限及 DJI 槽位/方向。

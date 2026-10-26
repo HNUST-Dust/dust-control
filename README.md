@@ -31,13 +31,13 @@ CMake >=3.21，C++20。默认构建不引入 OSQP/MPC、开发应用或测试程
 不下载或链接 Foxglove SDK。ROS 2 可视化需另装 `ros-$ROS_DISTRO-foxglove-bridge`。
 
 ```bash
-# 离线调试：先将 robot.yaml 的 simulate 改为 true、realtime 改为 false
+# 离线调试：先将 dust_control.yaml 的 simulate 改为 true、realtime 改为 false
 ./scripts/run.sh  # Ctrl+C 停止
 # 真实 USB：恢复 simulate: false、realtime: true，保持 enable_output: false
 sudo ./scripts/run.sh
 ```
 
-允许真实输出仍需现场操作人员在 robot.yaml 中显式设置 `execution.enable_output: true`，启动后先观察到遥控
+允许真实输出仍需现场操作人员在 dust_control.yaml 中显式设置 `execution.enable_output: true`，启动后先观察到遥控
 失能姿态，再满足原控制器的使能、传感器新鲜度和恢复条件。Foxglove 不提供使能接口。
 原控制参数、符号、零点、20 ms MCU lease、SBUS 丢帧策略和 HI91 恢复规则保持原样。
 
@@ -73,14 +73,14 @@ ROS 2 消息和多节点 Bridge 验证见 [测试说明](docs/TESTING.md)。
 | 目录 | 职责 |
 |---|---|
 | `src/main.cpp`、`src/dust_control_node.*` | ROS 2 唯一应用入口、配置目录和状态发布 |
-| `src/robot.*`、`src/robot_config.*` | YAML 装配、具名 Adapter 所有权、模块启动退出协调 |
+| `src/dust_control.*`、`src/dust_control_config.*` | YAML 装配、具名 Adapter 所有权、模块启动退出协调 |
 | `src/hardware/` | 按 motors、remote、imu、referee 归并协议与设备处理；usb 独立管理通信 |
 | `src/chassis/` | 底盘控制线程、控制管线、状态机、运动学和 MPC 算法 |
 | `src/gimbal/` | 独立云台线程及借用设备接口，目前为空实现 |
 | `src/ui/` | 独立 UI 渲染线程，借用底盘板的裁判数据与 UART 提交端口 |
 | `src/concurrency/` | 有界线程间快照与优先级继承锁 |
 | `src/chassis/chassis_observation.hpp` | 底盘观测结构和有界 SPSC 队列 |
-| `config/robot.yaml` | 模块与 Adapter 绑定、线程启用及 CPU/优先级 |
+| `config/dust_control.yaml` | 模块与 Adapter 绑定、线程启用及 CPU/优先级 |
 | `config/` | 各模块的电机映射、传感器期限与底盘参数 |
 | `config/chassis_params.yaml` | 底盘启动配置，修改后重启生效 |
 | `src/chassis/chassis_config.h` | 底盘共享物理常量、坐标约定和周期 |
@@ -95,4 +95,4 @@ ROS 2 消息和多节点 Bridge 验证见 [测试说明](docs/TESTING.md)。
 
 运行时配置范围、加载方式和校验规则见 [配置说明](config/README.md)。
 
-线程与多 Adapter 的配置和资源归属见 [装配说明](docs/ROBOT_CONFIGURATION.md)。
+线程与多 Adapter 的配置和资源归属见 [装配说明](docs/DUST_CONTROL_CONFIGURATION.md)。

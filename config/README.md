@@ -1,14 +1,14 @@
 # 启动时运行配置
 
-默认底盘电机映射由 `motors_params.yaml` 管理，robot.yaml 根节点 motors 指定该文件；
+默认底盘电机映射由 `motors_params.yaml` 管理，dust_control.yaml 根节点 motors 指定该文件；
 每台电机通过 adapter 声明所属板。
 MCU 独立维护 CAN 设备白名单和保护帧；
 新增地址时需修改 MCU 配置并重新构建、刷写固件，主机配置修改后重启即可。
 
 运行期配置文件：
 
-- `robot.yaml`：execution 启动方式、具名 Adapter、模块启用/绑定、业务及 USB 收发线程的 CPU/优先级；
-  完整示例与启动约束见 [线程与 Adapter 装配](../docs/ROBOT_CONFIGURATION.md)。
+- `dust_control.yaml`：execution 启动方式、具名 Adapter、模块启用/绑定、业务及 USB 收发线程的 CPU/优先级；
+  完整示例与启动约束见 [线程与 Adapter 装配](../docs/DUST_CONTROL_CONFIGURATION.md)。
 - `motors_params.yaml`：按 CAN 总线分组的具名电机、protocol、命令/反馈 ID、轮电机 command_slot、
   输出方向 command_sign，以及各自的 freshness_deadline_us。
 - `sensors_params.yaml`：HI91 和遥控的 `freshness_deadline_us`。
@@ -20,7 +20,7 @@ MCU 独立维护 CAN 设备白名单和保护帧；
 
 ```bash
 ./scripts/build.sh
-# 离线调试：先将 robot.yaml 的 simulate 改为 true、realtime 改为 false
+# 离线调试：先将 dust_control.yaml 的 simulate 改为 true、realtime 改为 false
 ./scripts/run.sh  # Ctrl+C 停止
 # 真实 USB：恢复 simulate: false、realtime: true，保持 enable_output: false
 sudo ./scripts/run.sh
@@ -37,14 +37,14 @@ sudo ./scripts/run.sh --ros-args -p config_directory:=/path/to/config
 freshness_deadline_us；DJI 设备还需要 command_slot 和 command_sign。
 protocol: dji / dm 表示通信协议，具体型号规格仍在代码中维护。
 当前底盘要求左右轮使用 DJI、四个腿关节使用 DM MIT，六个名字必须完整且唯一。
-adapter 必须引用 robot.yaml 中存在的板；设备的排列顺序不影响映射。
+adapter 必须引用 dust_control.yaml 中存在的板；设备的排列顺序不影响映射。
 设备路由按 adapter + bus + ID 校验：同板冲突拒绝，不同板允许相同 bus/ID。
 
-robot.yaml 使用 schema 2，根节点 motors 指定唯一电机文件；底盘仅通过
+dust_control.yaml 使用 schema 2，根节点 motors 指定唯一电机文件；底盘仅通过
 sensor_adapter 选择遥控与 HI91 来源。底盘的 motor_adapters 列表和各板的 motors 文件
 字段已移除，启动时直接从每台电机的 adapter 推导板卡集合和每板设备表。
 旧版 schema 4 电机文件需将 can_buses/devices 展开为 motors 列表，每台设备填写
-adapter 和 bus；robot.yaml 的迁移步骤见装配说明。旧版不隐式回退。
+adapter 和 bus；dust_control.yaml 的迁移步骤见装配说明。旧版不隐式回退。
 这些版本与 USB 线协议及 Adapter 配置版本无关。
 
 配置拒绝未知/重复字段、未知/缺失/重复电机、未知 Adapter、非法协议、非法数值与越界。
@@ -57,7 +57,7 @@ DJI 协议电流上限、DM MIT 量程由 hardware/motors 中的型号定义提�
 更换型号应同时审查编码与反馈解码；它们不是运行配置。
 电机/传感器超时范围为 1..4294967294 us，保留 UINT32_MAX 作为无效年龄标记。
 这些校验不替代下位机接线与协议的一致性确认。
-任一文件非法或缺失时启动失败；Robot 构造时协调校验，完整成功后才
+任一文件非法或缺失时启动失败；DustControl 构造时协调校验，完整成功后才
 创建配置使用者和业务线程。电机、IMU、遥控加载函数分别归属对应 hardware 模块。
 配置以值传递给 Encoder、Decoder 和底盘输入检查，各实例只读自己的配置副本；
 没有进程级全局配置或单次加载状态，不同配置的实例可以同时存在。
@@ -75,11 +75,11 @@ HI91 过期判定和时间基准恢复共同使用配置的 HI91 阈值。
 遥控中心、量程、独立开关阈值与 SBUS 丢帧策略直接归 SbusDecoder；不再保留遥控 YAML。
 HI91 有效姿态范围归 Hi91Decoder，不再单独生成参数头。
 底盘 YAML 在启动时加载，修改后重启即可，不需重新构建；运行中不自动重载。
-应用必须从配置目录加载，脚本默认选择本目录；单独运行节点时显式传入 config_directory。显式配置目录必须包含 robot.yaml 及部署所引用的设备文件；默认配置共四个文件，不做缺失回退。
+应用必须从配置目录加载，脚本默认选择本目录；单独运行节点时显式传入 config_directory。显式配置目录必须包含 dust_control.yaml 及部署所引用的设备文件；默认配置共四个文件，不做缺失回退。
 各控制器、运动学、VMC、气弹簧补偿和指令换算使用同一底盘配置的只读副本，
 不同实例的配置互不影响。
 MotorAddress 定义在 motor_config.hpp，生产代码不内置机器人接线表；
-默认 MotorConfig 不包含任何电机。Robot 始终加载显式配置文件，不使用内置接线回退。
+默认 MotorConfig 不包含任何电机。DustControl 始终加载显式配置文件，不使用内置接线回退。
 固定协议/型号规格仍在对应的 protocol 文件中维护，接线与协议常量分开管理。
 字段与数值由 motor_config.cpp 在启动时校验，不从 YAML 生成参数头。
 更改接线 YAML 后重启即可；更改协议规格代码才需重新构建。
@@ -94,7 +94,7 @@ CAN 通道，按 MCU 上报的租约上限选择不超过 20 ms 的租约，确�
 未被 MCU 允许的发送由 MCU 拒绝，主机收到数据拒绝后使链路失败。
 
 
-UART 传感器绑定在 `robot.yaml` 的每块 Adapter 下独立配置，例如：
+UART 传感器绑定在 `dust_control.yaml` 的每块 Adapter 下独立配置，例如：
 
 ```yaml
 adapters:

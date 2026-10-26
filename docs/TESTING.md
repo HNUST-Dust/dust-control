@@ -32,7 +32,7 @@ MPC 首次构建需要获取固定版本 OSQP；可用 FETCHCONTENT_SOURCE_DIR_O
 | `chassis.runtime_lifecycle` | 底盘独立运行、停止与借用资源边界 |
 | `runtime.business_lifecycle` | 云台/UI 线程、绑定与资源回收，无虚假 CAN 来源 |
 | `configuration.startup_loading` | 参数实际生效、非法配置提前失败、实例配置互不污染 |
-| `configuration.robot_topology` | 两/三板绑定、跨板电机路由与 ID 隔离、延迟握手、故障回收、空板不 Arm |
+| `configuration.dust_control_topology` | 两/三板绑定、跨板电机路由与 ID 隔离、延迟握手、故障回收、空板不 Arm |
 | `chassis.disabled_smoke` | ROS 节点按 YAML 模拟运行，禁止模拟开启真实输出 |
 | `usb.lifecycle`、`usb.reconnect` | USB mock 身份筛选、握手、拒绝、断连与重连 |
 | `usb.*`、`devices.*` | wire 边界、UART、CAN 调度、设备编解码和快照并发 |

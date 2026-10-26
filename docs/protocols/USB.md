@@ -33,12 +33,12 @@ python3 tools/check_usb_protocol.py /path/to/dust-adapter
 
 PID 由完整 MCU UID 的 CRC16-CCITT-FALSE 得到，可能为 0 或 0xffff，也可能冲突，
 不能作为唯一板卡标识。HPM6750 的序列号为完整 32 位大写十六进制 UID。
-`robot.yaml` 中 serial 精确匹配，区分大小写，不接受前缀；多板要求不同的完整序列号。
+`dust_control.yaml` 中 serial 精确匹配，区分大小写，不接受前缀；多板要求不同的完整序列号。
 可选 pid 只是附加筛选条件，默认不限制 PID。
 
 多个候选会报错，不任意取第一块。无法读取可能匹配的设备时，也不会静默跳过权限
 或字符串错误。日志包含总线、地址、VID/PID、manufacturer、product 和完整序列号。
-多板配置见 [运行配置](../ROBOT_CONFIGURATION.md)。
+多板配置见 [运行配置](../DUST_CONTROL_CONFIGURATION.md)。
 
 ## 会话与保护
 

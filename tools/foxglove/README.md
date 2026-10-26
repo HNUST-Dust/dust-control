@@ -8,7 +8,7 @@
 
 ```bash
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
-# 先在 robot.yaml 中设置 execution.simulate: true、execution.realtime: false
+# 先在 dust_control.yaml 中设置 execution.simulate: true、execution.realtime: false
 ros2 launch dust_control dust_control.launch.py
 # 另一个已 source ROS 和工程安装目录的终端；全系统只启动一次：
 ros2 launch dust_control foxglove.launch.py

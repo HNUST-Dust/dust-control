@@ -8,4 +8,4 @@
 | [ROS2 最新状态与 Foxglove，2026-10-25](ros_state_1khz_2026-10-25.md) | OrbStack；独立 1 kHz 源与完整模拟节点，对比 ROS、Bridge、慢订阅者 | [JSON](ros_state_1khz_2026-10-25.json) |
 
 历史报告中的命令对应当时版本，不能直接视为当前启动接口。当前应用的执行参数
-已经统一到 robot.yaml。目标机器人主机上的 ROS2、Foxglove 和完整控制时序仍待验证。
+已经统一到 dust_control.yaml。目标机器人主机上的 ROS2、Foxglove 和完整控制时序仍待验证。

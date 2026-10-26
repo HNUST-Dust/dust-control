@@ -36,7 +36,7 @@ generated_ns, lifetime_ns)。方法线程安全并复制数据；消息最多 51
 
 ## 配置与协议维护
 
-主机电机映射由 robot.yaml 根节点 motors 指定，各电机用 adapter 指定归属，默认使用
+主机电机映射由 dust_control.yaml 根节点 motors 指定，各电机用 adapter 指定归属，默认使用
 config/motors_params.yaml；传感器期限来自 config/sensors_params.yaml。MCU 自行维护 CAN 白名单和保护帧。新增设备需同步
 相关主机参数及 MCU 配置。协议实现位于 src/hardware/usb/protocol/；
 文件组织独立于 MCU，以下命令核对固定报文字节：

@@ -8,7 +8,7 @@
 | 文档 | 解决的问题 |
 |---|---|
 | [架构](ARCHITECTURE.md) | 模块如何分工，线程和 Adapter 由谁拥有，数据如何流动 |
-| [运行配置](ROBOT_CONFIGURATION.md) | execution、模块启用、多板绑定、CPU 和优先级如何配置 |
+| [运行配置](DUST_CONTROL_CONFIGURATION.md) | execution、模块启用、多板绑定、CPU 和优先级如何配置 |
 | [ROS2 使用](ROS2.md) | 如何构建、启动节点，订阅底盘观测，选择配置目录 |
 | [配置字段](../config/README.md) | 电机、传感器和底盘 YAML 的具体范围及校验规则 |
 | [测试](TESTING.md) | 生产与模块测试如何构建，哪些结论仍需实机验证 |
