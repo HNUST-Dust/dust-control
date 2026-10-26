@@ -6,7 +6,7 @@
 #include "chassis_config.h"
 #include "chassis_types.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 /** 维护平衡参考和滤波状态；通过冻结输入计算输出，不执行设备 I/O。 */
 class BalanceController {
@@ -62,4 +62,4 @@ class BalanceController {
     SidePair<SideState> side_state_;
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

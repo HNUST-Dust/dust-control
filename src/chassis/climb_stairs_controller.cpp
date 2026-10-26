@@ -24,7 +24,7 @@ constexpr uint32_t kClimbMotion2TimeoutMs = 800;
 }  // namespace
 
 namespace {
-using namespace dust_control::modules::chassis_config;
+using namespace dust_control::chassis::chassis_config;
 
 constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
 
@@ -40,7 +40,7 @@ double MoveTowardAngle(double current, double target, double maximum_delta) {
 }
 }  // namespace
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 void ClimbStairsController::Reset() {
     phase_ = ClimbStairsPhase::kInit;
@@ -223,4 +223,4 @@ double ClimbStairsController::ComputeJointTorque(uint8_t index, double target,
                       -kJointTorqueMax, kJointTorqueMax);
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

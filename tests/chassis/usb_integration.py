@@ -95,7 +95,7 @@ with tempfile.TemporaryDirectory() as directory:
     config = Path(directory)
     for source in (Path(__file__).resolve().parents[2] / "config").glob("*.yaml"):
         shutil.copy(source, config / source.name)
-    original = yaml.safe_load((config / "robot.yaml").read_text())
+    original = yaml.safe_load((config / "dust_control.yaml").read_text())
     original["execution"] = {
         "simulate": False,
         "realtime": False,
@@ -105,7 +105,7 @@ with tempfile.TemporaryDirectory() as directory:
         document = yaml.safe_load(yaml.safe_dump(original))
         adapter = document["adapters"]["base"]
         adapter.update(identity)
-        (config / "robot.yaml").write_text(yaml.safe_dump(document))
+        (config / "dust_control.yaml").write_text(yaml.safe_dump(document))
         environment = dict(os.environ, LD_PRELOAD=backend, **settings)
         # 失败用例等待自然退出；不要在 ROS 初始化尚未完成时发送 SIGINT。
         if code:

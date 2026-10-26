@@ -182,13 +182,13 @@ int main() {
     CHECK(!dust_control::wire::Encode(batch, packet));
     dust_control::devices::MotorEncoder encoder(
         dust_control::test::MotorFixture());
-    dust_control::modules::ChassisController controller;
-    dust_control::modules::ControllerInputs sources{};
+    dust_control::chassis::ChassisController controller;
+    dust_control::chassis::ControllerInputs sources{};
     sources.remote.robot_enable = true;
     sources.remote.sequence = 1;
     const auto disabled_output = controller.Tick(sources, 1000, false);
     CHECK(controller.state() ==
-          dust_control::modules::ChassisControlState::kDisabled);
+          dust_control::chassis::ChassisControlState::kDisabled);
     const auto encoded = encoder.Encode(disabled_output.motor_targets);
     CHECK(encoded.has_value());
     const auto& disabled = *encoded;
@@ -210,20 +210,20 @@ int main() {
         }
     }
 
-    dust_control::modules::ChassisStateMachine states;
-    dust_control::modules::ChassisCycleInput input{};
+    dust_control::chassis::ChassisStateMachine states;
+    dust_control::chassis::ChassisCycleInput input{};
     input.dt = .001;
     input.requested_enable = true;
     input.remote_fresh = true;
     input.imu_fresh = true;
     CHECK(states.Update(input).to ==
-          dust_control::modules::ChassisControlState::kDmArming);
+          dust_control::chassis::ChassisControlState::kDmArming);
     input.imu_fresh = false;
     CHECK(states.Update(input).to ==
-          dust_control::modules::ChassisControlState::kSafetyStop);
+          dust_control::chassis::ChassisControlState::kSafetyStop);
     input.requested_enable = false;
     CHECK(states.Update(input).to ==
-          dust_control::modules::ChassisControlState::kDisabled);
+          dust_control::chassis::ChassisControlState::kDisabled);
     host::UartReceiveQueue store;
     dust_control::test::UsbReportFixture decoder(store, true);
     auto sbus = Sbus(true);
@@ -244,21 +244,21 @@ int main() {
     safe[23] = 4;
     CHECK(decoder.Consume(Uart(1, 6, safe.data(), 25), 2000));
     CHECK(!decoder.Read().control.remote.robot_enable);
-    dust_control::modules::ChassisInputReader freshness;
-    dust_control::modules::ChassisCycleInput checked{};
+    dust_control::chassis::ChassisInputReader freshness;
+    dust_control::chassis::ChassisCycleInput checked{};
     freshness.Read(sources, checked, 1000, .001, false);
     CHECK(checked.requested_enable);
     freshness.Read(sources, checked,
-                   dust_control::modules::InputDeadlines{}.remote_us + 2000,
+                   dust_control::chassis::InputDeadlines{}.remote_us + 2000,
                    .001, false);
     CHECK(!checked.remote_fresh && !checked.requested_enable);
-    dust_control::modules::ChassisInputReader imu_freshness;
-    dust_control::modules::ControllerInputs imu_sources{};
+    dust_control::chassis::ChassisInputReader imu_freshness;
+    dust_control::chassis::ControllerInputs imu_sources{};
     imu_sources.imu.valid = true;
     imu_sources.imu.sequence = 1;
     imu_sources.imu.precise_timestamp_us = 10000;
     const uint64_t imu_timeout_us =
-        dust_control::modules::InputDeadlines{}.hi91_us;
+        dust_control::chassis::InputDeadlines{}.hi91_us;
     imu_freshness.Read(imu_sources, checked, 10000 + imu_timeout_us, .001,
                        false);
     CHECK(checked.imu_fresh);
@@ -269,17 +269,17 @@ int main() {
     imu_sources.imu.precise_timestamp_us = 20000;
     imu_freshness.Read(imu_sources, checked, 20000, .001, false);
     CHECK(checked.imu_fresh);
-    dust_control::modules::ChassisInputReader motor_reader;
-    dust_control::modules::ControllerInputs motor_sources{};
+    dust_control::chassis::ChassisInputReader motor_reader;
+    dust_control::chassis::ControllerInputs motor_sources{};
     motor_sources.motors[0].valid = motor_sources.motors[1].valid = true;
     motor_sources.motors[0].precise_timestamp_us = 10000;
     motor_sources.motors[1].precise_timestamp_us = 12000;
     motor_reader.Read(motor_sources, checked,
-                      10000 + dust_control::modules::InputDeadlines{}.motors[0],
+                      10000 + dust_control::chassis::InputDeadlines{}.motors[0],
                       .001, false);
     CHECK(!(checked.motor_stale_mask & 3));
     motor_reader.Read(motor_sources, checked,
-                      10001 + dust_control::modules::InputDeadlines{}.motors[0],
+                      10001 + dust_control::chassis::InputDeadlines{}.motors[0],
                       .001, false);
     CHECK((checked.motor_stale_mask & 3) == 1);  // 仅左轮超时。
     CHECK(!checked.feedback_valid && (checked.feedback_invalid_mask & 1));
@@ -331,7 +331,7 @@ int main() {
     CHECK(!decoder.Read().control.motors[0].valid);
     // 以固定几何状态运行真实平衡控制器；重复更新并改变速度目标后，
     // 所有输出都必须保持有限。
-    dust_control::modules::BalanceController balance;
+    dust_control::chassis::BalanceController balance;
     input = {};
     input.dt = .001;
     input.imu_fresh = input.feedback_valid = true;
@@ -339,7 +339,7 @@ int main() {
     input.leg.left.angle = input.leg.right.angle = 1.5707963267948966;
     input.leg.left.jacobian[0][0] = input.leg.right.jacobian[0][0] = .1;
     input.leg.left.jacobian[1][1] = input.leg.right.jacobian[1][1] = .1;
-    dust_control::modules::ChassisControlOutput output{};
+    dust_control::chassis::ChassisControlOutput output{};
     for (unsigned tick = 0; tick < 1000; ++tick) {
         input.remote.chassis_x = tick > 500 ? .2 : 0;
         balance.Update(input, output);
@@ -348,14 +348,14 @@ int main() {
     }
 
     // 动态电机配置提供轮力矩预算，平衡控制器不能继续使用编译期默认预算。
-    dust_control::modules::BalanceController no_turn(0.0);
-    dust_control::modules::BalanceController configured_turn(2.0);
+    dust_control::chassis::BalanceController no_turn(0.0);
+    dust_control::chassis::BalanceController configured_turn(2.0);
     input.remote.chassis_x = 0;
     input.remote.chassis_rotate = .5;
     input.remote.run = input.requested_enable = true;
     input.theta.left = input.theta.right =
-        dust_control::modules::ChassisConfig{}.theta_balance_bias();
-    dust_control::modules::ChassisControlOutput disabled_turn{}, enabled_turn{};
+        dust_control::chassis::ChassisConfig{}.theta_balance_bias();
+    dust_control::chassis::ChassisControlOutput disabled_turn{}, enabled_turn{};
     for (unsigned tick = 0; tick < 500; ++tick) {
         no_turn.Update(input, disabled_turn);
         configured_turn.Update(input, enabled_turn);

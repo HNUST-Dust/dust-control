@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "robot_config.hpp"
+#include "dust_control_config.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -29,7 +29,7 @@ ModuleConfig ReadModule(const YAML::Node& node, bool chassis = false) {
     return config;
 }
 }  // namespace
-void ValidateRobotConfig(const RobotConfig& config) {
+void ValidateDustControlConfig(const DustControlConfig& config) {
     if (config.execution.simulate && config.execution.enable_output) {
         throw std::invalid_argument("Simulation cannot enable real outputs");
     }
@@ -81,14 +81,15 @@ void ValidateRobotConfig(const RobotConfig& config) {
         throw std::invalid_argument("Chassis requires a motors file");
     }
 }
-RobotConfig LoadRobotConfig(const std::string& file) {
+DustControlConfig LoadDustControlConfig(const std::string& file) {
     const auto root = YAML::LoadFile(file);
     yaml_validation::ValidateKeys(
         root, {"schema_version", "execution", "adapters", "modules", "motors"});
     if (yaml_validation::ParseUnsignedInteger(root["schema_version"], 2) != 2) {
-        throw std::invalid_argument("Unsupported robot configuration version");
+        throw std::invalid_argument(
+            "Unsupported application configuration version");
     }
-    RobotConfig config;
+    DustControlConfig config;
     config.motors_file = root["motors"].as<std::string>();
     const auto execution = root["execution"];
     yaml_validation::ValidateKeys(execution,
@@ -153,7 +154,7 @@ RobotConfig LoadRobotConfig(const std::string& file) {
     config.chassis = ReadModule(modules["chassis"], true);
     config.gimbal = ReadModule(modules["gimbal"]);
     config.ui = ReadModule(modules["ui"]);
-    ValidateRobotConfig(config);
+    ValidateDustControlConfig(config);
     return config;
 }
 }  // namespace dust_control::app

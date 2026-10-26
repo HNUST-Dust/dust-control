@@ -12,7 +12,7 @@
 #include <string>
 #include <thread>
 
-#include "robot.hpp"
+#include "dust_control.hpp"
 
 namespace {
 int FindThread(const std::string& name) {
@@ -47,14 +47,14 @@ void CheckThread(const std::string& name, int cpu) {
 }
 }  // namespace
 int TestSplit(const std::string& directory) {
-    dust_control::app::Robot robot{directory};
+    dust_control::app::DustControl application{directory};
     try {
-        robot.Start();
+        application.Start();
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;
     }
-    const auto& config = robot.configuration();
+    const auto& config = application.configuration();
     const auto all_motors = dust_control::devices::LoadMotorConfig(
         (std::filesystem::path(directory) / config.motors_file).string());
     const std::set<std::string> motor_adapters(all_motors.adapters.begin(),
@@ -64,8 +64,9 @@ int TestSplit(const std::string& directory) {
     bool complete = false;
     dust_control::chassis::ChassisObservation sample;
     std::array<bool, 6> observed{};
-    while (!robot.finished() && std::chrono::steady_clock::now() < deadline) {
-        while (robot.chassis().TakeObservation(sample)) {
+    while (!application.finished() &&
+           std::chrono::steady_clock::now() < deadline) {
+        while (application.chassis().TakeObservation(sample)) {
             for (size_t i = 0; i < observed.size(); ++i) {
                 observed[i] =
                     observed[i] ||
@@ -79,30 +80,31 @@ int TestSplit(const std::string& directory) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     if (std::getenv("WBR_MOCK_DISCONNECT_INDEX")) {
-        while (!robot.finished() &&
+        while (!application.finished() &&
                std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        assert(robot.finished() && !robot.error().empty());
-        std::cout << "Split adapter fault: " << robot.error() << '\n';
-        robot.Stop();
+        assert(application.finished() && !application.error().empty());
+        std::cout << "Split adapter fault: " << application.error() << '\n';
+        application.Stop();
         return 0;
     }
     const auto steady_end =
         std::chrono::steady_clock::now() + std::chrono::milliseconds(80);
-    while (!robot.finished() && std::chrono::steady_clock::now() < steady_end) {
-        while (robot.chassis().TakeObservation(sample)) {
+    while (!application.finished() &&
+           std::chrono::steady_clock::now() < steady_end) {
+        while (application.chassis().TakeObservation(sample)) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    if (robot.finished()) {
-        std::cerr << robot.error() << '\n';
+    if (application.finished()) {
+        std::cerr << application.error() << '\n';
     }
-    assert(complete && !robot.finished());
+    assert(complete && !application.finished());
     for (const auto& name : motor_adapters) {
         const auto expected =
             dust_control::devices::MotorConfigForAdapter(all_motors, name);
-        const auto& usb = robot.adapter(name);
+        const auto& usb = application.adapter(name);
         assert(usb.healthy() && usb.transmitter().HasCanProducers());
         const auto feedback = usb.link().motor_decoder().Read();
         for (size_t i = 0; i < expected.present.size(); ++i) {
@@ -110,17 +112,19 @@ int TestSplit(const std::string& directory) {
         }
     }
     if (motor_adapters.size() == 3) {
-        const auto left = robot.adapter("head").link().motor_decoder().Read();
-        const auto right = robot.adapter("aux").link().motor_decoder().Read();
+        const auto left =
+            application.adapter("head").link().motor_decoder().Read();
+        const auto right =
+            application.adapter("aux").link().motor_decoder().Read();
         assert(left[2].position_rad != right[4].position_rad);
     }
-    robot.Stop();
-    if (!robot.error().empty()) {
-        std::cerr << "After stop: " << robot.error() << '\n';
+    application.Stop();
+    if (!application.error().empty()) {
+        std::cerr << "After stop: " << application.error() << '\n';
     }
-    assert(robot.error().empty());
+    assert(application.error().empty());
     for (const auto& name : motor_adapters)
-        assert(!robot.adapter(name).healthy());
+        assert(!application.adapter(name).healthy());
     std::cout << "Split motor routing and feedback passed\n";
     return 0;
 }
@@ -130,7 +134,7 @@ int main(int argc, char** argv) {
         return TestSplit(argv[2]);
     if (argc == 3 && std::string(argv[1]) == "--validate") {
         try {
-            dust_control::app::Robot robot{std::string(argv[2])};
+            dust_control::app::DustControl application{std::string(argv[2])};
             return 0;
         } catch (const std::exception& error) {
             std::cerr << error.what() << '\n';
@@ -138,27 +142,27 @@ int main(int argc, char** argv) {
         }
     }
     assert(argc == 2);
-    dust_control::app::Robot robot{std::string(argv[1])};
-    robot.Start();
-    const auto& config = robot.configuration();
+    dust_control::app::DustControl application{std::string(argv[1])};
+    application.Start();
+    const auto& config = application.configuration();
     assert(config.adapters.size() == 2);
     assert(config.chassis.adapter == "drive" &&
            config.gimbal.adapter == "head");
-    assert(robot.ui().attached() && robot.gimbal().attached());
-    assert(robot.adapter("drive").healthy());
-    assert(!robot.adapter("head").healthy());
-    assert(robot.adapter("drive").transmitter().HasCanProducers());
-    assert(!robot.adapter("head").transmitter().HasCanProducers());
-    assert(&robot.adapter("drive").link().hi91_decoder() !=
-           &robot.adapter("head").link().hi91_decoder());
+    assert(application.ui().attached() && application.gimbal().attached());
+    assert(application.adapter("drive").healthy());
+    assert(!application.adapter("head").healthy());
+    assert(application.adapter("drive").transmitter().HasCanProducers());
+    assert(!application.adapter("head").transmitter().HasCanProducers());
+    assert(&application.adapter("drive").link().hi91_decoder() !=
+           &application.adapter("head").link().hi91_decoder());
     CheckThread("dust-chassis", config.chassis.thread.cpu);
     CheckThread("dust-gimbal", config.gimbal.thread.cpu);
     CheckThread("dust-ui", config.ui.thread.cpu);
     CheckThread("usb-drive-rx", config.adapters.at("drive").usb.cpu);
     CheckThread("usb-drive-tx", config.adapters.at("drive").transmit.cpu);
     assert(FindThread("usb-head-rx") < 0 && FindThread("usb-head-tx") < 0);
-    robot.Stop();
-    assert(robot.finished() && robot.error().empty());
+    application.Stop();
+    assert(application.finished() && application.error().empty());
     std::cout << "Two named adapters, explicit module binding, thread "
                  "placement, independent state and idle-board policy passed\n";
 }

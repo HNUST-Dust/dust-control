@@ -26,13 +26,13 @@ constexpr double kSwingStartLengthTolerance = 0.05;
 
 namespace {
 
-using namespace dust_control::modules::chassis_config;
+using namespace dust_control::chassis::chassis_config;
 constexpr double kReadyThetaTolerance = kReadyThetaToleranceDeg * kDegToRad;
 constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
 
 }  // namespace
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 void StoolController::Reset() {
     target_initialized_.fill(false);
@@ -190,4 +190,4 @@ double StoolController::ComputeJointTorque(uint8_t index, double target,
                       -kJointTorqueMax, kJointTorqueMax);
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

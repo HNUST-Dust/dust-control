@@ -13,7 +13,7 @@
 
 #include <array>
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 /** @brief 机体运动估计器输出的速度和姿态状态。 */
 struct BodyMotionState {
@@ -51,4 +51,4 @@ class BodyMotionEstimator {
     std::array<double, 4> covariance_ = {1.0, 0.0, 0.0, 1.0};
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

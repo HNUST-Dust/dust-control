@@ -110,18 +110,18 @@ with configuration() as config:
         result = subprocess.run(
             command + ["-p", param], capture_output=True, text=True, timeout=5
         )
-        assert result.returncode == 1 and "robot.yaml" in result.stderr, result
+        assert result.returncode == 1 and "dust_control.yaml" in result.stderr, result
 
-    document = yaml.safe_load((config / "robot.yaml").read_text())
+    document = yaml.safe_load((config / "dust_control.yaml").read_text())
     document["execution"]["enable_output"] = True
-    (config / "robot.yaml").write_text(yaml.safe_dump(document))
+    (config / "dust_control.yaml").write_text(yaml.safe_dump(document))
     result = subprocess.run(command, capture_output=True, text=True, timeout=5)
     assert result.returncode == 1 and "Simulation cannot enable" in result.stderr
     document["execution"]["enable_output"] = False
     document["modules"]["chassis"]["enabled"] = False
     document["modules"]["gimbal"]["enabled"] = False
     document["modules"]["ui"]["adapter"] = None
-    (config / "robot.yaml").write_text(yaml.safe_dump(document))
+    (config / "dust_control.yaml").write_text(yaml.safe_dump(document))
     result = run_for(command)
     assert result.returncode == 0, (result.stdout, result.stderr)
     assert "Chassis: 1 kHz" not in result.stdout

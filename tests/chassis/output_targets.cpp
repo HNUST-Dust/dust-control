@@ -7,7 +7,7 @@
 #include "hardware/motors/motor_protocol.hpp"
 
 int main() {
-    using namespace dust_control::modules;
+    using namespace dust_control::chassis;
     // 冻结当前使能握手的时序合约，独立于实现中的私有常量。
     constexpr unsigned kExpectedArmTicks = 300;
     constexpr unsigned kExpectedModePeriodTicks = 10;

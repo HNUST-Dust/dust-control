@@ -140,14 +140,14 @@ add_test(NAME runtime.business_lifecycle COMMAND ${CMAKE_COMMAND} -E env
   $<TARGET_FILE:business_runtime_lifecycle> "${PROJECT_SOURCE_DIR}/config")
 set_tests_properties(runtime.business_lifecycle PROPERTIES TIMEOUT 10)
 
-add_executable(robot_topology_contracts runtime/robot_topology.cpp)
-target_link_libraries(robot_topology_contracts PRIVATE dust_startup)
-target_compile_options(robot_topology_contracts PRIVATE -UNDEBUG)
-add_test(NAME configuration.robot_topology COMMAND ${Python3_EXECUTABLE}
-  "${CMAKE_CURRENT_SOURCE_DIR}/runtime/robot_topology.py"
-  $<TARGET_FILE:robot_topology_contracts> $<TARGET_FILE:production_usb_mock>
+add_executable(dust_control_topology_contracts runtime/dust_control_topology.cpp)
+target_link_libraries(dust_control_topology_contracts PRIVATE dust_startup)
+target_compile_options(dust_control_topology_contracts PRIVATE -UNDEBUG)
+add_test(NAME configuration.dust_control_topology COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/runtime/dust_control_topology.py"
+  $<TARGET_FILE:dust_control_topology_contracts> $<TARGET_FILE:production_usb_mock>
   "${PROJECT_SOURCE_DIR}/config" "${DUST_TEST_NODE}")
-set_tests_properties(configuration.robot_topology PROPERTIES TIMEOUT 35 RUN_SERIAL TRUE
+set_tests_properties(configuration.dust_control_topology PROPERTIES TIMEOUT 35 RUN_SERIAL TRUE
   ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH};ROS_LOCALHOST_ONLY=1;ROS_DOMAIN_ID=171;ROS_LOG_DIR=/tmp/dust-control-topology-test-logs")
 
 add_executable(usb_wire_vectors protocols/usb_wire_vectors.cpp)

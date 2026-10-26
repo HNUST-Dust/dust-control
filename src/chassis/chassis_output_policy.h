@@ -7,7 +7,7 @@
 #include "chassis_config.h"
 #include "chassis_types.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 /** 控制器内部的输出策略：将状态与物理控制量转换为本周期执行器目标。 */
 class ChassisOutputPolicy {
@@ -26,4 +26,4 @@ class ChassisOutputPolicy {
     uint32_t dm_arm_ticks_ = 0U;
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

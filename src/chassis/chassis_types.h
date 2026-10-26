@@ -11,7 +11,7 @@
 
 #include "leg_kinematics.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 enum class Side : uint8_t {
     kLeft = 0U,
@@ -147,4 +147,4 @@ struct ExternalSupportForceCommand {
     double right_force_n = 0.0;
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

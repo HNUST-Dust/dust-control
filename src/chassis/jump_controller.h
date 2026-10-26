@@ -6,7 +6,7 @@
 #include "chassis_types.h"
 #include "flight_controller.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 enum class JumpPhase : uint8_t {
     kInit = 0U,
     kPreCompress,
@@ -53,4 +53,4 @@ class JumpController {
     SidePair<double> retract_reference_;
     FlightController airborne_controller_;
 };
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

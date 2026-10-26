@@ -16,13 +16,13 @@ def configuration(*, simulate=True, realtime=False):
         path = Path(directory)
         for source in (Path(__file__).resolve().parents[1] / "config").glob("*.yaml"):
             shutil.copy(source, path / source.name)
-        document = yaml.safe_load((path / "robot.yaml").read_text())
+        document = yaml.safe_load((path / "dust_control.yaml").read_text())
         document["execution"] = {
             "simulate": simulate,
             "realtime": realtime,
             "enable_output": False,
         }
-        (path / "robot.yaml").write_text(yaml.safe_dump(document))
+        (path / "dust_control.yaml").write_text(yaml.safe_dump(document))
         yield path
 
 

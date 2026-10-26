@@ -9,7 +9,7 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <string>
 
-#include "robot.hpp"
+#include "dust_control.hpp"
 
 namespace dust_control::ros {
 class DustControlNode : public rclcpp::Node {
@@ -29,10 +29,10 @@ class DustControlNode : public rclcpp::Node {
     void PublishAuxiliaryObservations();
     void PublishStatusReport(const chassis::ChassisObservation& sample,
                              const rclcpp::Time& stamp);
-    void PublishImuSample(const dust_control::modules::ChassisCycleInput& input,
+    void PublishImuSample(const dust_control::chassis::ChassisCycleInput& input,
                           const rclcpp::Time& stamp);
     void PublishJointStates(
-        const dust_control::modules::ChassisCycleInput& input,
+        const dust_control::chassis::ChassisCycleInput& input,
         const rclcpp::Time& stamp);
 
     // 发布回调独占缓存；源停更后继续发布失效状态。
@@ -40,7 +40,7 @@ class DustControlNode : public rclcpp::Node {
     bool have_observation_ = false;
     rclcpp::Publisher<dust_control::msg::ChassisTelemetry>::SharedPtr
         telemetry_publisher_;
-    std::unique_ptr<app::Robot> robot_;
+    std::unique_ptr<app::DustControl> dust_control_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr
         joints_publisher_;

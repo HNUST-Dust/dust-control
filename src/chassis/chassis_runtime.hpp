@@ -31,7 +31,7 @@ struct ChassisMotorAdapter {
     const devices::MotorFeedbackDecoder* feedback = nullptr;
     dust_control::host::UsbTransmitter* transmitter = nullptr;
     devices::MotorConfig motors;
-    // Robot 在握手和发送线程就绪后置 true；独立调用者可省略。
+    // DustControl 在握手和发送线程就绪后置 true；独立调用者可省略。
     const std::atomic<bool>* started = nullptr;
 };
 struct ChassisDevices {
@@ -43,9 +43,9 @@ class ChassisRuntime {
    public:
     ChassisRuntime(ChassisRuntimeOptions options,
                    const devices::MotorConfig& motors,
-                   dust_control::modules::InputDeadlines deadlines,
+                   dust_control::chassis::InputDeadlines deadlines,
                    ChassisDevices devices = {},
-                   dust_control::modules::ChassisConfig config = {});
+                   dust_control::chassis::ChassisConfig config = {});
     ~ChassisRuntime();
     void Start();
     // 只停止并回收本模块线程，不停止借用的 USB 资源。
@@ -64,11 +64,11 @@ class ChassisRuntime {
 
    private:
     void Run();
-    const dust_control::modules::ChassisConfig config_;
+    const dust_control::chassis::ChassisConfig config_;
     ChassisRuntimeOptions options_;
     ChassisDevices devices_;
     std::vector<devices::MotorEncoder> encoders_;
-    dust_control::modules::ChassisController controller_;
+    dust_control::chassis::ChassisController controller_;
     ChassisObservationQueue observations_;
     std::atomic<bool> stop_{false};
     std::atomic<bool> finished_{false};

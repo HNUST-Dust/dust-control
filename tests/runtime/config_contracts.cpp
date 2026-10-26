@@ -8,10 +8,10 @@
 #include "../support/motor_fixture.hpp"
 #include "../support/usb_report_fixture.hpp"
 #include "chassis_input_reader.h"
+#include "dust_control.hpp"
 #include "hardware/motors/motor_protocol.hpp"
 #include "joint_output.h"
 #include "leg_vmc.h"
-#include "robot.hpp"
 
 void Check(bool ok) {
     if (!ok) {
@@ -21,8 +21,8 @@ void Check(bool ok) {
 
 // 实际计算必须使用启动配置；修改调用方对象不能污染已构造的控制器。
 void CheckChassisConfiguration(
-    const dust_control::modules::ChassisConfig& config) {
-    using namespace dust_control::modules;
+    const dust_control::chassis::ChassisConfig& config) {
+    using namespace dust_control::chassis;
     Check(config.remote_deadband == 0.1 && config.max_yaw_rate() == 4.0);
     Check(config.joint_torque_limit == 3.0 && config.leg_length_kp == 900.0);
     auto caller_config = config;
@@ -82,14 +82,14 @@ int main(int argc, char** argv) {
         if (argc == 3) {
             bool rejected = false;
             try {
-                dust_control::app::Robot invalid{std::string(argv[2])};
+                dust_control::app::DustControl invalid{std::string(argv[2])};
             } catch (const std::exception&) {
                 rejected = true;
             }
             Check(rejected);
         }
         const std::filesystem::path directory(argv[1]);
-        const auto chassis = dust_control::modules::LoadChassisConfig(
+        const auto chassis = dust_control::chassis::LoadChassisConfig(
             (directory / "chassis_params.yaml").string());
         CheckChassisConfiguration(chassis);
         auto motors =
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
         Check(default_decoder.Consume(packet, 12000));
         Check(default_decoder.Read().control.motors[2].torque_nm == -54);
 
-        dust_control::modules::ControllerInputs source{};
+        dust_control::chassis::ControllerInputs source{};
         for (auto& motor : source.motors) {
             motor.valid = true;
             motor.precise_timestamp_us = 8000;
@@ -176,10 +176,10 @@ int main(int argc, char** argv) {
         source.imu.sequence = 1;
         source.imu.precise_timestamp_us = 8000;
         source.remote.sequence = 1;
-        dust_control::modules::ChassisInputReader reader(
+        dust_control::chassis::ChassisInputReader reader(
             {motors.freshness_us, imu.freshness_us, remote.freshness_us});
-        dust_control::modules::ChassisInputReader default_reader;
-        dust_control::modules::ChassisCycleInput input{};
+        dust_control::chassis::ChassisInputReader default_reader;
+        dust_control::chassis::ChassisCycleInput input{};
         reader.Read(source, input, 10000, .001, false);
         Check((input.motor_stale_mask & 1) != 0 &&
               (input.motor_stale_mask & 2) == 0);
@@ -191,8 +191,8 @@ int main(int argc, char** argv) {
         reader.Read(source, input, 11502, .001, false);
         Check(!input.remote_fresh);
         // 多个不同配置的 runtime 构造互不排斥，不再有进程级单次加载状态。
-        dust_control::app::Robot first{std::string(argv[1])};
-        dust_control::app::Robot second{std::string(argv[1])};
+        dust_control::app::DustControl first{std::string(argv[1])};
+        dust_control::app::DustControl second{std::string(argv[1])};
         std::cout << "Module configuration, independent instances, CAN mapping "
                      "and freshness boundaries passed\n";
     } catch (const std::exception& error) {

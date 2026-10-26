@@ -1,4 +1,4 @@
-"""Load the robot deployment and execution settings from its configuration directory."""
+"""Load the dust-control deployment and execution settings from its configuration directory."""
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution

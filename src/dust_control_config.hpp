@@ -23,7 +23,7 @@ struct ExecutionConfig {
     bool enable_output = false;
 };
 // 描述启动方式与装配；控制参数、设备协议和线程循环仍归各模块所有。
-struct RobotConfig {
+struct DustControlConfig {
     ExecutionConfig execution;
     std::string motors_file = "motors_params.yaml";
     std::map<std::string, AdapterConfig> adapters{{"base", {}}};
@@ -31,6 +31,6 @@ struct RobotConfig {
     ModuleConfig gimbal;
     ModuleConfig ui{true, "base", {}};
 };
-RobotConfig LoadRobotConfig(const std::string& file);
-void ValidateRobotConfig(const RobotConfig& config);
+DustControlConfig LoadDustControlConfig(const std::string& file);
+void ValidateDustControlConfig(const DustControlConfig& config);
 }  // namespace dust_control::app

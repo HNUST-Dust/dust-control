@@ -11,7 +11,7 @@ namespace {
 constexpr uint32_t kJumpCooldownMs = 3000;
 }  // namespace
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 ChassisStateTransition ChassisStateMachine::Update(
     const ChassisCycleInput &input) {
@@ -247,4 +247,4 @@ ChassisControlState ChassisStateMachine::DetermineNextState(
     return ChassisControlState::kSafetyStop;
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

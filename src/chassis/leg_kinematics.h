@@ -8,7 +8,7 @@
 #pragma once
 #include "chassis_config.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 /** @brief 五连杆腿部末端位姿、速度和雅可比矩阵。 */
 struct LegKinematics {
@@ -74,4 +74,4 @@ bool NumericalJacobian(double phi1, double phi2, int branch,
 bool ComputeLegKinematics(double phi1, double phi2, double dphi1, double dphi2,
                           int branch, LegKinematics &leg,
                           const ChassisConfig &config = {});
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

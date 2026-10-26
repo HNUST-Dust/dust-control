@@ -32,7 +32,7 @@ class UsbReportFixture {
     }
 
     struct Snapshot {
-        dust_control::modules::ControllerInputs control{};
+        dust_control::chassis::ControllerInputs control{};
         dust_control::devices::OnboardImuSample onboard{};
         dust_control::devices::RefereeSample referee{};
     };

@@ -8,9 +8,9 @@
 #include <string>
 #include <thread>
 
+#include "dust_control.hpp"
 #include "gimbal/gimbal_runtime.hpp"
 #include "hardware/usb/usb_session.hpp"
-#include "robot.hpp"
 #include "ui/ui_runtime.hpp"
 
 namespace {
@@ -121,26 +121,27 @@ int main(int argc, char** argv) {
         assert(rejected);
     }
     {
-        dust_control::app::RobotConfig config;
+        dust_control::app::DustControlConfig config;
         config.execution.simulate = true;
         config.execution.realtime = false;
-        dust_control::app::Robot robot(config, argv[1]);
-        robot.Start();
+        dust_control::app::DustControl application(config, argv[1]);
+        application.Start();
         WaitForWorkers();
-        assert(!robot.gimbal().attached() && !robot.ui().attached());
-        robot.Stop();
-        assert(robot.gimbal().finished() && robot.ui().finished());
+        assert(!application.gimbal().attached() &&
+               !application.ui().attached());
+        application.Stop();
+        assert(application.gimbal().finished() && application.ui().finished());
         WaitForWorkers(false);
-        assert(robot.error().empty());
+        assert(application.error().empty());
     }
     {
-        dust_control::app::RobotConfig config;
+        dust_control::app::DustControlConfig config;
         config.execution.realtime = false;
-        dust_control::app::Robot robot(config, argv[1]);
-        robot.Start();
+        dust_control::app::DustControl application(config, argv[1]);
+        application.Start();
         WaitForWorkers();
-        assert(robot.ui().attached() && !robot.gimbal().attached());
-        robot.Stop();
-        assert(robot.error().empty());
+        assert(application.ui().attached() && !application.gimbal().attached());
+        application.Stop();
+        assert(application.error().empty());
     }
 }

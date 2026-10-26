@@ -16,9 +16,9 @@
 namespace dust_control::chassis {
 ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
                                const devices::MotorConfig& motors,
-                               dust_control::modules::InputDeadlines deadlines,
+                               dust_control::chassis::InputDeadlines deadlines,
                                ChassisDevices devices,
-                               dust_control::modules::ChassisConfig config)
+                               dust_control::chassis::ChassisConfig config)
     : config_(config),
       options_(options),
       devices_(std::move(devices)),
@@ -114,7 +114,7 @@ void ChassisRuntime::Run() {
     uint64_t observation_drops = 0;
     ChassisObservation sample;
     while (!stop_.load()) {
-        release += dust_control::modules::chassis_config::kControlPeriodNs;
+        release += dust_control::chassis::chassis_config::kControlPeriodNs;
         if (!dust_control::realtime::SleepUntilNs(release, error)) {
             if (stop_.load()) {
                 break;
@@ -129,15 +129,15 @@ void ChassisRuntime::Run() {
                 "Control deadline exceeded bridge watchdog");
         }
         if (now - release >=
-            dust_control::modules::chassis_config::kControlPeriodNs) {
+            dust_control::chassis::chassis_config::kControlPeriodNs) {
             const auto missed =
                 (now - release) /
-                dust_control::modules::chassis_config::kControlPeriodNs;
+                dust_control::chassis::chassis_config::kControlPeriodNs;
             release += missed *
-                       dust_control::modules::chassis_config::kControlPeriodNs;
+                       dust_control::chassis::chassis_config::kControlPeriodNs;
             late_cycles += missed;
         }
-        dust_control::modules::ControllerInputs input{};
+        dust_control::chassis::ControllerInputs input{};
         for (const auto& adapter : devices_.motor_adapters) {
             if (adapter.started && !adapter.started->load()) {
                 continue;
@@ -175,12 +175,12 @@ void ChassisRuntime::Run() {
             const auto state = controller_.state();
             const bool safe =
                 state ==
-                    dust_control::modules::ChassisControlState::kDisabled ||
+                    dust_control::chassis::ChassisControlState::kDisabled ||
                 state ==
-                    dust_control::modules::ChassisControlState::kSafetyStop ||
+                    dust_control::chassis::ChassisControlState::kSafetyStop ||
                 state ==
-                    dust_control::modules::ChassisControlState::kActionFault ||
-                state == dust_control::modules::ChassisControlState::kTiltFault;
+                    dust_control::chassis::ChassisControlState::kActionFault ||
+                state == dust_control::chassis::ChassisControlState::kTiltFault;
             // 仅关节板也必须在 20 ms 租约内收到真实安全命令。
             // 根据当前安全状态重新生成失能指令，不重放历史目标或发送假心跳。
             if (safe && !motors.present[0] && !motors.present[1] &&

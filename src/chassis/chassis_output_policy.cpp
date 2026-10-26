@@ -15,7 +15,7 @@ constexpr uint32_t kDmModePeriodTicks = 10;
 static_assert(kDmClearTicks < kDmArmTicks);
 }  // namespace
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 namespace cfg = chassis_config;
 namespace {
 // 目标槽位与反馈顺序一致；编码器从 YAML 加载的配置取得 CAN 总线及 ID。
@@ -97,4 +97,4 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
     return true;
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

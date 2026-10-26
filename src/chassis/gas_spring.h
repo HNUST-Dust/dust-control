@@ -6,7 +6,7 @@
 
 #include "leg_kinematics.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 // 上安装点 P = (offset/AG) * (-Gz, Gx)，与 AG 刚性连接。
 // offset 的符号选择 AG 的安装侧；Q = G + (b/GH)(H-G)。
@@ -50,4 +50,4 @@ inline std::array<double, 2> ComputeGasSpringCompensation(
     return torque;
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

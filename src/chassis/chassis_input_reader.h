@@ -6,7 +6,7 @@
 #include "chassis_config.h"
 #include "chassis_types.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 struct InputDeadlines {
     std::array<uint64_t, 6> motors{3000, 3000, 3000, 3000, 3000, 3000};
@@ -31,4 +31,4 @@ class ChassisInputReader {
     uint32_t last_imu_sequence_ = 0U;
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

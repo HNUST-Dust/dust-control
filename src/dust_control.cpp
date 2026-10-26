@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "robot.hpp"
+#include "dust_control.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -7,18 +7,20 @@
 #include <stdexcept>
 
 namespace dust_control::app {
-Robot::Robot(const std::string& config_directory)
-    : Robot(LoadRobotConfig(
-                (std::filesystem::path(config_directory) / "robot.yaml")
-                    .string()),
-            config_directory) {}
-Robot::Robot(RobotConfig config, const std::string& config_directory)
+DustControl::DustControl(const std::string& config_directory)
+    : DustControl(
+          LoadDustControlConfig(
+              (std::filesystem::path(config_directory) / "dust_control.yaml")
+                  .string()),
+          config_directory) {}
+DustControl::DustControl(DustControlConfig config,
+                         const std::string& config_directory)
     : config_(std::move(config)) {
-    ValidateRobotConfig(config_);
+    ValidateDustControlConfig(config_);
     const std::filesystem::path directory(config_directory);
     if (!directory.empty()) {
         if (config_.chassis.enabled) {
-            chassis_config_ = dust_control::modules::LoadChassisConfig(
+            chassis_config_ = dust_control::chassis::LoadChassisConfig(
                 (directory / "chassis_params.yaml").string());
             remote_ = devices::LoadRemoteConfig(
                 (directory / "sensors_params.yaml").string());
@@ -59,12 +61,12 @@ Robot::Robot(RobotConfig config, const std::string& config_directory)
                   << std::endl;
     }
 }
-Robot::~Robot() {
+DustControl::~DustControl() {
     Stop();
 }
-void Robot::Start() {
+void DustControl::Start() {
     if (started_ || stopped_) {
-        throw std::logic_error("Robot cannot be restarted");
+        throw std::logic_error("DustControl cannot be restarted");
     }
     started_ = true;
     try {
@@ -87,7 +89,7 @@ void Robot::Start() {
         throw;
     }
 }
-void Robot::CreateAdapters() {
+void DustControl::CreateAdapters() {
     if (!config_.execution.simulate) {
         for (const auto& [name, adapter] : config_.adapters) {
             const bool motor_source =
@@ -114,7 +116,7 @@ void Robot::CreateAdapters() {
     }
 }
 
-void Robot::CreateChassis() {
+void DustControl::CreateChassis() {
     if (config_.chassis.enabled) {
         const auto& motors = chassis_motors_;
         chassis::ChassisRuntimeOptions control;
@@ -140,13 +142,13 @@ void Robot::CreateChassis() {
         }
         chassis_ = std::make_unique<chassis::ChassisRuntime>(
             control, motors,
-            dust_control::modules::InputDeadlines{
+            dust_control::chassis::InputDeadlines{
                 motors.freshness_us, imu_.freshness_us, remote_.freshness_us},
             devices, chassis_config_);
     }
 }
 
-void Robot::CreateGimbal() {
+void DustControl::CreateGimbal() {
     if (config_.gimbal.enabled) {
         gimbal::GimbalDevices devices;
         if (auto* usb = SessionFor(config_.gimbal.adapter)) {
@@ -163,7 +165,7 @@ void Robot::CreateGimbal() {
     }
 }
 
-void Robot::CreateUi() {
+void DustControl::CreateUi() {
     if (config_.ui.enabled) {
         ui::UiDevices devices;
         if (auto* usb = SessionFor(config_.ui.adapter)) {
@@ -176,7 +178,7 @@ void Robot::CreateUi() {
     }
 }
 
-void Robot::StartAdapters() {
+void DustControl::StartAdapters() {
     // 每块板就绪后立即启动绑定的模块，避免等待其他板时耗尽本板租约。
     // 输出仍受 startup_ready_ 限制；任一后续启动失败均回收全部会话。
     for (const auto& [name, config] : config_.adapters) {
@@ -201,7 +203,7 @@ void Robot::StartAdapters() {
         StartModulesFor(name);
     }
 }
-void Robot::StartModulesFor(const std::string& adapter) {
+void DustControl::StartModulesFor(const std::string& adapter) {
     if (gimbal_ && config_.gimbal.adapter == adapter) {
         gimbal_->Start();
     }
@@ -210,12 +212,13 @@ void Robot::StartModulesFor(const std::string& adapter) {
     }
 }
 
-dust_control::host::UsbSession* Robot::SessionFor(const std::string& name) {
+dust_control::host::UsbSession* DustControl::SessionFor(
+    const std::string& name) {
     const auto found = adapters_.find(name);
     return found == adapters_.end() ? nullptr : found->second.session.get();
 }
 
-void Robot::Stop() {
+void DustControl::Stop() {
     startup_ready_ = false;
     // 所有借用者先退出，之后再回收各板的发送与事件线程。
     if (chassis_) {
@@ -236,7 +239,7 @@ void Robot::Stop() {
     }
     stopped_ = true;
 }
-bool Robot::finished() const {
+bool DustControl::finished() const {
     if (stopped_ || (chassis_ && chassis_->finished()) ||
         (gimbal_ && gimbal_->finished()) || (ui_ && ui_->finished())) {
         return true;
@@ -248,7 +251,7 @@ bool Robot::finished() const {
     }
     return false;
 }
-std::string Robot::error() const {
+std::string DustControl::error() const {
     if (chassis_ && chassis_->finished() && !chassis_->error().empty()) {
         return "chassis: " + chassis_->error();
     }
@@ -265,25 +268,25 @@ std::string Robot::error() const {
     }
     return {};
 }
-chassis::ChassisRuntime& Robot::chassis() {
+chassis::ChassisRuntime& DustControl::chassis() {
     if (!chassis_) {
         throw std::logic_error("Chassis is disabled or not started");
     }
     return *chassis_;
 }
-gimbal::GimbalRuntime& Robot::gimbal() {
+gimbal::GimbalRuntime& DustControl::gimbal() {
     if (!gimbal_) {
         throw std::logic_error("Gimbal is disabled or not started");
     }
     return *gimbal_;
 }
-ui::UiRuntime& Robot::ui() {
+ui::UiRuntime& DustControl::ui() {
     if (!ui_) {
         throw std::logic_error("UI is disabled or not started");
     }
     return *ui_;
 }
-const dust_control::host::UsbSession& Robot::adapter(
+const dust_control::host::UsbSession& DustControl::adapter(
     const std::string& name) const {
     return *adapters_.at(name).session;
 }

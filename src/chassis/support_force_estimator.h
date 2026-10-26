@@ -5,7 +5,7 @@
 #include "chassis_config.h"
 #include "chassis_types.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 /** 根据关节反馈力矩与 IMU 估计左右轮的垂直地面反力。 */
 class SupportForceEstimator {
@@ -29,4 +29,4 @@ class SupportForceEstimator {
     bool initialized_ = false;
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

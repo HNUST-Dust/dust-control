@@ -1,5 +1,5 @@
 # 每台电机显式声明 adapter、bus 和 CAN ID；protocol 表示通信协议。
-# adapter 引用 robot.yaml 的板名，修改后重启生效。
+# adapter 引用 dust_control.yaml 的板名，修改后重启生效。
 schema_version: 5
 motors:
   - name: left_wheel

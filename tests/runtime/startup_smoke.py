@@ -14,7 +14,7 @@ with configuration() as config:
     assert result.returncode == 0, (result.stdout, result.stderr)
     assert "offline" in result.stdout and "output=disabled" in result.stdout
     assert "Stopped;" in result.stdout
-    document = yaml.safe_load((config / "robot.yaml").read_text())
+    document = yaml.safe_load((config / "dust_control.yaml").read_text())
     for execution in (
         {"simulate": True, "realtime": False, "enable_output": True},
         {"simulate": True, "realtime": False},
@@ -22,7 +22,7 @@ with configuration() as config:
         {"simulate": "invalid", "realtime": False, "enable_output": False},
     ):
         document["execution"] = execution
-        (config / "robot.yaml").write_text(yaml.safe_dump(document))
+        (config / "dust_control.yaml").write_text(yaml.safe_dump(document))
         result = subprocess.run(
             node_command(binary, config), capture_output=True, text=True, timeout=5
         )

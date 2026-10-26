@@ -14,7 +14,7 @@ from startup_support import node_command, run_for
 
 fixture, backend, config_path, controller = sys.argv[1:]
 config_path = Path(config_path)
-original = yaml.safe_load((config_path / "robot.yaml").read_text())
+original = yaml.safe_load((config_path / "dust_control.yaml").read_text())
 serial0 = "00112233445566778899AABBCCDDEEFF0"
 serial1 = "00112233445566778899AABBCCDDEEFF1"
 cpu = min(os.sched_getaffinity(0))
@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as directory:
     for device in original_motors["motors"]:
         device["adapter"] = "drive"
     (config / document["motors"]).write_text(yaml.safe_dump(original_motors))
-    (config / "robot.yaml").write_text(yaml.safe_dump(document))
+    (config / "dust_control.yaml").write_text(yaml.safe_dump(document))
     environment = dict(
         os.environ,
         LD_PRELOAD=backend,
@@ -85,7 +85,7 @@ with tempfile.TemporaryDirectory() as directory:
             del valid["adapters"]["drive"]["uart_sensors"]
         else:
             valid["adapters"]["drive"]["uart_sensors"] = bindings
-        (config / "robot.yaml").write_text(yaml.safe_dump(valid))
+        (config / "dust_control.yaml").write_text(yaml.safe_dump(valid))
         run("", config, environment=environment)
 
     # 配置错误必须在 USB 打开、线程启动之前拒绝。
@@ -137,11 +137,11 @@ with tempfile.TemporaryDirectory() as directory:
         elif case == "all_disabled":
             for module in invalid["modules"].values():
                 module["enabled"] = False
-        (config / "robot.yaml").write_text(yaml.safe_dump(invalid))
+        (config / "dust_control.yaml").write_text(yaml.safe_dump(invalid))
         if case == "missing":
-            (config / "robot.yaml").unlink()
+            (config / "dust_control.yaml").unlink()
         elif case == "duplicate":
-            with (config / "robot.yaml").open("a") as stream:
+            with (config / "dust_control.yaml").open("a") as stream:
                 stream.write("modules: {}\n")
         result = run(controller, config, expected=1, environment=environment)
         assert "USB bridge bus=" not in result.stderr
@@ -163,7 +163,7 @@ with tempfile.TemporaryDirectory() as directory:
                 device["command_id"] = 0 if role.endswith("b") else 3
                 device["feedback_ids"] = [0x10 + device["command_id"]]
         (config / split["motors"]).write_text(yaml.safe_dump(motors))
-        (config / "robot.yaml").write_text(yaml.safe_dump(split))
+        (config / "dust_control.yaml").write_text(yaml.safe_dump(split))
         split_environment = dict(environment, WBR_MOCK_TRIPLE="1", WBR_MOCK_SPLIT=str(count))
         result = run(fixture, config, environment=split_environment, arguments=("--split",))
         assert result.stderr.count("USB bridge bus=") == count
@@ -197,7 +197,7 @@ with tempfile.TemporaryDirectory() as directory:
                 elif case == "owner_missing":
                     del invalid_motors["motors"][0]["adapter"]
                 (config / split["motors"]).write_text(yaml.safe_dump(invalid_motors))
-                (config / "robot.yaml").write_text(yaml.safe_dump(invalid))
+                (config / "dust_control.yaml").write_text(yaml.safe_dump(invalid))
                 result = run("", config, expected=1, environment=split_environment)
                 assert "USB bridge bus=" not in result.stderr
 
@@ -207,11 +207,11 @@ with tempfile.TemporaryDirectory() as directory:
     only_ui["modules"]["chassis"]["enabled"] = False
     only_ui["modules"]["gimbal"]["enabled"] = False
     only_ui["modules"]["ui"]["adapter"] = None
-    (config / "robot.yaml").write_text(yaml.safe_dump(only_ui))
+    (config / "dust_control.yaml").write_text(yaml.safe_dump(only_ui))
     result = run(controller, config, environment=environment)
     assert "Chassis: 1 kHz" not in result.stdout
     assert "USB bridge bus=" not in result.stderr
 
 print(
-    "Robot YAML, named adapters, idle sessions, CPU assignment, disabled modules and startup rejection passed"
+    "DustControl YAML, named adapters, idle sessions, CPU assignment, disabled modules and startup rejection passed"
 )

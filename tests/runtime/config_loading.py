@@ -21,13 +21,13 @@ def motor(document, name):
 
 def write(folder, m, s, c=None):
     folder.mkdir(exist_ok=True)
-    deployment = yaml.safe_load((config_dir / "robot.yaml").read_text())
+    deployment = yaml.safe_load((config_dir / "dust_control.yaml").read_text())
     deployment["execution"] = {
         "simulate": True,
         "realtime": False,
         "enable_output": False,
     }
-    (folder / "robot.yaml").write_text(yaml.safe_dump(deployment))
+    (folder / "dust_control.yaml").write_text(yaml.safe_dump(deployment))
     (folder / "motors_params.yaml").write_text(yaml.safe_dump(m))
     (folder / "sensors_params.yaml").write_text(yaml.safe_dump(s))
     (folder / "chassis_params.yaml").write_text(

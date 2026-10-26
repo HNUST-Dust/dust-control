@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "chassis_config.h"
 #include "yaml_validation.hpp"
-namespace dust_control::modules {
+namespace dust_control::chassis {
 ChassisConfig LoadChassisConfig(const std::string& file) {
     using dust_control::yaml_validation::ValidateKeys;
     const auto root = YAML::LoadFile(file);
@@ -117,4 +117,4 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
     ValidateChassisConfig(config);
     return config;
 }
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

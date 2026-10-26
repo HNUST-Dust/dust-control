@@ -7,7 +7,7 @@
 #include "chassis_config.h"
 #include "leg_kinematics.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 using namespace chassis_config;
 
 void ChassisInputReader::Read(const ControllerInputs &sources,
@@ -157,4 +157,4 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     }
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

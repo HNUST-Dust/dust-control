@@ -25,11 +25,11 @@ for directory, forbidden in rules.items():
         for number, line in enumerate(path.read_text().splitlines(), 1):
             match = re.match(r'\s*#\s*include\s*[<"]([^>"]+)', line)
             if (directory in ("src/gimbal", "src/ui") and match and
-                    match[1] in ("robot.hpp", "robot_config.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp")):
+                    match[1] in ("dust_control.hpp", "dust_control_config.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp")):
                 violations.append(f"{path.relative_to(root)}:{number}: business module owns startup/USB lifecycle")
             is_chassis_runtime = directory == "src/chassis" and path.name in ("chassis_runtime.cpp", "chassis_runtime.hpp", "chassis_config_loading.cpp")
             if is_chassis_runtime and path.name != "chassis_config_loading.cpp" and match and match[1] in (
-                "robot.hpp", "robot_config.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp",
+                "dust_control.hpp", "dust_control_config.hpp", "hardware/usb/usb_session.hpp", "hardware/usb/usb_link.hpp",
                 "yaml_validation.hpp",
             ):
                 violations.append(f"{path.relative_to(root)}:{number}: chassis runtime owns startup dependency")
@@ -71,6 +71,8 @@ for directory in ("src", "tests"):
         if relative in generated_namespace_headers:
             continue
         for number, line in enumerate(path.read_text().splitlines(), 1):
+            if re.search(r"\bdust_control::modules\b", line):
+                violations.append(f"{relative}:{number}: chassis code must use dust_control::chassis")
             declaration = re.match(
                 r"\s*namespace\s+([A-Za-z_]\w*(?:::\w+)*)\s*(?:\{|$)", line)
             if declaration and declaration[1].split("::")[0] != "dust_control":

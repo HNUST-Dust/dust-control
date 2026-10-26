@@ -9,14 +9,14 @@
 
 namespace dust_control::chassis {
 struct ChassisObservation {
-    dust_control::modules::ChassisCycleInput input{};
+    dust_control::chassis::ChassisCycleInput input{};
     uint64_t monotonic_ns = 0;
     uint64_t sequence = 0;
     uint64_t missed_releases = 0;
     uint64_t control_duration_ns = 0;
     // 队列满时累计丢样，随下一次成功入队的观测发布。
     uint64_t queue_drops = 0;
-    dust_control::modules::ChassisControlState state{};
+    dust_control::chassis::ChassisControlState state{};
     bool simulated = false;
 };
 

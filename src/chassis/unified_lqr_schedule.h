@@ -3,7 +3,7 @@
  */
 
 #pragma once
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 /**
  * @brief 计算四路输出、十维状态的完整 LQR 增益矩阵。
@@ -14,4 +14,4 @@ namespace dust_control::modules {
  */
 void EvaluateUnifiedLqrGain(double leg_length, double gain[4][10]);
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

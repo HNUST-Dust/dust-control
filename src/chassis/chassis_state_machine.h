@@ -5,7 +5,7 @@
 #include "chassis_config.h"
 #include "chassis_types.h"
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 
 enum class ChassisTransitionReason : uint8_t {
     kNone = 0U,
@@ -127,4 +127,4 @@ class ChassisStateMachine {
     DmArmResetReason arm_reset_reason_ = DmArmResetReason::kStartup;
 };
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

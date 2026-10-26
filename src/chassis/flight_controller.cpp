@@ -24,7 +24,7 @@ constexpr uint32_t kFlightTouchdownHoldMs = 10;
 constexpr uint32_t kFlightTimeoutMs = 1500;
 }  // namespace
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 namespace {
 using namespace chassis_config;
 constexpr size_t kStateCount = 10U;
@@ -183,4 +183,4 @@ FlightControllerOutput FlightController::Update(
     return output;
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis

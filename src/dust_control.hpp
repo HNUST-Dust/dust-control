@@ -5,23 +5,23 @@
 #include <string>
 
 #include "chassis/chassis_runtime.hpp"
+#include "dust_control_config.hpp"
 #include "gimbal/gimbal_runtime.hpp"
 #include "hardware/imu/imu_config.hpp"
 #include "hardware/motors/motor_config.hpp"
 #include "hardware/remote/remote_config.hpp"
 #include "hardware/usb/usb_session.hpp"
-#include "robot_config.hpp"
 #include "ui/ui_runtime.hpp"
 
 namespace dust_control::app {
 // ROS 节点使用的装配处；只协调启动、故障和退出，没有业务循环或工作线程。
-class Robot {
+class DustControl {
    public:
-    explicit Robot(const std::string& config_directory);
+    explicit DustControl(const std::string& config_directory);
     // 数值配置入口用于离线装配；设备文件相对配置目录解析。
-    explicit Robot(RobotConfig config,
-                   const std::string& config_directory = "");
-    ~Robot();
+    explicit DustControl(DustControlConfig config,
+                         const std::string& config_directory = "");
+    ~DustControl();
     void Start();
     void Stop();
     bool finished() const;
@@ -30,7 +30,7 @@ class Robot {
     chassis::ChassisRuntime& chassis();
     gimbal::GimbalRuntime& gimbal();
     ui::UiRuntime& ui();
-    const RobotConfig& configuration() const {
+    const DustControlConfig& configuration() const {
         return config_;
     }
     // 只读检查已装配的会话；绑定空模块的会话可能尚未启动。
@@ -45,8 +45,8 @@ class Robot {
     void StartAdapters();
     void StartModulesFor(const std::string& adapter);
     dust_control::host::UsbSession* SessionFor(const std::string& name);
-    dust_control::modules::ChassisConfig chassis_config_;
-    RobotConfig config_;
+    dust_control::chassis::ChassisConfig chassis_config_;
+    DustControlConfig config_;
     devices::MotorConfig chassis_motors_;
     std::map<std::string, devices::MotorConfig> motor_configs_;
     devices::ImuConfig imu_;

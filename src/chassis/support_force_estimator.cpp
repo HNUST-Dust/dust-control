@@ -21,7 +21,7 @@ constexpr double kSupportJacobianDamping = 1e-06;
 constexpr double kSupportMaximumAbsForce = 300.0;
 }  // namespace
 
-namespace dust_control::modules {
+namespace dust_control::chassis {
 namespace {
 using namespace chassis_config;
 
@@ -170,4 +170,4 @@ ChassisSupportForceEstimate SupportForceEstimator::Update(
     return output;
 }
 
-}  // namespace dust_control::modules
+}  // namespace dust_control::chassis
