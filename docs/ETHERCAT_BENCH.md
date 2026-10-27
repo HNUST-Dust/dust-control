@@ -63,3 +63,15 @@ west flash -d build/ethercat_bench
 - 修正后的端到端复测尚未通过：上次退出后配置锁定，复测停在 PREOP，需控制板重启。
   当前探针序列号为 Vllink.Basic2.3091FD7A76，JTAG 扫描全 0，不能通过调试器复位。
 - 全程未发送 Arm 或 CAN/UART 控制输出。以上结果尚不能替代双向 Discover 验收。
+
+2026-10-27 控制板断电重启后，双向 Discover 验证通过：
+
+- 主机工具提交 f3fa98e，在 NUC 上使用真实 IgH 库重新编译；配置为 `config/ethercat_bench.yaml`。
+- 单板 Port0、FreeRun、名义 1 kHz；动态 Rx=96 B、Tx=672 B，布局签名 3868350841。
+- 5000 次不同发布序号的 Ready 应答逐次匹配只读网关状态请求，工具正常退出，返回码 0。
+- 验证期间 OP、WKC=3，首次有效应答后 OP/WKC 丢失计数为 0；
+  boot_id=7198499774940554477，稳定且非零，accepted_session_id 始终为 0。
+- 原始输出见 [测试日志](bench-results/2026-10-27-discover.log)。请求回显采用逐次等待，
+  约每两个 1 ms 主机周期完成一次，不能据此推断端到端延迟或硬实时指标。
+- 全程未 Arm，CAN/UART TX 容量为 0；尚未验证业务数据、断线保护、多板及 Port1。
+  下一阶段先准备外设输入台架与专用验证工具，逐项核对 CAN 反馈和 UART 接收数据。
