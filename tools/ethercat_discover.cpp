@@ -191,11 +191,14 @@ int main(int argc, char** argv) {
                                   layout.layout_signature,
                           "DTC1 ABI/layout mismatch");
                     const auto business = wire::U32(tx.data() + 40);
-                    Check((business == wire::kReady ||
-                           (receive && arm_requested &&
-                            business == wire::kActive)) &&
-                              !wire::U32(tx.data() + 44),
-                          "Slave not Ready or protected/faulted");
+                    Check(
+                        (business == wire::kReady ||
+                         (receive && arm_requested &&
+                          business == wire::kActive)) &&
+                            !wire::U32(tx.data() + 44),
+                        ("Slave state=" + std::to_string(business) +
+                         " fault=" + std::to_string(wire::U32(tx.data() + 44)))
+                            .c_str());
                     Check(wire::U32(tx.data() + 36) & wire::kFirmwareProtection,
                           "Firmware IO protection is not installed");
                     const auto current_boot = wire::U64(tx.data() + 8);
@@ -324,7 +327,6 @@ int main(int argc, char** argv) {
                           << std::endl;
             }
             if (valid >= 5000) {
-                Check(!misses, "WKC/OP lost after handshake");
                 if (receive) {
                     for (unsigned bus = 0; bus < 4; ++bus) {
                         std::cout << "CAN" << bus
@@ -337,10 +339,12 @@ int main(int argc, char** argv) {
                                       << std::endl;
                         }
                     }
+                    Check(!misses, "WKC/OP lost after handshake");
                     std::cout << "PASS: 5000 Active status replies; check "
                                  "per-channel counts for payload coverage. No "
                                  "peripheral TX.\n";
                 } else {
+                    Check(!misses, "WKC/OP lost after handshake");
                     std::cout << "PASS: 5000 fresh Ready replies, no "
                                  "Arm/output commands.\n";
                 }
