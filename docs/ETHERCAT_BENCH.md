@@ -71,7 +71,7 @@ west flash -d build/ethercat_bench
 - 5000 次不同发布序号的 Ready 应答逐次匹配只读网关状态请求，工具正常退出，返回码 0。
 - 验证期间 OP、WKC=3，首次有效应答后 OP/WKC 丢失计数为 0；
   boot_id=7198499774940554477，稳定且非零，accepted_session_id 始终为 0。
-- 原始输出见 [测试日志](bench-results/2026-10-27-discover.log)。请求回显采用逐次等待，
+- 原始输出见 [测试日志](bench-results/2026-10-27-discover.txt)。请求回显采用逐次等待，
   约每两个 1 ms 主机周期完成一次，不能据此推断端到端延迟或硬实时指标。
 - 全程未 Arm，CAN/UART TX 容量为 0；尚未验证业务数据、断线保护、多板及 Port1。
   下一阶段先准备外设输入台架与专用验证工具，逐项核对 CAN 反馈和 UART 接收数据。
