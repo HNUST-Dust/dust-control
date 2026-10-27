@@ -107,8 +107,9 @@ void EthercatMaster::Run() {
         pthread_setname_np(pthread_self(), "dust-ethercat");
         const auto start = realtime::MonotonicTimeNs();
         auto release = start;
+        const uint64_t period_ns = uint64_t(config_.cycle_time_us) * 1000;
         while (!stop_ && !failed_) {
-            release += 1000000;
+            release += period_ns;
             if (!realtime::SleepUntilNs(release, reason)) {
                 throw std::runtime_error(reason);
             }
@@ -116,14 +117,14 @@ void EthercatMaster::Run() {
             ++statistics.cycles;
             statistics.max_lateness_ns =
                 std::max(statistics.max_lateness_ns, now - release);
-            statistics.missed_periods += (now - release) / 1000000;
+            statistics.missed_periods += (now - release) / period_ns;
             statistics_.Publish(statistics);
             if (now - release >= 20000000) {
                 throw std::runtime_error(
                     "EtherCAT cycle deadline exceeded; new session required");
             }
-            if (now - release >= 1000000) {
-                release += ((now - release) / 1000000) * 1000000;
+            if (now - release >= period_ns) {
+                release += ((now - release) / period_ns) * period_ns;
             }
             if (!transport_->Receive(boards_, reason)) {
                 throw std::runtime_error(reason);

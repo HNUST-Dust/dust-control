@@ -23,10 +23,11 @@ uint32_t Offset(const ethercat::ProcessImageLayout& image,
     }
     throw std::invalid_argument("Missing PDO field: " + name);
 }
-uint64_t SampleUs(uint32_t now, uint32_t capture, uint64_t arrival_ns) {
+uint64_t SampleUs(uint32_t now, uint32_t capture, uint64_t arrival_ns,
+                  uint32_t cycle_us) {
     const auto age = uint32_t(now - capture);
     // Conservatively charge one complete process cycle for transport delay.
-    const uint64_t total_age = uint64_t(age) + 1000;
+    const uint64_t total_age = uint64_t(age) + cycle_us;
     if (age >= kCommandTimeoutUs || arrival_ns / 1000 < total_age) {
         return 0;
     }
@@ -240,7 +241,8 @@ bool EthercatSession::Receive(std::span<const uint8_t> image, uint64_t now_ns,
                 w::U16(frame + 14)) {
                 return FailInput("Invalid EtherCAT CAN feedback frame");
             }
-            const auto sample = SampleUs(slave_now, w::U32(frame + 8), now_ns);
+            const auto sample = SampleUs(slave_now, w::U32(frame + 8), now_ns,
+                                         layout_.cycle_time_us);
             if (options_.decode_motors) {
                 motors_.Consume(bus, w::U32(frame), {frame + 16, frame[12]},
                                 sample, sample != 0);
@@ -273,7 +275,8 @@ bool EthercatSession::Receive(std::span<const uint8_t> image, uint64_t now_ns,
         if (!gap && current != (seq.present ? seq.value + 1U : 1U)) {
             continue;
         }  // Request retransmission through cumulative ACK.
-        const auto sample = SampleUs(slave_now, w::U32(header + 8), now_ns);
+        const auto sample = SampleUs(slave_now, w::U32(header + 8), now_ns,
+                                     layout_.cycle_time_us);
         if (!sample) {
             return FailInput("EtherCAT UART sample too old");
         }
@@ -304,7 +307,8 @@ bool EthercatSession::Receive(std::span<const uint8_t> image, uint64_t now_ns,
         const auto seq = w::U32(raw);
         if ((w::U32(raw + 8) & 1) &&
             (!have_imu_ || w::Newer(seq, imu_sequence_))) {
-            const auto sample = SampleUs(slave_now, w::U32(raw + 4), now_ns);
+            const auto sample = SampleUs(slave_now, w::U32(raw + 4), now_ns,
+                                         layout_.cycle_time_us);
             const float temperature = std::bit_cast<float>(w::U32(raw + 12));
             if (!sample || !std::isfinite(temperature)) {
                 return FailInput("Invalid EtherCAT onboard IMU sample");
@@ -345,7 +349,7 @@ bool EthercatSession::Encode(std::span<uint8_t> image, uint64_t now_ns,
     w::Put32(p + 28, flags);
     w::Put32(p + 32, layout_.layout_signature);
     w::Put32(p + 36, transmitter_.source_mask());
-    w::Put32(p + 40, 1000);
+    w::Put32(p + 40, layout_.cycle_time_us);
     {
         const std::lock_guard lock(status_mutex_);
         w::Put32(p + 44, status_request_);

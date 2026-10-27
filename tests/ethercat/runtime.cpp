@@ -392,7 +392,24 @@ void Application(const char* directory) {
     }
     assert(rejected);
 }
+void FastCycleCodec() {
+    for (auto period : {125U, 250U, 500U, 1000U}) {
+        auto config = Config();
+        config.cycle_time_us = period;
+        auto& capacity = config.adapters.at("board0");
+        capacity.can_tx_slots = {};
+        capacity.can_rx_slots = {0, 0, 0, 1};
+        capacity.uart = {};
+        const auto layout = ec::BuildPdoLayout(config).adapters.at("board0");
+        host::EthercatSession session(capacity, layout, NoSensors());
+        std::vector<uint8_t> output(layout.rx.bytes);
+        assert(
+            session.Encode(output, rt::MonotonicTimeNs(), 77, 1, w::kDiscover));
+        assert(w::U32(output.data() + 40) == period);
+    }
+}
 int main(int argc, char** argv) {
+    FastCycleCodec();
     assert(argc == 2);
     Commands();
     SessionCodec();

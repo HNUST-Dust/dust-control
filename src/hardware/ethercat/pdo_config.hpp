@@ -56,6 +56,7 @@ struct AdapterPdoLayout {
     // CRC32 of version + ordered mappings, field names, offsets and lengths.
     // A layout compatibility check, not an authentication primitive.
     uint32_t layout_signature = 0;
+    uint32_t cycle_time_us = 1000;
 };
 struct PdoLayout {
     uint16_t version = kLayoutVersion;

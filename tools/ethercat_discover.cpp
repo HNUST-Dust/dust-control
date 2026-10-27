@@ -86,6 +86,9 @@ int main(int argc, char** argv) {
         const auto& layout = all.adapters.begin()->second;
         Master master{ecrt_request_master(config.master_index)};
         Check(master.ptr, "Cannot request IgH master");
+        Check(ecrt_master_set_send_interval(master.ptr, config.cycle_time_us) ==
+                  0,
+              "Cannot set IgH send interval");
         ec_master_info_t info{};
         Check(ecrt_master(master.ptr, &info) == 0 && info.slave_count == 1,
               "Requires exactly one connected slave");
@@ -101,7 +104,7 @@ int main(int argc, char** argv) {
                                             c.vendor_id, c.product_code);
         Check(sc, "Cannot configure slave");
         const uint32_t values[] = {layout.layout_signature,
-                                   1000,
+                                   config.cycle_time_us,
                                    20000,
                                    c.can_tx_slots[0],
                                    c.can_tx_slots[1],
@@ -145,7 +148,7 @@ int main(int argc, char** argv) {
         wire::Put64(rx.data() + 8, session);
         wire::Put32(rx.data() + 28, wire::kDiscover);
         wire::Put32(rx.data() + 32, layout.layout_signature);
-        wire::Put32(rx.data() + 40, 1000);
+        wire::Put32(rx.data() + 40, config.cycle_time_us);
         auto offset = [](const ProcessImageLayout& image,
                          const std::string& name) {
             for (const auto& mapping : image.mappings) {
@@ -173,7 +176,7 @@ int main(int argc, char** argv) {
                   << " signature=" << layout.layout_signature << std::endl;
         for (uint32_t exchange = 1; std::chrono::steady_clock::now() < deadline;
              ++exchange) {
-            next += std::chrono::microseconds(1000);
+            next += std::chrono::microseconds(config.cycle_time_us);
             ecrt_master_receive(master.ptr);
             ecrt_domain_process(domain);
             ec_domain_state_t state{};

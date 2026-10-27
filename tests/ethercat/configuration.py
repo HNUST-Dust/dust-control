@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory() as temporary:
     run(lambda d: d['dust_control.yaml']['modules']['chassis'].__setitem__('sensor_adapter', 'absent'))
     run(lambda d: d['dust_control.yaml']['adapters']['base']['uart_sensors'].__setitem__('hi91', 1))
     run(lambda d: d['ethercat_pdo.yaml']['adapters']['base']['pdo']['uart'][2].__setitem__('rx_bytes', 0))
-    run(lambda d: d['ethercat_pdo.yaml']['ethercat'].__setitem__('cycle_time_us', 500))
+    run(lambda d: d['ethercat_pdo.yaml']['ethercat'].__setitem__('cycle_time_us', 501))
     run(lambda d: d['ethercat_pdo.yaml']['adapters'].__setitem__('extra', copy.deepcopy(d['ethercat_pdo.yaml']['adapters']['base'])))
     run(lambda d: d['motors_params.yaml']['motors'][0].__setitem__('adapter', 'absent'))
     run(lambda d: d['motors_params.yaml']['motors'][0].__setitem__('freshness_deadline_us', 0))

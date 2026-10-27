@@ -109,12 +109,25 @@ with tempfile.TemporaryDirectory() as directory:
     check_image(large_uart['rx'])
     check_image(large_uart['tx'])
 
+    # 所有交换周期均须进入布局签名；控制频率不由 PDO 配置决定。
+    signatures = set()
+    for period in (125, 250, 500, 1000):
+        fast = copy.deepcopy(base)
+        fast['ethercat']['cycle_time_us'] = period
+        fast['adapters'] = {'base': copy.deepcopy(base['adapters']['base'])}
+        fast['adapters']['base']['pdo'] = {
+            'can': {'tx_slots': {'chassis': 1, 'gimbal': 0},
+                    'rx_slots': {3: 4}}, 'uart': {}, 'onboard_imu': False}
+        value = run(fast)
+        signatures.add(value['adapters']['base']['layout_signature'])
+    assert len(signatures) == 4
+
     def reject(mutator, message):
         value = copy.deepcopy(base)
         mutator(value)
         run(value, message)
 
-    reject(lambda c: c['ethercat'].__setitem__('cycle_time_us', 500), 'Only cycle_time_us')
+    reject(lambda c: c['ethercat'].__setitem__('cycle_time_us', 501), 'Supported cycle_time_us')
     reject(lambda c: c.__setitem__('adapters', {}), 'Expected 1..3')
     reject(lambda c: c['adapters'].__setitem__('copy', copy.deepcopy(c['adapters']['base'])),
            'Duplicate EtherCAT')

@@ -156,3 +156,22 @@ controller_state/tx_errors/rx_errors；UART 为 received_blocks/dropped_blocks/c
 动态配置同时以 u16 下载 `0x1c32:1=0` 和 `0x1c33:1=0`，显式选择 FreeRun。
 未下载时 SSC 可能自动选择 SM Sync，不能进入只支持 FreeRun 的网关周期。
 实验板首轮工具及实测进度见 [台架验证](ETHERCAT_BENCH.md)。
+
+## 控制频率与交换频率分离
+
+底盘控制线程继续按1kHz计算，EtherCAT独立线程可通过PDO YAML的
+`ethercat.cycle_time_us`选择1000、500、250、125µs。默认1000µs保留；
+不要把名义交换频率等同于CAN命令频率或已通过实机验收的频率。
+周期值贯穿启动SDO0x2100:2、布局CRC、RxPDO偏移40和主站定时循环；
+从站拒绝报头与协商周期不一致的报文，20ms看门狗与命令来源期限没有缩短或取消。
+IgH同时设置send interval。采样时间推算的保守运输余量也使用配置的交换周期。
+
+相同CAN batch_sequence在多个PDO周期内保持不变时，从站只派发一次CAN发送；
+所以通信线程加速不会把1kHz控制指令重复发送成4kHz。
+Active时从站以10µs短忙等轮询SSC，不再依赖100µs tick休眠；ISR仍可抢占，非Active阶段继续休眠。
+此方式提高MCU占用，尚需全UART、多板负载下验证。正常控制线程使用独立CPU/优先级配置，
+高频交换时应避免与耗时控制计算挤在同一个CPU。
+
+主机布局编译器另外检查估算的总线上线时间不超过配置周期；多板/大PDO可能不允许125或250µs。
+布局能编译不代表调度、PCIe或ESC延迟满足周期，必须观察实际WKC与端到端时间。
+相关台架与已知失败见 [CAN RTT](ETHERCAT_CAN_RTT.md)。

@@ -35,6 +35,14 @@ class IghTransport final : public Transport {
             Check(
                 master_,
                 "Cannot request IgH master; check service/device permissions");
+            Check(!boards.empty(), "No EtherCAT boards");
+            const auto period = boards.front().layout.cycle_time_us;
+            for (const auto& board : boards) {
+                Check(board.layout.cycle_time_us == period,
+                      "Mixed exchange periods");
+            }
+            Check(ecrt_master_set_send_interval(master_, period) == 0,
+                  "Cannot set IgH send interval");
             domain_ = ecrt_master_create_domain(master_);
             Check(domain_, "Cannot create IgH domain");
             slaves_.resize(boards.size());
@@ -55,9 +63,9 @@ class IghTransport final : public Transport {
                     ecrt_slave_config_sdo32(slave.config, 0x2100, 1,
                                             board.layout.layout_signature) == 0,
                     "Cannot queue slave layout signature SDO");
-                Check(
-                    ecrt_slave_config_sdo32(slave.config, 0x2100, 2, 1000) == 0,
-                    "Cannot queue slave cycle SDO");
+                Check(ecrt_slave_config_sdo32(slave.config, 0x2100, 2,
+                                              board.layout.cycle_time_us) == 0,
+                      "Cannot queue slave cycle SDO");
                 Check(ecrt_slave_config_sdo32(slave.config, 0x2100, 3, 20000) ==
                           0,
                       "Cannot queue slave command watchdog SDO");

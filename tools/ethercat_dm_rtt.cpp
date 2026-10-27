@@ -6,6 +6,7 @@
 #include <sys/prctl.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -150,12 +151,13 @@ int main(int argc, char** argv) {
             }
         }
         sched_param priority{};
-        priority.sched_priority = 60;
+        priority.sched_priority = 40;
         const bool realtime = sched_setscheduler(0, SCHED_FIFO, &priority) == 0;
         std::cout << "scheduler="
-                  << (realtime ? "FIFO60" : "OTHER (no realtime privilege)")
-                  << " mlock=" << (mlockall(MCL_CURRENT | MCL_FUTURE) == 0)
-                  << std::endl;
+                  << (realtime ? "FIFO40" : "OTHER (no realtime privilege)")
+                  << " wait=adaptive (RT:40us tail; OTHER:150us "
+                     "tail/full-spin<=250us) mlock="
+                  << (mlockall(MCL_CURRENT | MCL_FUTURE) == 0) << std::endl;
         const auto config = LoadPdoConfig(argv[1]);
         Check(config.adapters.size() == 1, "Requires exactly one lab slave");
         const auto& c = config.adapters.begin()->second;
@@ -174,6 +176,9 @@ int main(int argc, char** argv) {
         const auto& layout = all.adapters.begin()->second;
         Master master{ecrt_request_master(config.master_index)};
         Check(master.ptr, "Cannot request IgH master");
+        Check(ecrt_master_set_send_interval(master.ptr, config.cycle_time_us) ==
+                  0,
+              "Cannot set IgH send interval");
         ec_master_info_t info{};
         Check(ecrt_master(master.ptr, &info) == 0 && info.slave_count == 1,
               "Requires exactly one connected slave");
@@ -189,7 +194,7 @@ int main(int argc, char** argv) {
                                             c.vendor_id, c.product_code);
         Check(sc, "Cannot configure slave");
         const uint32_t values[] = {layout.layout_signature,
-                                   1000,
+                                   config.cycle_time_us,
                                    20000,
                                    c.can_tx_slots[0],
                                    c.can_tx_slots[1],
@@ -244,25 +249,25 @@ int main(int argc, char** argv) {
         wire::Put64(rx.data() + 8, session);
         wire::Put32(rx.data() + 28, wire::kDiscover);
         wire::Put32(rx.data() + 32, layout.layout_signature);
-        wire::Put32(rx.data() + 40, 1000);
+        wire::Put32(rx.data() + 40, config.cycle_time_us);
         uint64_t boot = 0;
         uint32_t batch = 0, last_feedback = 0;
         bool have_feedback = false, armed = false, pending = false,
              new_command = false;
-        int64_t quiet_start = 0, sent = 0, next_send = 0;
+        int64_t quiet_start = 0, sent = 0, next_send = 0, last_pdo_send = 0;
         double pending_wake = 0;
         unsigned wkc_misses = 0, commands = 0;
         auto next = Clock::now();
         const auto deadline = next + std::chrono::seconds(35);
         std::cout << "PDO Rx=" << rx.size() << " Tx=" << tx.size()
                   << " signature=" << layout.layout_signature
-                  << " cycle_us=1000 command_interval_us=10000 timeout_us=8000"
-                  << std::endl;
+                  << " cycle_us=" << config.cycle_time_us
+                  << " command_interval_us=10000 timeout_us=8000" << std::endl;
         for (uint32_t exchange = 1; Clock::now() < deadline; ++exchange) {
             const auto woke = Clock::now();
             const auto wake =
                 std::chrono::duration<double, std::micro>(woke - next).count();
-            next += std::chrono::microseconds(1000);
+            next += std::chrono::microseconds(config.cycle_time_us);
             ecrt_master_receive(master.ptr);
             const int64_t received = Ns();
             ecrt_domain_process(domain);
@@ -341,7 +346,28 @@ int main(int argc, char** argv) {
                 }
             } else if (armed) {
                 ++wkc_misses;
-                throw std::runtime_error("OP/WKC lost during measurement");
+                // 仅诊断迟到帧：即使稍后收到仍判失败，不把周期违约隐藏为通过。
+                const auto initial_wc = ds.working_counter;
+                const auto check_started = Ns();
+                while (ds.wc_state != EC_WC_COMPLETE &&
+                       Ns() - check_started < 1000000) {
+                    ecrt_master_receive(master.ptr);
+                    ecrt_domain_process(domain);
+                    ecrt_domain_state(domain, &ds);
+                }
+                const auto last_receive = Ns();
+                std::cerr << "RX deadline diagnostic: initial_wc=" << initial_wc
+                          << " eventual_wc=" << ds.working_counter
+                          << " first_poll_after_send_us="
+                          << (check_started - last_pdo_send) / 1000.0
+                          << " final_poll_after_send_us="
+                          << (last_receive - last_pdo_send) / 1000.0 << std::endl;
+                throw std::runtime_error(
+                    ("OP/WKC lost during measurement: AL=" +
+                     std::to_string(ss.al_state) +
+                     " WC=" + std::to_string(ds.working_counter) +
+                     " wc_state=" + std::to_string(ds.wc_state))
+                        .c_str());
             }
             if (pending && Ns() - sent > 8000000) {
                 throw std::runtime_error(
@@ -386,8 +412,9 @@ int main(int argc, char** argv) {
                 std::memcpy(data + e.domain, rx.data() + e.image, e.bytes);
             }
             ecrt_domain_queue(domain);
+            last_pdo_send = Ns();
             if (new_command) {
-                sent = Ns();
+                sent = last_pdo_send;
                 next_send = sent + 10000000;
                 pending = true;
                 ++commands;
@@ -396,7 +423,21 @@ int main(int argc, char** argv) {
             if (Clock::now() > next + std::chrono::milliseconds(5)) {
                 next = Clock::now();
             }
-            std::this_thread::sleep_until(next);
+            // 普通调度下先提前唤醒，末段忙等，避免把系统定时器唤醒误差当作链路耗时。
+            const auto spin_begin =
+                next - std::chrono::microseconds(realtime ? 40 : 150);
+            if ((realtime || config.cycle_time_us > 250) &&
+                Clock::now() < spin_begin) {
+                std::this_thread::sleep_until(spin_begin);
+            }
+            while (Clock::now() < next) {
+                // 保持可抢占；不改变调度权限，也不丢弃迟到样本。
+#if defined(__x86_64__) || defined(__i386__)
+                asm volatile("pause");
+#else
+                std::atomic_signal_fence(std::memory_order_seq_cst);
+#endif
+            }
         }
         throw std::runtime_error("Benchmark deadline exceeded");
     } catch (const std::exception& e) {

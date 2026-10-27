@@ -300,8 +300,9 @@ PdoConfig LoadPdoConfig(const std::string& file) {
 }
 
 PdoLayout BuildPdoLayout(const PdoConfig& config) {
-    Require(config.cycle_time_us == 1000,
-            "Only cycle_time_us: 1000 is supported");
+    Require(config.cycle_time_us == 1000 || config.cycle_time_us == 500 ||
+                config.cycle_time_us == 250 || config.cycle_time_us == 125,
+            "Supported cycle_time_us: 125, 250, 500, 1000");
     Require(config.master_index <= 255, "Master index out of range");
     Require(config.adapters.size() >= 1 && config.adapters.size() <= 3,
             "Expected 1..3 adapters");
@@ -354,6 +355,7 @@ PdoLayout BuildPdoLayout(const PdoConfig& config) {
         AdapterPdoLayout layout;
         layout.alias = adapter.alias;
         layout.position = adapter.position;
+        layout.cycle_time_us = config.cycle_time_us;
         layout.rx = rx.Finish();
         layout.tx = tx.Finish();
         Require(layout.rx.bytes <= config.max_rxpdo_bytes &&
@@ -379,6 +381,8 @@ PdoLayout BuildPdoLayout(const PdoConfig& config) {
         80;
     Require(result.estimated_wire_time_ns <= config.max_wire_time_us * 1000,
             "Estimated aggregate wire time exceeds planning limit");
+    Require(result.estimated_wire_time_ns <= config.cycle_time_us * 1000,
+            "Estimated aggregate wire time exceeds exchange cycle");
     return result;
 }
 }  // namespace dust_control::ethercat

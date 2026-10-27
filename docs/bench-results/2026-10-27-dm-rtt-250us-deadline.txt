@@ -1,0 +1,6 @@
+CPU=7
+scheduler=OTHER (no realtime privilege) wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=96 Tx=400 signature=812945440 cycle_us=250 command_interval_us=10000 timeout_us=8000
+No RTT samples.
+RX deadline diagnostic: initial_wc=0 eventual_wc=3 first_poll_after_send_us=247.693 final_poll_after_send_us=433.73
+FAIL: OP/WKC lost during measurement: AL=8 WC=3 wc_state=2
