@@ -32,7 +32,8 @@ west flash -d build/ethercat_bench
 启动计数使用保留 Flash，刷写不要全片擦除或覆盖该区域。
 
 工具核对在线身份后下载 22 项配置、动态映射并运行名义 1 kHz 周期。
-15 秒内收到至少 5000 个不同发布序号、匹配本次 session 的 Ready 回复才通过，
+15 秒内收到至少 5000 个不同发布序号、逐次匹配只读状态请求序号的 Ready 回复才通过，
+状态请求只读取网关状态；Discover 阶段 accepted_session_id 必须为 0，只有 Arm 后才接纳会话。
 核对 ABI、布局签名、非零且稳定的 boot_id 和本地保护能力位；握手后丢失 OP/WKC 则失败。
 这是通信功能检查，不是主机调度延迟/时钟抖动的硬实时验收。
 退出释放 master，不自动恢复业务；从站重新配置通常需要显式复位后再运行。
@@ -52,3 +53,13 @@ west flash -d build/ethercat_bench
 - 后续刷写/诊断期间出现启动异常，最后 NUC 链路 DOWN、从站数 0，JTAG 无法暂停 CPU。
   已请求控制板单独断电重启，保持电机动力断开；尚未完成 OP/Discover 持续交换。
 - 没有发送 Arm，没有进行 CAN/UART 输出或断线保护实测。
+
+2026-10-27 时钟修复后复测：
+
+- 已烧入 clockfix-514ab7c RX-only 镜像；修正 PLL0=480 MHz、DCDC=1275 mV 与 LMM 时钟。
+- 单块从站已进入 OP，过程域 WKC=3，15 秒窗口内获得 14290 次完整工作计数，boot_id 稳定。
+- 首版工具错误要求 Discover 回显 accepted_session_id；固件只在 Arm 后设置此字段。
+  已改为 Discover 携带只读网关状态请求，以不同请求序号逐次核对回显，同时要求接纳会话仍为 0。
+- 修正后的端到端复测尚未通过：上次退出后配置锁定，复测停在 PREOP，需控制板重启。
+  当前探针序列号为 Vllink.Basic2.3091FD7A76，JTAG 扫描全 0，不能通过调试器复位。
+- 全程未发送 Arm 或 CAN/UART 控制输出。以上结果尚不能替代双向 Discover 验收。

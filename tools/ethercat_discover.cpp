@@ -145,6 +145,8 @@ int main(int argc, char** argv) {
         wire::Put32(rx.data() + 32, layout.layout_signature);
         wire::Put32(rx.data() + 40, 1000);
         uint64_t boot = 0;
+        // Ready 尚未接纳 Arm 会话；用只读状态请求的回显证明双向交换。
+        uint32_t challenge = uint32_t(session) | 1U;
         uint32_t last_sequence = 0;
         unsigned valid = 0, complete = 0, misses = 0;
         auto next = std::chrono::steady_clock::now();
@@ -179,20 +181,26 @@ int main(int argc, char** argv) {
                     Check(current_boot && (!boot || boot == current_boot),
                           "Boot identity changed/zero");
                     boot = current_boot;
+                    Check(!wire::U64(tx.data() + 16),
+                          "Discover unexpectedly accepted an Arm session");
                     if (wire::U32(tx.data() + 24) != last_sequence &&
-                        wire::U64(tx.data() + 16) == session) {
+                        wire::U32(tx.data() + 56) == challenge) {
                         const auto sequence = wire::U32(tx.data() + 24);
                         Check(!last_sequence ||
                                   wire::Newer(sequence, last_sequence),
                               "Stale/reordered slave publication");
                         ++valid;
                         last_sequence = sequence;
+                        if (!++challenge) {
+                            ++challenge;
+                        }
                     }
                 }
             } else if (valid) {
                 ++misses;
             }
             wire::Put32(rx.data() + 24, exchange);
+            wire::Put32(rx.data() + 44, challenge);
             for (const auto& e : output) {
                 std::memcpy(data + e.domain, rx.data() + e.image, e.bytes);
             }
