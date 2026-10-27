@@ -84,8 +84,9 @@ west flash -d build/ethercat_bench
   config/ethercat_receive_bench.yaml --receive-only
 ```
 
-此配置按实际接线启用 CAN2/3、UART2 HI91（115200）与 UART5 SBUS（100000、8E2）；
-CAN0/1 仍分配反馈容量以便观测，但 MCU 当前过滤表为空。
+当前配置仅分配 CAN3 反馈容量（CAN2 按用户要求暂跳过），并启用 UART2 HI91
+与 UART5 SBUS。用户确认 HI91 为 921600，须使用 dust-adapter 40f697d 或更新固件；
+早期镜像 UART2 为 115200，与传感器不匹配。UART5 为 100000、8E2。
 工具强制所有 CAN/UART TX 容量为 0，来源掩码为 0，仅发协议头、只读状态请求和 UART 接收 ACK。
 先 Discover 核对启动标识、保护能力与请求回显，再带 expected_boot_id 发 Arm。
 仅在匹配会话的 Active 应答中消费外设数据，并按 YAML 生成的字段偏移更新累计 UART ACK。
@@ -102,3 +103,11 @@ CAN0/1 仍分配反馈容量以便观测，但 MCU 当前过滤表为空。
 - UART2 共 57728 字节；首个 128 字节抽样未见 HI91 0x5a 0xa5 帧头，未通过 HI91 解码验收。
   等待核对传感器实际波特率，不能仅凭字节数判定 IMU 正常。
 - 等待核对右腿控制电源/主动反馈条件；不为通信测试接通电机动力。
+
+HI91 波特率修正准备：
+
+- 用户确认 HI91=921600；应用板 overlay 已修正 UART2，通用板默认设置未改动。
+- dust-adapter/ethercat 40f697d，RX-only 台架构建成功，生成 DTS 中 UART2 current-speed=0xe1000（921600）。
+- 已生成 `dust-hpm5e31-ethercat-rx-only-hi91-921600-40f697d.bin`，用于 XPI0 NOR 启动镜像。
+- 本次 JTAG 仍扫描全 0，CPU 未连接，未能写入新固件；等待 ISP 烧录后再做 HI91 帧校验。
+- 接收工具扩大原始 UART 抽样至每通道约 4 KiB，便于后续跨块拼帧及 CRC 核对；尚未在新波特率上运行。

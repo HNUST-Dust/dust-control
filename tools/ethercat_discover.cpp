@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
                                                     ? uart_sequence[port] + 1U
                                                     : 1U),
                                     "UART sequence gap without discontinuity");
-                                if (uart_bytes[port] < 96) {
+                                if (uart_bytes[port] < 4096) {
                                     std::cout << "UART" << port + 1
                                               << " seq=" << seq
                                               << " flags=" << flags << " data=";

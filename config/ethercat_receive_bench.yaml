@@ -1,4 +1,5 @@
 # 仅接收台架：显式使用 --receive-only，所有 CAN/UART TX 容量为 0。
+# CAN2 暂跳过；HI91 UART2=921600（固件 overlay），SBUS UART5=100000/8E2。
 schema_version: 1
 ethercat:
   master_index: 0
@@ -16,7 +17,7 @@ adapters:
     pdo:
       can:
         tx_slots: {chassis: 0, gimbal: 0}
-        rx_slots: {0: 2, 1: 2, 2: 2, 3: 2}
+        rx_slots: {0: 0, 1: 0, 2: 0, 3: 2}
       uart:
         5: {tx_bytes: 0, rx_bytes: 32}
         2: {tx_bytes: 0, rx_bytes: 128}
