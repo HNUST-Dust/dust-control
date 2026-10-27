@@ -130,6 +130,11 @@ int main(int argc, char** argv) {
     try {
         const unsigned target = argc == 4 ? std::stoul(argv[3]) : 1000;
         Check(target && target <= 2000, "Sample count must be 1..2000");
+#ifdef __OPTIMIZE__
+        std::cout << "compiler_optimized=1" << std::endl;
+#else
+        std::cout << "compiler_optimized=0" << std::endl;
+#endif
         samples.reserve(target);
         std::ofstream preflight(argv[2]);
         Check(bool(preflight), "Cannot create CSV");

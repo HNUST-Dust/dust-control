@@ -1,0 +1,12 @@
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=96 Tx=400 signature=812945440 cycle_us=250 command_interval_us=10000 timeout_us=8000
+samples=1000 RTT_us min=748.679 mean=1129.737 p50=1248.540 p95=1249.466 p99=1249.695 max=1498.634 stddev=131.693 peak_to_peak=749.955 max_adjacent_change=500.406
+PASS commands=1000 timeouts=0 WKC_misses=0; sequential DM pairing, no sequence echo; no hard-RT claim.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
