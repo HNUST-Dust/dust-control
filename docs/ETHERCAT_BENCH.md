@@ -2,7 +2,8 @@
 
 独立工具 `dust_ethercat_discover` 使用与主程序相同的 YAML 布局生成器，直接调用 IgH。
 只接纳一块 alias=0、position=0、VID=0、PID=0x44544331、revision=0x10000 的实验网关。
-不链接机器人控制器，只发送 Discover；拒绝任何 CAN/UART TX 容量和板载 SPI IMU。
+不链接机器人控制器，默认只发送 Discover；拒绝任何 CAN/UART TX 容量和板载 SPI IMU。
+显式添加 `--receive-only` 可在 Discover 后进入零发送容量的 Arm，仅接收外设数据。
 生产运行时继续拒绝 VID=0，不能用此工具结果替代正常控制运行验收。
 
 构建（需本机 IgH 用户态库和 yaml-cpp）：
@@ -75,3 +76,29 @@ west flash -d build/ethercat_bench
   约每两个 1 ms 主机周期完成一次，不能据此推断端到端延迟或硬实时指标。
 - 全程未 Arm，CAN/UART TX 容量为 0；尚未验证业务数据、断线保护、多板及 Port1。
   下一阶段先准备外设输入台架与专用验证工具，逐项核对 CAN 反馈和 UART 接收数据。
+
+仅接收验证（须明确授权接收 Arm，电机动力保持断开）：
+
+```sh
+./build/bench/src/hardware/ethercat/dust_ethercat_discover \
+  config/ethercat_receive_bench.yaml --receive-only
+```
+
+此配置按实际接线启用 CAN2/3、UART2 HI91（115200）与 UART5 SBUS（100000、8E2）；
+CAN0/1 仍分配反馈容量以便观测，但 MCU 当前过滤表为空。
+工具强制所有 CAN/UART TX 容量为 0，来源掩码为 0，仅发协议头、只读状态请求和 UART 接收 ACK。
+先 Discover 核对启动标识、保护能力与请求回显，再带 expected_boot_id 发 Arm。
+仅在匹配会话的 Active 应答中消费外设数据，并按 YAML 生成的字段偏移更新累计 UART ACK。
+5000 次 Active 请求回显通过只代表协议状态正常；各通道必须另行核对实际收到的帧和内容。
+退出后主站释放，从站保护/配置冻结；复测前通常需重启控制板。
+
+2026-10-27 首轮接收结果（[原始输出](bench-results/2026-10-27-receive.txt)）：
+
+- 动态 Rx=96 B、Tx=736 B，签名 855855321；5000 次 Active 状态请求回显通过，OP/WKC 丢失 0。
+- boot_id=7198499774940554464，全程稳定；所有外设 TX 容量为 0，没有发送外设控制帧。
+- CAN3 共 10040 帧，前三帧 ID 均为 513（0x201）；CAN2 为 0。尚未证明全部关节反馈正常。
+- UART5 共 17850 字节，前三个完整 25 字节 SBUS 抽样帧头 0x0f、帧尾 0x00。
+  flags=0x0f：frame_lost 与 failsafe 均置位；接收链路有数据，但不能作为有效遥控输入验收。
+- UART2 共 57728 字节；首个 128 字节抽样未见 HI91 0x5a 0xa5 帧头，未通过 HI91 解码验收。
+  等待核对传感器实际波特率，不能仅凭字节数判定 IMU 正常。
+- 等待核对右腿控制电源/主动反馈条件；不为通信测试接通电机动力。
