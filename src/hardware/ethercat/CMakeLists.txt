@@ -24,3 +24,11 @@ if(DUST_BUILD_TOOLS OR BUILD_TESTING)
   install(TARGETS dust_ethercat_layout RUNTIME DESTINATION bin)
 endif()
 install(TARGETS dust_ethercat_pdo dust_ethercat ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+
+# 单独的 Discover 台架入口，不链接控制器或放宽生产身份检查。
+if(DUST_BUILD_TOOLS AND DUST_BUILD_IGH)
+  add_executable(dust_ethercat_discover ${PROJECT_SOURCE_DIR}/tools/ethercat_discover.cpp)
+  target_include_directories(dust_ethercat_discover PRIVATE "${IGH_INCLUDE_DIR}")
+  target_link_libraries(dust_ethercat_discover PRIVATE dust_ethercat_pdo "${IGH_LIBRARY}")
+  target_compile_options(dust_ethercat_discover PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()

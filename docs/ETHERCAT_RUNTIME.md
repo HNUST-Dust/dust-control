@@ -150,3 +150,9 @@ controller_state/tx_errors/rx_errors；UART 为 received_blocks/dropped_blocks/c
 原生测试使用可注入的测试传输验证单线程、多板、错签名、WKC 丢失、重启、
 旧数据、来源期限、UART 窗口和整机离线生命周期。测试后端只在测试中构造，生产固定 IgH。
 真实 ecrt.h/libethercat 编译检查与硬件交换验收分别记录；没有从站固件时不能进行后者。
+
+## 首版 HPM5E31 FreeRun 选择
+
+动态配置同时以 u16 下载 `0x1c32:1=0` 和 `0x1c33:1=0`，显式选择 FreeRun。
+未下载时 SSC 可能自动选择 SM Sync，不能进入只支持 FreeRun 的网关周期。
+实验板首轮工具及实测进度见 [台架验证](ETHERCAT_BENCH.md)。

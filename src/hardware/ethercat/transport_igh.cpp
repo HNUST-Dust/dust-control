@@ -74,6 +74,13 @@ class IghTransport final : public Transport {
                     Sdo(slave.config, sub++, n.rx_bytes);
                 }
                 Sdo(slave.config, sub, c.onboard_imu ? 1 : 0);
+                // SSC 未显式收到同步方式时会自动选 SM Sync；首版网关仅支持
+                // FreeRun。
+                Check(
+                    ecrt_slave_config_sdo16(slave.config, 0x1c32, 1, 0) == 0 &&
+                        ecrt_slave_config_sdo16(slave.config, 0x1c33, 1, 0) ==
+                            0,
+                    "Cannot queue FreeRun synchronization selection SDO");
                 Map(slave, board.layout.rx, 2, EC_DIR_OUTPUT, EC_WD_ENABLE,
                     slave.rx);
                 Map(slave, board.layout.tx, 3, EC_DIR_INPUT, EC_WD_DISABLE,
