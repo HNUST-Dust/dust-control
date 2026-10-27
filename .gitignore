@@ -14,3 +14,8 @@ results/
 *.mcap
 .DS_Store
 *~
+
+# SOEM test tree: local toolchain and build artifacts
+/tests/SOEM/SOEM/.tools/
+/tests/SOEM/**/build/
+/tests/SOEM/**/.cache/
