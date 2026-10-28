@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-28",
+  "mode": "word with per-word memcpy calls",
+  "cycle_us": 125,
+  "host_samples": 1000,
+  "traced_samples": 128,
+  "trace_overflow": 872,
+  "clock_hz": 24000000,
+  "pdo_rx_bytes": 96,
+  "pdo_tx_bytes": 400,
+  "layout_signature": 3858229428,
+  "command": "CAN3 ID3 FF FF FF FF FF FF FF FD",
+  "scheduler": "FIFO40 CPU7",
+  "aspm": "temporarily off; restored all 1",
+  "sha256": {
+    "firmware_elf": "b5da150abd926ee1e55f2c2df7780628e14257de1e84860081e54732ee001ffe",
+    "firmware_hex": "ccbc17ffbbbccaf8c508d1836d3dfe0ffc0d07cd68a63fffd7c36b141adb4336",
+    "host_csv": "a32b1895138d42af9d0409f71b220fd1c0fee7834e6edb63a90e50b2a75a6fef",
+    "firmware_dump": "a4fff3c990a8740d11898202591e1bfea4abd1bc333dc6fc2fa87ecba8ff5370"
+  }
+}

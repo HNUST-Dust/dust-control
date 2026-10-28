@@ -121,3 +121,35 @@ python3 -m unittest discover -s tests/tools -v
 主机发送调用平均 0.434 µs，接收调用平均 0.820 µs；`rx_ns` 到台架接纳反馈平均约 0.78 µs。这些用户态函数耗时不包含完整内核/NIC/线上传播延迟。CAN 提交到反馈回调约 271 µs 仍包含总线仲裁、发送、设备应答、反馈与 IRQ，不能全归为电机处理。
 
 原始数据：[主机 CSV](bench-results/2026-10-28-dm-rtt-125us-trace.csv)、[从站 RAM](bench-results/2026-10-28-dm-rtt-125us-trace.bin)、[合并分段 CSV](bench-results/2026-10-28-dm-rtt-125us-stages.csv)、[终端输出](bench-results/2026-10-28-dm-rtt-125us-trace.txt)。
+
+## 2026-10-28 对齐 32 位访问对比
+
+实现位于 hpm_support 的 `drivers/ethercat/esc_hpmicro.c`，开关 `CONFIG_HPM_ESC_PDRAM_WORD_ACCESS`。支持库默认关闭，dust-adapter EtherCAT 应用明确开启。关闭即可回退逐字节路径。只扩大 PDRAM 范围内地址、长度都按 4 字节对齐且长度至少 8 字节的访问；不补齐长度，不修改相邻字节，不扩大寄存器访问。应用缓冲区不对齐仍可使用 word MMIO 和 CPU 侧 memcpy。对齐缓冲区用显式 builtin memcpy 保持类型规则并生成直接 lw/sw。未引入 DMA。
+
+约束依据：[ETG ESC 概览](https://www.ethercat.org/download/documents/ESC_Overview.pdf) 列出 HPM5E00 内部 32 位 PDI；本地 SDK 提供 DWORD ESC 读写及对齐四字节读取实现。手册第 57 章说明 PDRAM 与 SYNC DMA 请求。驱动对新路径增加范围、长度及对齐限制。硬件校验确认了本次 96/400 B PDO 和动态 CoE/邮箱配置，但不等于验证了所有未来 YAML 组合。
+
+三轮均为 125 µs、FIFO40、CPU7、临时关闭 ASPM 并恢复，主机工具、PDO 配置及 DM 失能命令相同。均无超时和 WKC 失败。
+
+| 平均耗时 µs | 逐字节，64 条 | 首版32位，前128条 | 最终32位，64条 |
+|---|---:|---:|---:|
+| 96 B ESC 读取 | 31.446 | 13.904 | 14.013 |
+| 400 B ESC 写入 | 98.114 | 48.930 | 49.343 |
+| CAN 提交→反馈回调 | 271.335 | 283.834 | 280.626 |
+| CAN 回调→捕获 | 168.611 | 114.182 | 67.471 |
+| Rx 映射→ESC反馈写完 | 594.376 | 496.618 | 444.333 |
+| NUC RTT（有分段记录部分） | 946.210 | 801.755 | 746.987 |
+
+首版 32 位测试实际运行 1000 条（主机平均 RTT 777.478 µs），从站按容量保留前 128 条并累计 872 次未记录；分段统计只使用这 128 条，不把剩余命令混入分段结果。最终版本采 64 条，64 条均完整匹配、无溢出。
+
+最终版本平均 RTT **746.987 µs**、P95 **874.003 µs**、最大 **998.614 µs**、标准差 **68.073 µs**。与逐字节 64 条运行相比平均 RTT 下降约 21.1%，ESC 读写合计从 **129.560 µs** 降至 **63.356 µs**（约 51.1%）。样本量较小、相位和中断可能变化，因此整体改善不能全部等同于直接节省的搬运时间，更不能据此承诺长期小于 1 ms。
+
+反汇编确认最终对齐路径已移除每四字节的 libc memcpy 调用，但两版 word 路径的 ESC 读写时间接近，未观察到进一步明显下降。剩余延迟可能主要来自 ESC 访问路径与等待；DMA 是否更快仍待独立测量，SYNC DMA 请求存在不等于搬运带宽已经验证。DMA 尚未接入。
+
+测试：实际驱动函数的原生总线模型在 ASan/UBSan 下验证 byte/word 两种模式，检查访问宽度、顺序、计数、范围、零长度、越界/整数溢出拒绝和未对齐应用缓冲区；反汇编确认对齐路径实际使用 lw/sw。固件完整协议/IO 回归及实机收发均通过。
+
+数据：
+
+- 首版：[完整1000条主机CSV](bench-results/2026-10-28-dm-rtt-125us-word.csv)、[前128条主机子集](bench-results/2026-10-28-dm-rtt-125us-word-traced-host.csv)、[128条分段](bench-results/2026-10-28-dm-rtt-125us-word-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-word.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-word.txt)。
+- 最终：[64条主机CSV](bench-results/2026-10-28-dm-rtt-125us-wordfast.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-wordfast-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-wordfast.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-wordfast.txt)、[构建指纹](bench-results/2026-10-28-dm-rtt-125us-wordfast.json)。
+
+复测当前正式 word 路径沿用前述 trace 构建步骤。复现原始 byte 基线时，构建命令额外指定 `-DCONFIG_HPM_ESC_PDRAM_WORD_ACCESS=n`。每轮测试前复位，导出前不要复位。
