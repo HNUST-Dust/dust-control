@@ -379,3 +379,50 @@ P95=999.127 us、标准差84.187 us。入队→出队27.986 us、回调→快照
 [MCT1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcanfixed-timing.bin)、
 [日志](bench-results/2026-10-28-dm-rtt-125us-mcanfixed.txt)、
 [指纹](bench-results/2026-10-28-dm-rtt-125us-mcanfixed.json)。
+
+### 修复后：多线程 + DMA 对照
+
+同一修复源码（构建源代码 `b066ec6`、文档提交 `2ed441f`、hpm_support `d1e9fbf`），
+多线程与MCAN观测均保持开启，只开启同步ESC DMA。125 us/64条失能帧、Rx96/Tx400、
+FIFO40 CPU7及临时ASPM-off条件相同。64/64命令和两份记录均完整通过，无超时/WKC丢失，
+ASPM恢复为1。FIFO始终1帧，SOF年龄平均124.250 us、最大144 us，counter速率校验通过；
+此前约6 ms异常没有在本轮重现。
+
+| 平均耗时 us（另注明者除外） | 多线程CPU word | 多线程DMA |
+|---|---:|---:|
+| RTT | 872.004 | 961.917 |
+| RTT P95 | 999.127 | 1124.164 |
+| RTT最大 | 999.708 | 1249.018 |
+| RTT标准差 | 84.187 | 114.148 |
+| 超过1 ms样本数 / 64 | 0 | 15 |
+| ESC读96 B | 16.334 | 41.005 |
+| ESC写400 B | 54.468 | 93.961 |
+| CAN提交→反馈回调 | 300.981 | 301.103 |
+| 入队→出队 | 27.986 | 21.847 |
+| 回调→快照 | 40.776 | 31.871 |
+| 快照→发布 | 59.974 | 94.978 |
+
+DMA真实使用：reads=4822、writes=4855，启动双向selftest=1、ready=1、通道6/burst1；
+配置/启动/完成错误、超时、重入、IRQ回退及last_error均为0。max_wait_cycles=3812
+（24 MHz下158.833 us，统计所有合格传输且不含配置/pre-copy，不是本表单条命令ESC阶段的最大值）。
+计数覆盖全部合格PDO搬运，不只64个命令；cpu_fallbacks=4455591主要包含普通寄存器访问，
+不代表PDO DMA失败。
+
+本轮DMA平均RTT增加89.913 us（约10.3%），读写平均分别增加24.671/39.493 us，
+快照到发布增加35.004 us。同步bounce-buffer、逐次配置、等待IRQ完成的实现没有显示收益；
+CAN硬件年龄与回调耗时正常，不能再用旧6 ms异常解释本轮差异。
+不能将各阶段差值简单相加成RTT：采样涉及不同发布路径、重叠等待和125 us主站取样相位。
+64样本是实验对照，不是长期尾延迟或统计显著性证明。
+
+默认保留多线程 + CPU word，DMA继续作为默认关闭的实验。后续若优化DMA，需单独验证
+配置复用、更大burst或安全的异步/轮询完成方案，而非认为启用DMA本身就一定更快。
+主机使用顺序DM反馈配对，没有设备序号回显，本轮不改变这个测量边界。
+
+数据：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma.csv)、
+[分段CSV](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma-stages.csv)、
+[MCAN关联CSV](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma-timing.csv)、
+[DTR1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma.bin)、
+[MCT1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma-timing.bin)、
+[DMA统计](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma-stats.bin)、
+[日志](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma.txt)、
+[指纹](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma.json)。
