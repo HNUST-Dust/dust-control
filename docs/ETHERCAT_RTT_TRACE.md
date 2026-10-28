@@ -153,3 +153,44 @@ python3 -m unittest discover -s tests/tools -v
 - 最终：[64条主机CSV](bench-results/2026-10-28-dm-rtt-125us-wordfast.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-wordfast-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-wordfast.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-wordfast.txt)、[构建指纹](bench-results/2026-10-28-dm-rtt-125us-wordfast.json)。
 
 复测当前正式 word 路径沿用前述 trace 构建步骤。复现原始 byte 基线时，构建命令额外指定 `-DCONFIG_HPM_ESC_PDRAM_WORD_ACCESS=n`。每轮测试前复位，导出前不要复位。
+
+## 2026-10-28 同步 DMA 实验及紧邻 CPU 对照
+
+已接入默认关闭的 `CONFIG_DUST_ECAT_ESC_DMA`。使用 XDMA6、4 字节宽度、地址递增、单字 burst、不可缓存的 1536 B 中转缓冲区，通过 Zephyr DMA 完成中断通知，同步忙等至完成。只覆盖生成地址上的 SM2/SM3 整块 PDO，寄存器、邮箱和不支持的长度保留 CPU 路径；ISR/关中断上下文不启动 DMA。不会将尚未搬完的数据交给 SSC，不改变 PDO 和 CAN 白名单。此版用于测量搬运延迟，不代表异步 DMA 架构，也没有宣称降低 CPU 忙等占用。
+
+启动前在未分配给 SyncManager 的 0xfe00 区域做 512 B 双向确定性数据自检，检查所有字节并恢复原值。驱动负责 CPU 本地 RAM 到系统地址的转换，`__nocache` 中转缓冲区避免直接 DMA 访问带缓存的 SSC 镜像。配置/启动/完成错误或 500 µs 超时锁定传输故障并要求停止 DMA，禁止部分传输后 CPU 重试；网关在继续处理命令前进入保护。DMA 故障后需重启。
+
+两轮同为 125 µs、Rx96/Tx400、FIFO40 CPU7、临时关闭 ASPM 并恢复、64 条 DM 失能命令。DMA 轮后立即刷回已验证的 CPU word-fast 镜像复测。两轮均 64/64 命令成功、16 点完整关联、CAN 序号正确、无 WKC 失败或反馈超时。`PASS` 只表示协议及 8 ms 台架窗口通过，不代表满足 1 kHz 控制要求。
+
+| 测量段 | DMA 平均 µs | 紧邻 CPU 平均 µs |
+|---|---:|---:|
+| ESC读取96B | 29.935 | 13.915 |
+| ESC写入400B | 71.775 | 49.296 |
+| CAN提交→反馈回调 | 6648.271 | 275.212 |
+| 反馈回调→捕获 | 110.704 | 85.365 |
+| Rx映射→反馈写完 | 6885.671 | 457.391 |
+| NUC RTT | 7223.552 | 770.455 |
+
+DMA 最大 RTT 7748.980 µs，CPU 对照最大 998.982 µs。64 个样本不足以建立长期尾延迟界限。
+
+DMA 确实被使用：[DMA 统计](bench-results/2026-10-28-dm-rtt-125us-dma-stats.json) 中 selftest=1，实际 PDO DMA reads=6754、writes=6756，IRQ fallback=0，配置/启动/完成错误及超时均为0。cpu_fallbacks=3999595 包括大量常规寄存器/控制访问，不代表 PDO DMA 失败。统计包含全部 PDO 交换，而非仅 64 条 CAN 命令。
+
+结论：当前“同步中转＋逐次配置＋中断完成”实现**没有加速**。读写合计约 101.710 µs，对照 CPU 为 63.210 µs，增加约 38.500 µs；这些软件测量包含配置、中转复制和完成等待，不能全部称为 DMA 硬件搬运时间。
+
+更大的约 6 ms 变化出现在 CAN 提交→反馈回调一段，仅 DMA 轮出现，在紧邻 CPU 对照中消失。这个变化不能用多出的约 38.5 µs 搬运时间直接解释。现有时间戳不能区分电机/物理总线应答时间和 MCAN RX IRQ 延迟，尚未定位其机制，因此不把它直接归因于电机计算、EtherCAT 线上时间或某个具体中断。
+
+正式默认保持 CPU word；台架已恢复该 CPU 镜像。DMA 代码保留为默认关闭的实验选项。后续若继续，应先定位 CAN 段变化，再单独测试 burst、完成通知及无缓存直达缓冲区等方案；不能据本轮泛化为 DMA 硬件本身无法优化。
+
+构建在固件原 trace 命令上增加 `-DCONFIG_DUST_ECAT_ESC_DMA=y`。测试仍用 `sudo bash /tmp/dust-ecat-bench/ethercat_rtt_aspm_probe.sh 125 64 dma`。除 RTT RAM 外还需在主站退出后按配套 ELF 导出 `dust_esc_dma_stats`：
+
+```bash
+python3 tools/dump_ethercat_rtt_trace.py ELF dma-stats.bin \
+ --symbol dust_esc_dma_stats --nm NM --openocd OPENOCD --scripts SDK_OPENOCD
+```
+
+测试覆盖：实际 DMA 后端的成功复制、启动自检、数据损坏、配置失败、启动失败、完成错误、超时和粘滞故障；真实 SSC 周期在 Active 状态注入 DMA 故障，确认保护只执行一次且不再派发命令；默认关闭固件编译、完整协议/IO 回归通过。
+
+数据与构建指纹：
+
+- DMA：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-dma.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-dma-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-dma.bin)、[统计RAM](bench-results/2026-10-28-dm-rtt-125us-dma-stats.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-dma.txt)、[指纹](bench-results/2026-10-28-dm-rtt-125us-dma.json)。
+- 紧邻CPU：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-cpucontrol-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.txt)、[指纹](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.json)。

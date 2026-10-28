@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "ready": 1,
+  "selftest": 1,
+  "reads": 6754,
+  "writes": 6756,
+  "cpu_fallbacks": 3999595,
+  "irq_fallbacks": 0,
+  "config_errors": 0,
+  "start_errors": 0,
+  "completion_errors": 0,
+  "timeouts": 0,
+  "reentries": 0,
+  "last_error": 0,
+  "channel": 6,
+  "burst": 1,
+  "max_wait_cycles": 2450
+}
