@@ -347,3 +347,35 @@ DTR1 与 MCT1 均完整且匹配，无超时/WKC 丢失。RTT 平均 7219.655 us
 [MCT1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcantrace-timing.bin)、
 [日志](bench-results/2026-10-28-dm-rtt-125us-mcantrace.txt)、
 [指纹](bench-results/2026-10-28-dm-rtt-125us-mcantrace.json)。
+
+### 修复后：多线程 + CPU word
+
+固件 `b066ec6` + hpm_support `d1e9fbf`，多线程仍开启、DMA 关闭。125 us/64 命令、
+Rx96/Tx400、FIFO40 CPU7、临时 ASPM off，与观测轮相同。全部命令及两份时间戳关联通过，
+无超时/WKC 丢失，ASPM 三项均恢复为1。
+
+| 指标 | 修复前 | 修复后 |
+|---|---:|---:|
+| FIFO读取前占用（每次） | 8 | 1 |
+| 硬件SOF→counter读取平均 us | 6511.750 | 122.000 |
+| CAN提交→反馈回调平均 us | 6687.256 | 300.981 |
+| RTT平均 us | 7219.655 | 872.004 |
+| RTT最大 us | 7874.305 | 999.708 |
+
+修复后硬件年龄112..144 us，包含帧接收时间；counter速率校验通过。
+CPU ISR入口→回调平均11.654 us，额外排空和观测有成本，但不再有毫秒级FIFO积压。
+P95=999.127 us、标准差84.187 us。入队→出队27.986 us、回调→快照40.776 us、
+快照→发布59.974 us、ESC读16.334 us/写54.468 us。
+
+本轮消除了此前约6 ms异常，支持FIFO/过滤问题这一解释，而不是线程本身必然导致6 ms。
+三个接收修复一并应用，不能单独量化各项贡献；不能追溯证明此前每轮的积压触发过程。
+仍不能据64条样本给出长期RTT上界。本轮整体RTT还未优于先前单线程对照，
+保留多线程继续做修复后DMA对照。
+
+数据：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-mcanfixed.csv)、
+[分段CSV](bench-results/2026-10-28-dm-rtt-125us-mcanfixed-stages.csv)、
+[MCAN关联CSV](bench-results/2026-10-28-dm-rtt-125us-mcanfixed-timing.csv)、
+[DTR1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcanfixed.bin)、
+[MCT1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcanfixed-timing.bin)、
+[日志](bench-results/2026-10-28-dm-rtt-125us-mcanfixed.txt)、
+[指纹](bench-results/2026-10-28-dm-rtt-125us-mcanfixed.json)。
