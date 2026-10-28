@@ -231,3 +231,36 @@ CAN 接收队列现在独立于新 RxPDO 排空；FreeRun 主线程在 SSC 主�
 
 - 仅提前采集：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-canearly.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-canearly-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-canearly.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-canearly.txt)、[构建指纹](bench-results/2026-10-28-dm-rtt-125us-canearly.json)。
 - 最终及时刷新：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-canfast.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-canfast-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-canfast.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-canfast.txt)、[构建指纹](bench-results/2026-10-28-dm-rtt-125us-canfast.json)。
+
+## 2026-10-28 事件驱动 CAN 接收线程首轮
+
+固件 `16f8fe2` 采用原 src 的队列/信号量工作线程模式：优先级 0 的 CAN 接收线程，
+优先级 1 的 SSC/Core 主线程；共享快照在短锁内复制，Core 持有独立数组。
+CAN/UART 发送仍由当前异步驱动处理，未改 PDO/YAML 布局，DMA 关闭，SPI IMU 关闭。
+完整原生回归通过；额外用真实 native thread 检查并发 IRQ 入队、快照稳定性与 Protect。
+该原生测试不模拟 Zephyr 优先级或实时中断时延。
+
+同条件 125 us、Rx96/Tx400、FIFO40 CPU7、临时 ASPM off、64 条 DM 失能命令：
+
+| 平均耗时 us | 先前 canfast 单线程 | 接收线程首轮 |
+|---|---:|---:|
+| CAN回调→成功入队 | 9.637 | 4.614 |
+| 入队→出队 | 52.148 | 28.688 |
+| 出队→快照 | 1.503 | 7.364 |
+| CAN回调→快照 | 63.288 | 40.665 |
+| 快照→发布 | 13.855 | 52.454 |
+| CAN提交→反馈回调 | 272.785 | 6682.119 |
+| ESC输入写入 | 49.976 | 51.927 |
+| NUC RTT | 762.631 | 7221.735 |
+
+线程首轮 64/64 完整时间戳，无超时/WKC 丢失，RTT P95=7624.734 us、最大=7749.908 us。
+队列等待降低，但快照到发布的等待增加；本轮没有端到端性能收益。
+更大的异常仍位于 CAN 提交到反馈回调，尚不能区分总线/电机应答和 RX 中断交付延迟。
+这与 DMA 轮约 6 ms 异常相似，不能据此认定线程本身直接造成所有新增延迟。
+已烧录同源码单线程对照（接收线程 n、main priority 0），等待紧邻实测。
+
+原始数据：[主机 CSV](bench-results/2026-10-28-dm-rtt-125us-canthread.csv)、
+[分段 CSV](bench-results/2026-10-28-dm-rtt-125us-canthread-stages.csv)、
+[RAM](bench-results/2026-10-28-dm-rtt-125us-canthread.bin)、
+[日志](bench-results/2026-10-28-dm-rtt-125us-canthread.txt)、
+[构建指纹](bench-results/2026-10-28-dm-rtt-125us-canthread.json)。
