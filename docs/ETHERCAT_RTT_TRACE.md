@@ -426,3 +426,23 @@ CAN硬件年龄与回调耗时正常，不能再用旧6 ms异常解释本轮差�
 [DMA统计](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma-stats.bin)、
 [日志](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma.txt)、
 [指纹](bench-results/2026-10-28-dm-rtt-125us-mcanfixdma.json)。
+
+## 修复后单线程/多线程严格对照准备
+
+两版均使用相同的接收修复源码，DMA、DTR1采集及MCAN诊断采集都关闭，避免额外观测开销。
+实际比较 `.config`，只有两个符号不同：`DUST_ECAT_CAN_RX_THREAD`（y/n）和
+`MAIN_THREAD_PRIORITY`（1/0）。其他配置相同，版本/ELF/bin/config哈希随构建指纹保存。
+
+计划顺序为多线程、单线程、单线程、多线程（ABBA），每轮1000条失能帧、每版2000样本。
+125 us PDO、10000 us命令间隔、Rx96/Tx400、FIFO40 CPU7、临时ASPM关闭并在每轮恢复。
+每轮前重新烧录/校验/复位对应固件，主站必须先退出。该轮是顺序CAN命令探测，
+不是完整1 kHz控制负载或完整CAN/UART混合业务验收；命令无设备序号回显的边界保留。
+
+`tools/ethercat_thread_ab.sh` 是NUC端固定四轮脚本。通过
+`sudo bash ~/dust-ecat-bench/ethercat_thread_ab.sh thread-ab-RUN` 启动。
+RUN目录由操作者预先准备；每阶段发布 WAIT，只有收到匹配 run/phase/variant 的
+release token 才运行固定参数的失能测试。外部操作者在主站空闲、烧录校验成功后才放行。
+脚本不会自行烧录固件，不会运行来自token文件的命令。测试失败或等待超时即停止；
+子脚本负责恢复ASPM。运行期间需保持终端打开，最终状态COMPLETE才表示四轮均完成。
+
+该自动化仅减少重复sudo输入，不更改系统永久权限或调度配置。结果未完成前不判定哪版更快。
