@@ -8,9 +8,25 @@ run_id=${1:-}
 [[ $run_id =~ ^thread-ab-[a-zA-Z0-9_-]+$ ]] || { echo 'Expected a prepared thread-ab-RUN directory'; exit 2; }
 bench="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 state="$bench/$run_id"
-[[ -d $state && -f $state/prepared && ! -e $state/status ]] || { echo 'Run directory missing, or already used'; exit 2; }
+start_phase=${2:-1}
+[[ $start_phase =~ ^[1-4]$ ]] || exit 2
+[[ -d $state && -f $state/prepared ]] || { echo 'Run directory missing'; exit 2; }
+if [[ -e $state/status ]]; then
+    [[ $start_phase -gt 1 && $(cat "$state/status") == FAILED* ]] || { echo 'Run is active, complete, or not resumable'; exit 2; }
+    variants=(multi single single multi)
+    for ((prior=1;prior<start_phase;prior++)); do
+        tag="${run_id}-p${prior}-${variants[$((prior-1))]}"
+        grep -q '^PASS commands=1000 timeouts=0 WKC_misses=0;' "$bench/dm-rtt-125us-${tag}.log"
+        [[ $(wc -l < "$bench/dm-rtt-125us-${tag}.csv") -eq 1001 ]] || exit 2
+    done
+    mv "$state/status" "$state/status-before-resume-p${start_phase}-$(date +%s)"
+    # A previous release must not start the failed phase before a fresh flash.
+    rm -f "$state/release"
+elif [[ $start_phase != 1 ]]; then
+    echo 'Resume requires a failed run'; exit 2
+fi
 [[ -f $bench/ethercat_rtt_aspm_probe.sh && -x $bench/dust_ethercat_dm_rtt ]] || exit 2
-exec > >(tee "$state/coordinator.log") 2>&1
+exec > >(tee -a "$state/coordinator.log") 2>&1
 finish() {
     result=$?
     trap - EXIT
@@ -23,6 +39,7 @@ trap 'exit 143' TERM
 variants=(multi single single multi)
 for index in "${!variants[@]}"; do
     phase=$((index+1))
+    ((phase >= start_phase)) || continue
     variant=${variants[$index]}
     printf 'WAIT %s %s\n' "$phase" "$variant" > "$state/status"
     echo "Waiting for verified firmware: phase=$phase variant=$variant"
