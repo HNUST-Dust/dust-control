@@ -157,3 +157,5 @@ CPU7、FIFO40、mlock成功，临时关闭专用网口L1/L1.1，退出后三项P
 ```sh
 sudo bash /tmp/dust-ecat-bench/ethercat_rtt_aspm_probe.sh 125
 ```
+
+当前耗时口径、周期分桶、理论线时和分段测量设计见 [耗时构成分析](ETHERCAT_RTT_BREAKDOWN.md)。
