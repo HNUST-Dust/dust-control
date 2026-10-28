@@ -301,3 +301,13 @@ CAN 观测点确认报文实际到达时间，再考虑 IRQ/线程优先级与�
 [RAM](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.bin)、
 [日志](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.txt)、
 [构建指纹](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.json)。
+
+### NUC 重启后的工具恢复
+
+NUC 重启会清理 `/tmp/dust-ecat-bench`。当前测试工具、配置及脚本已部署到
+`~/dust-ecat-bench`，使用 `sudo bash ~/dust-ecat-bench/ethercat_rtt_aspm_probe.sh 125 64 mcantrace`。
+脚本从自身目录读取二进制/YAML，并把 CSV/日志写入同一目录，不再硬编码 `/tmp`。
+前文 `/tmp` 命令和路径为当时实验记录；后续测试与结果导出使用这个持久目录。
+工具从当前主机源码在 NUC 以 `g++ -O2 -std=c++20 -pthread` 重新编译，
+使用 `/usr/local/lib` 的 IgH 和系统 yaml-cpp；脚本语法及动态库解析检查通过。
+未改测试帧、调度参数或 ASPM 恢复行为。

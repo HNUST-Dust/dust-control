@@ -8,7 +8,7 @@ samples=${2:-1000}
 tag=${3:-aspmoff}
 [[ $samples =~ ^[0-9]+$ && $samples -ge 1 && $samples -le 2000 ]] || exit 2
 [[ $tag =~ ^[a-zA-Z0-9_-]+$ ]] || exit 2
-bench=/tmp/dust-ecat-bench
+bench="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 pci=/sys/bus/pci/devices/0000:58:00.0
 [[ $(basename "$(readlink "$pci/driver")") == ec_igc ]] || { echo 'Expected ec_igc at 58:00.0'; exit 2; }
 [[ $(cat "$pci/vendor") == 0x8086 ]] || exit 2
