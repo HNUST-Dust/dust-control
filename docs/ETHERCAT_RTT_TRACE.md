@@ -194,3 +194,40 @@ python3 tools/dump_ethercat_rtt_trace.py ELF dma-stats.bin \
 
 - DMA：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-dma.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-dma-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-dma.bin)、[统计RAM](bench-results/2026-10-28-dm-rtt-125us-dma-stats.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-dma.txt)、[指纹](bench-results/2026-10-28-dm-rtt-125us-dma.json)。
 - 紧邻CPU：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-cpucontrol-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.txt)、[指纹](bench-results/2026-10-28-dm-rtt-125us-cpucontrol.json)。
+
+## 2026-10-28 CAN 独立采集与及时输入刷新
+
+CAN 接收队列现在独立于新 RxPDO 排空；FreeRun 主线程在 SSC 主循环前后检查 IO，每次每路最多取 32 帧。快照内容变化或过期标记 dirty。额外 CAN 发布通过 Core::Publish 的内部 advance_uart=false 选项保留上一份 UART process-image 区域，不推进 UART 队列、发送标记或窗口游标；常规 RxPDO 发布、状态变化和 SAFEOP 发布仍走原 UART 路径。PDO ABI 和 YAML 容量不变。
+
+只提前捕获仍不足以降低延迟：首轮 canearly 将“回调→快照”降至 42.027 µs，但“快照→发布”增至 82.091 µs，NUC RTT 797.787 µs，等待发生后移。最终版本在 Active FreeRun 主线程捕获到 dirty CAN 快照后，通过 SSC 自身 PDO_InputMapping 完成一次额外输入刷新，不直接绕过 SSC 写 ESC。每次 poll 最多一次，输入未运行或同步/DC 模式不走这条路径。主循环前后各一次 poll，繁忙总线下可能增加 PDI 写入成本，需要全业务负载另测。
+
+时间戳 RAM 升级至 v2：40 B 头、128 条 184 B 记录，保留原 16 点编号，在尾部新增 CAN_ENQUEUED / CAN_DEQUEUED。匹配同一个 CAN receive sequence。解析工具同时支持 v1/168 和 v2/184，旧实测 CSV 重解码逐字节一致。新增采样点本身有少量开销。
+
+同条件 125 µs、Rx96/Tx400、FIFO40 CPU7、临时 ASPM off、DMA 关闭、64 条 DM 失能命令。三轮比较：
+
+| 平均耗时 µs | 先前 CPU 对照 | 仅提前采集 | 最终及时刷新 |
+|---|---:|---:|---:|
+| CAN回调→快照 | 85.365 | 42.027 | 63.288 |
+| 快照→发布 | 13.226 | 82.091 | 13.855 |
+| CAN提交→反馈回调 | 275.212 | 273.580 | 272.785 |
+| ESC写入400B | 49.296 | 48.855 | 49.976 |
+| NUC RTT | 770.455 | 797.787 | 762.631 |
+
+最终 64/64 命令通过，18 点完整、序号吻合，无溢出、WKC 失败或反馈超时。RTT P95=874.005 µs，最大=999.137 µs，标准差=73.671 µs。平均 RTT 与先前 CPU 对照接近，**没有观察到显著的端到端改善**，不能据这 64 条样本宣称长期低于 1 ms。
+
+最终“CAN 回调→快照”的分解：
+
+| 分段 | 平均 µs | 最大 µs |
+|---|---:|---:|
+| 回调内处理及成功入队 | 9.637 | 16.583 |
+| 入队完成→出队（含 get 开销） | 52.148 | 102.042 |
+| 出队→快照完成 | 1.503 | 7.083 |
+
+这支持“主要等待主线程、实际快照处理很短”的解释。当前 ESC 写入本身约 50 µs，CAN IRQ 只入队，不能让主线程立即中断当前 SSC 搬运；poll 间隔、协议处理、其他 IO 和中断也会影响等待。仅凭现有点还不能把 52 µs 队列段严格分配给每一项。下一阶段若继续优化，应观察当前主线程工作阶段和混合 CAN/UART 负载，而非将这段解释为复制一帧 CAN 需要几十微秒。
+
+验证覆盖：CAN 独立排空且不消费 UART、快照保留与过期、连续 CAN-only 发布保持完整 UART 区域和窗口游标、无新 RxPDO 时发布且不派发命令、FreeRun poll 恰好一次额外映射、同步模式/输入停止时禁止额外映射、18 点序号关联、v1/v2 解析、完整协议/IO/SSC/MCAN/UART/时钟回归。实机工具未发送 UART 数据，物理 UART 共存负载未在本轮重测。
+
+数据：
+
+- 仅提前采集：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-canearly.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-canearly-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-canearly.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-canearly.txt)、[构建指纹](bench-results/2026-10-28-dm-rtt-125us-canearly.json)。
+- 最终及时刷新：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-canfast.csv)、[分段CSV](bench-results/2026-10-28-dm-rtt-125us-canfast-stages.csv)、[RAM](bench-results/2026-10-28-dm-rtt-125us-canfast.bin)、[日志](bench-results/2026-10-28-dm-rtt-125us-canfast.txt)、[构建指纹](bench-results/2026-10-28-dm-rtt-125us-canfast.json)。

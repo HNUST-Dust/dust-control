@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-28",
+  "mode": "canfast",
+  "trace_abi": 2,
+  "record_bytes": 184,
+  "trace_capacity": 128,
+  "clock_hz": 24000000,
+  "samples": 64,
+  "cycle_us": 125,
+  "pdo_rx_bytes": 96,
+  "pdo_tx_bytes": 400,
+  "layout_signature": 3858229428,
+  "scheduler": "FIFO40 CPU7",
+  "aspm": "temporarily off; restored all 1",
+  "dma": false,
+  "command": "CAN3 ID3 FF FF FF FF FF FF FF FD",
+  "sha256": {
+    "firmware_elf": "a1796282012bf89998c8a417c1a3186d69275b4a19c481d37062f041e292f15c",
+    "firmware_hex": "d0505eb4ec89b15e4058e66ca4709d7b74e26fe77ac1cbe48ef3dce990aad6c7",
+    "host_csv": "1fc848e1b355c14276156e0077f3d8517cdde08a7497c9a27d6188d4eac8d79e",
+    "firmware_dump": "c4eabfc79e47bc3b4755d32f97b12bfc3c0998d912d62455c9120f0dd2ab25e3"
+  },
+  "firmware_commit": "8ec74b1",
+  "note": "ELF/HEX hashes identify actual tested builds; canearly is the intermediate capture-only image, canfast adds immediate SSC input refresh. Final commit also includes formatting, tests and documentation."
+}

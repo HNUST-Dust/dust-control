@@ -27,6 +27,19 @@ class TraceContracts(unittest.TestCase):
         later=d.join(data,[row])[0]
         self.assertEqual(later['trace_status'],'ok')
         self.assertEqual(later['accepted_exchange_advance'],1)
+    def test_v2_queue_stages_and_v1_compatibility(self):
+        old,row=self.fixture()
+        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
+        values[0]=36
+        values[1]=(1<<18)-1
+        cycles=values[9:]
+        values += [cycles[10]+40,cycles[11]-40]
+        data=d.HEADER.pack(0x31525444,2,184,128,1,0,24000000,40,7)
+        data+=d.RECORD_V2.pack(*values)+bytes(127*184)
+        out=d.join(data,[row])[0]
+        self.assertEqual(out['trace_status'],'ok')
+        self.assertEqual(out['mcu_can_enqueued_to_can_dequeued_us'],'6.667')
+        self.assertEqual(out['mcu_can_dequeued_to_capture_us'],'1.667')
     def test_missing_mismatched_and_incomplete(self):
         data,row = self.fixture(valid=2047, seq=10)
         flags = d.join(data,[row])[0]['trace_status']
