@@ -90,3 +90,6 @@ add_test(NAME chassis.control_contracts COMMAND chassis_control_contracts)
 
 add_test(NAME ethercat.rtt_trace_decode COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_ethercat_rtt_decode.py")
+
+add_test(NAME ethercat.mcan_timing_decode COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_ethercat_mcan_decode.py")
