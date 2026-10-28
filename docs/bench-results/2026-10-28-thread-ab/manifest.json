@@ -1,0 +1,85 @@
+{
+  "run_id": "thread-ab-1793191355",
+  "variants": [
+    "multi",
+    "single",
+    "single",
+    "multi"
+  ],
+  "samples_per_phase": 1000,
+  "builds": {
+    "multi": "build/dm_rtt_ab_multi",
+    "single": "build/dm_rtt_ab_single"
+  },
+  "state": "complete, final image multi CPU word",
+  "multi": {
+    "sha256": {
+      "zephyr.elf": "933d2b1cbeadef8b863920de39ecef360e91cad9392f441a6a1861d4baaafcfc",
+      "zephyr.bin": "f65dd6cd443cf72e87930f4bcb652cc4b2bd2e2aef4fab95645d519ec7aef018",
+      ".config": "0c159513d2c99233dac94a281be61531ea4ef4289cf374492d3cf6d48847b715"
+    }
+  },
+  "single": {
+    "sha256": {
+      "zephyr.elf": "40ec0facf051eae23616b9f24da95c156608e2f86b048e36ba86ac8f2a0e0616",
+      "zephyr.bin": "5b45ef2d5838c23dff605182ea03cb9734f470a70007f5f002904fbbf62a54cc",
+      ".config": "bd115da2e1761085360d89b48e2b914a3b893e0a1ea5bb119bb51c139e0ede31"
+    }
+  },
+  "config_differences": {
+    "CONFIG_DUST_ECAT_CAN_RX_THREAD": [
+      "y",
+      "n"
+    ],
+    "CONFIG_MAIN_THREAD_PRIORITY": [
+      "1",
+      "0"
+    ]
+  },
+  "firmware_commit": "3b3bc5f33fa4582805580eb8c23ac8b27251ffee",
+  "hpm_support_commit": "d1e9fbfbdca40c3ecc965795917735cb92bd6fd2",
+  "pdo_cycle_us": 125,
+  "command_interval_us": 10000,
+  "observation_trace": false,
+  "mcan_diagnostics": false,
+  "esc_dma": false,
+  "final_firmware": "multi CPU word",
+  "aspm_restored": [
+    1,
+    1,
+    1
+  ],
+  "host_tool_source_commit": "5caa853",
+  "coordinator_source_versions": [
+    "6d75391",
+    "7499d5d"
+  ],
+  "startup_failures": [
+    {
+      "phase": 2,
+      "samples": 0,
+      "reason": "Requires exactly one connected slave before PHY/IgH re-enumeration settled",
+      "recovery": "fresh flash plus three stable single-slave PREOP checks; resume from phase2",
+      "excluded_from_rtt_statistics": true
+    }
+  ],
+  "scope_note": "Each variant changes CAN RX thread flag plus required main priority; no pure context-switch cost claim. 8kHz PDO, 100Hz sequential disable probes; no full mixed-load or hard-RT bound.",
+  "artifacts_sha256": {
+    "coordinator.log": "47565885162b49480eb01f79e720abf9b58356887875519dbd4010c98d6e93aa",
+    "dm-rtt-125us-thread-ab-1793191355-p1-multi.csv": "49b7074fd4e75d6f644b1a6faf087c43e36659d3bcd1ff3005ea0b8bad98aae6",
+    "dm-rtt-125us-thread-ab-1793191355-p1-multi.log": "a1997ea84457bb5226ee239278380a2f3972a5410fef3d30a708556db48decaf",
+    "dm-rtt-125us-thread-ab-1793191355-p2-single.csv": "66047869ff12f8f3ce95da0790c21174a638d663a02c9b824bff9cda7db8d7cf",
+    "dm-rtt-125us-thread-ab-1793191355-p2-single.log": "45556385d67de173350a2f1093eda34a21f054e3da9a0aaeab5c26f8afff379e",
+    "dm-rtt-125us-thread-ab-1793191355-p3-single.csv": "1bd2947b09f98b1327f4f05f1a0d64357fc2d621707927c769ae1a1b27b4b470",
+    "dm-rtt-125us-thread-ab-1793191355-p3-single.log": "c05a46c31eb88287d439f24fb1d36d5e57b0677cc93b18bdad4f12cf7586cb82",
+    "dm-rtt-125us-thread-ab-1793191355-p4-multi.csv": "50576305e3a41b5c95220f573618102de390b62b468230ff79ca5c38e5a05a33",
+    "dm-rtt-125us-thread-ab-1793191355-p4-multi.log": "ec87b874cbc5d59485c759cae238e5c5f338143cb36c0453beea35419db550ca",
+    "failed-enumeration-p2.csv": "5c2ff1844d2a2328510f8aae9b218569d77a1e47be9c7381c40359da923bb780",
+    "failed-enumeration-p2.log": "8f896969a4244b364afb2e24b2aad1dee82a5083278577ff7f3f28585c3a868e",
+    "multi.config": "0c159513d2c99233dac94a281be61531ea4ef4289cf374492d3cf6d48847b715",
+    "run-status.txt": "a4bccf5c13ef5ff8311e59b34d492bc7072a55298723601a6a9c127053aee8fc",
+    "single.config": "bd115da2e1761085360d89b48e2b914a3b893e0a1ea5bb119bb51c139e0ede31",
+    "summary.csv": "3609aacfc80c9bfbf9c96623b50abd84cb462896e3cb33824a2fe5c9de131cbc",
+    "summary.json": "c09f36a6eeba1481d741f994a9906f361d0df13a989345439b47f8b7630cd170"
+  }
+}

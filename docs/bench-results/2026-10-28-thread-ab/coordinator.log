@@ -1,0 +1,69 @@
+Waiting for verified firmware: phase=1 variant=multi
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=96 Tx=400 signature=3858229428 cycle_us=125 command_interval_us=10000 timeout_us=8000
+samples=1000 RTT_us min=622.968 mean=790.389 p50=749.114 p95=874.730 p99=999.415 max=1124.617 stddev=82.131 peak_to_peak=501.649 max_adjacent_change=376.203
+PASS commands=1000 timeouts=0 WKC_misses=0; sequential DM pairing, no sequence echo; no hard-RT claim.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
+Phase complete: 1 multi
+Waiting for verified firmware: phase=2 variant=single
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+FAIL: Requires exactly one connected slave
+No RTT samples.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
+Waiting for verified firmware: phase=2 variant=single
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=96 Tx=400 signature=3858229428 cycle_us=125 command_interval_us=10000 timeout_us=8000
+samples=1000 RTT_us min=621.582 mean=704.286 p50=748.613 p95=873.605 p99=874.049 max=874.803 stddev=73.673 peak_to_peak=253.221 max_adjacent_change=251.207
+PASS commands=1000 timeouts=0 WKC_misses=0; sequential DM pairing, no sequence echo; no hard-RT claim.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
+Phase complete: 2 single
+Waiting for verified firmware: phase=3 variant=single
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=96 Tx=400 signature=3858229428 cycle_us=125 command_interval_us=10000 timeout_us=8000
+samples=1000 RTT_us min=622.489 mean=736.947 p50=748.949 p95=874.012 p99=874.566 max=999.181 stddev=81.886 peak_to_peak=376.692 max_adjacent_change=375.388
+PASS commands=1000 timeouts=0 WKC_misses=0; sequential DM pairing, no sequence echo; no hard-RT claim.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
+Phase complete: 3 single
+Waiting for verified firmware: phase=4 variant=multi
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=96 Tx=400 signature=3858229428 cycle_us=125 command_interval_us=10000 timeout_us=8000
+samples=1000 RTT_us min=622.810 mean=786.674 p50=749.034 p95=874.394 p99=998.996 max=1248.615 stddev=77.284 peak_to_peak=625.805 max_adjacent_change=374.818
+PASS commands=1000 timeouts=0 WKC_misses=0; sequential DM pairing, no sequence echo; no hard-RT claim.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
+Phase complete: 4 multi
+ABBA comparison complete; master tools have exited.
