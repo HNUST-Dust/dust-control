@@ -311,3 +311,39 @@ NUC 重启会清理 `/tmp/dust-ecat-bench`。当前测试工具、配置及脚�
 工具从当前主机源码在 NUC 以 `g++ -O2 -std=c++20 -pthread` 重新编译，
 使用 `/usr/local/lib` 的 IgH 和系统 yaml-cpp；脚本语法及动态库解析检查通过。
 未改测试帧、调度参数或 ASPM 恢复行为。
+
+### MCAN 硬件时间戳：确认 FIFO 中存在旧报文
+
+多线程、DMA 关闭、固件 `7590f4f` + hpm_support `0256d1d`，新增观测轮 64/64 通过，
+DTR1 与 MCT1 均完整且匹配，无超时/WKC 丢失。RTT 平均 7219.655 us、最大 7874.305 us。
+
+- CAN提交→RX回调：平均 6687.256 us。
+- RX硬件SOF时间戳→counter读取：平均 **6511.750 us**，范围5968..7040 us。
+- CPU中断函数入口→回调：平均 **5.935 us**，最大9.500 us。
+- 每次读取前 RX FIFO 填充均为 **8**，中断标志包含新报文和 FIFO 满。
+- 相邻63次counter速率校验全部通过；误差-15.667..9.125 us，符合16 us量化。
+  该结论基于单次counter回绕内的年龄，不能排除额外整周期回绕；SOF年龄包含帧接收时间。
+
+这证明目标反馈已在硬件FIFO中等待数毫秒，不能把它归为电机响应计算时间或接收线程
+出队耗时。中断一旦执行，驱动到回调只花数微秒。尚不能仅凭一条硬件年龄区分
+最初的中断屏蔽、FIFO残留或丢包，需要结合实际驱动逻辑修复后复测。
+
+驱动检查发现三处互相关联的问题：
+
+1. ISR 清除中断快照后，每个新报文事件只读取一个 FIFO 元素；已有积压不会被排空。
+2. Zephyr 的“1表示比较”掩码被反转后直接写入 MCAN classic 硬件掩码。
+   例如精确标准ID掩码0x7ff变成低11位全0，硬件匹配被放宽；软件则使用反向OR比较。
+3. SDK默认全局过滤将非匹配报文也存入FIFO0，非白名单流量仍可能占用硬件FIFO。
+
+修复策略为保留多线程，ISR有界排空入口快照中的全部元素（上限硬件64槽），
+新到达报文留下新的IRQ标志；硬件/软件统一使用正向AND掩码，并拒绝无匹配过滤器的报文。
+另外检查SDK读取状态，失败不得分发旧scratch内容。修复后的实板测量尚待执行，
+不把当前观测轮当成已消除6 ms的证据。
+
+数据：[主机CSV](bench-results/2026-10-28-dm-rtt-125us-mcantrace.csv)、
+[分段CSV](bench-results/2026-10-28-dm-rtt-125us-mcantrace-stages.csv)、
+[MCAN关联CSV](bench-results/2026-10-28-dm-rtt-125us-mcantrace-timing.csv)、
+[DTR1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcantrace.bin)、
+[MCT1 RAM](bench-results/2026-10-28-dm-rtt-125us-mcantrace-timing.bin)、
+[日志](bench-results/2026-10-28-dm-rtt-125us-mcantrace.txt)、
+[指纹](bench-results/2026-10-28-dm-rtt-125us-mcantrace.json)。
