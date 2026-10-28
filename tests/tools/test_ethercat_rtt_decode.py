@@ -40,6 +40,20 @@ class TraceContracts(unittest.TestCase):
         self.assertEqual(out['trace_status'],'ok')
         self.assertEqual(out['mcu_can_enqueued_to_can_dequeued_us'],'6.667')
         self.assertEqual(out['mcu_can_dequeued_to_capture_us'],'1.667')
+    def test_v3_snapshot_stage(self):
+        old,row=self.fixture()
+        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
+        values[0]=38
+        values[1]=(1<<19)-1
+        cycles=values[9:]
+        values += [cycles[10]+40, cycles[11]-40, cycles[11]+120]
+        data=d.HEADER.pack(0x31525444,3,192,128,1,0,24000000,40,7)
+        data+=d.RECORD_V3.pack(*values)+bytes(127*192)
+        out=d.join(data,[row])[0]
+        self.assertEqual(out['trace_status'],'ok')
+        self.assertEqual(out['mcu_capture_to_can_snapshot_us'],'5.000')
+        self.assertEqual(out['mcu_can_snapshot_to_publish_us'],'5.000')
+
     def test_missing_mismatched_and_incomplete(self):
         data,row = self.fixture(valid=2047, seq=10)
         flags = d.join(data,[row])[0]['trace_status']

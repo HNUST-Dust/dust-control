@@ -7,10 +7,11 @@ from pathlib import Path
 
 STAGES = ('esc_read_begin', 'esc_read_end', 'rx_map', 'process', 'process_done',
           'accept', 'enqueue', 'submit', 'submitted',
-          'tx_done', 'can_rx', 'capture', 'publish', 'input_map', 'esc_begin', 'esc_end', 'can_enqueued', 'can_dequeued')
+          'tx_done', 'can_rx', 'capture', 'publish', 'input_map', 'esc_begin', 'esc_end', 'can_enqueued', 'can_dequeued', 'can_snapshot')
 HEADER = struct.Struct('<8IQ')
 RECORD = struct.Struct('<IIQIIIIii16Q')
 RECORD_V2 = struct.Struct('<IIQIIIIii18Q')
+RECORD_V3 = struct.Struct('<IIQIIIIii19Q')
 # TX completion callback and RX callback may run in either order after IRQ latency.
 PAIRS = [('esc_read_begin', 'esc_read_end'), ('esc_read_end', 'rx_map'),
          ('rx_map', 'process'), ('process', 'process_done'),
@@ -18,7 +19,8 @@ PAIRS = [('esc_read_begin', 'esc_read_end'), ('esc_read_end', 'rx_map'),
          ('enqueue', 'submit'), ('submit', 'submitted'), ('submit', 'tx_done'),
          ('submit', 'can_rx'), ('can_rx', 'capture'), ('capture', 'publish'),
          ('can_rx', 'can_enqueued'), ('can_enqueued', 'can_dequeued'),
-         ('can_dequeued', 'capture'),
+         ('can_dequeued', 'capture'), ('capture', 'can_snapshot'),
+         ('can_snapshot', 'publish'),
          ('publish', 'input_map'), ('input_map', 'esc_begin'), ('esc_begin', 'esc_end'),
          ('rx_map', 'esc_end')]
 HOST_PAIRS = [('built', 'encoded'), ('encoded', 'output_copied'),
@@ -32,7 +34,8 @@ def read_trace(data):
     if len(data) < HEADER.size:
         raise ValueError('truncated trace header')
     magic, version, size, capacity, count, overflow, hz, header, boot = HEADER.unpack_from(data)
-    formats = {1: (RECORD, STAGES[:16]), 2: (RECORD_V2, STAGES)}
+    formats = {1: (RECORD, STAGES[:16]), 2: (RECORD_V2, STAGES[:18]),
+               3: (RECORD_V3, STAGES)}
     if version not in formats:
         raise ValueError('unsupported trace ABI')
     record_format, stages = formats[version]
