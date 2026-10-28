@@ -109,7 +109,7 @@ def main():
         parser.error('host CSV contains no completed samples')
     fields = list(dict.fromkeys(k for row in rows for k in row))
     with args.output_csv.open('w', newline='') as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     good = sum(row['trace_status'] == 'ok' for row in rows)
