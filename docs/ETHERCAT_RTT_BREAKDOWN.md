@@ -113,3 +113,6 @@ MCU使用独立高分辨率计时，不在ISR/MainLoop逐条打印；可以用64
 TX完成回调包含中断响应时间，不能把它当作精确CAN EOF；也不能把CAN ACK当作电机状态应答。
 若要再分离DM处理，需CAN硬件时间戳或分析仪测量命令EOF到反馈SOF，并另外考虑仲裁等待。
 未做DC/PTP或其它时钟标定前，不直接把NUC时间与MCU时间相减来计算单向网络延迟。
+
+
+分段测量实现与运行步骤见 [ETHERCAT_RTT_TRACE.md](ETHERCAT_RTT_TRACE.md)。

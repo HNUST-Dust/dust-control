@@ -78,12 +78,21 @@ static int64_t Ns() {
 struct Sample {
     int64_t tx, rx;
     double wake;
+    uint64_t boot = 0, session = 0;
+    uint32_t batch = 0, publication = 0, can_sequence = 0, exchange = 0;
+    int64_t built = 0, encoded = 0, output_copied = 0, queued = 0,
+            send_enter = 0, send_return = 0, receive_enter = 0;
+    int64_t processed = 0, copied = 0, decoded = 0, consumed = 0, ack = 0;
 };
 static void Report(const std::string& path,
                    const std::vector<Sample>& samples) {
     std::ofstream csv(path);
     Check(bool(csv), "Cannot write CSV");
-    csv << "sample,tx_ns,rx_ns,rtt_us,wake_lateness_us\n"
+    csv << "sample,tx_ns,rx_ns,rtt_us,wake_lateness_us,boot,session,batch,"
+           "publication,can_sequence,exchange,built_ns,encoded_ns,output_"
+           "copied_ns,queued_ns,send_enter_ns,send_return_ns,receive_enter_ns,"
+           "domain_processed_ns,image_copied_ns,decoded_ns,bench_consumed_ns,"
+           "accepted_observed_ns\n"
         << std::fixed << std::setprecision(3);
     std::vector<double> v;
     double sum = 0, squared = 0, delta = 0;
@@ -91,7 +100,12 @@ static void Report(const std::string& path,
         const auto& s = samples[i];
         const double us = (s.rx - s.tx) / 1000.0;
         csv << i << ',' << s.tx << ',' << s.rx << ',' << us << ',' << s.wake
-            << '\n';
+            << ',' << s.boot << ',' << s.session << ',' << s.batch << ','
+            << s.publication << ',' << s.can_sequence << ',' << s.exchange
+            << ',' << s.built << ',' << s.encoded << ',' << s.output_copied
+            << ',' << s.queued << ',' << s.send_enter << ',' << s.send_return
+            << ',' << s.receive_enter << ',' << s.processed << ',' << s.copied
+            << ',' << s.decoded << ',' << s.consumed << ',' << s.ack << '\n';
         v.push_back(us);
         sum += us;
         if (i) {
@@ -261,6 +275,7 @@ int main(int argc, char** argv) {
              new_command = false;
         int64_t quiet_start = 0, sent = 0, next_send = 0, last_pdo_send = 0;
         double pending_wake = 0;
+        Sample trace{};
         unsigned wkc_misses = 0, commands = 0;
         auto next = Clock::now();
         const auto deadline = next + std::chrono::seconds(35);
@@ -273,9 +288,11 @@ int main(int argc, char** argv) {
             const auto wake =
                 std::chrono::duration<double, std::micro>(woke - next).count();
             next += std::chrono::microseconds(config.cycle_time_us);
+            const int64_t receive_enter = Ns();
             ecrt_master_receive(master.ptr);
             const int64_t received = Ns();
             ecrt_domain_process(domain);
+            const int64_t processed = Ns();
             ec_domain_state_t ds{};
             ec_slave_config_state_t ss{};
             ecrt_domain_state(domain, &ds);
@@ -285,6 +302,7 @@ int main(int argc, char** argv) {
                 for (const auto& e : input) {
                     std::memcpy(tx.data() + e.image, data + e.domain, e.bytes);
                 }
+                const int64_t copied = Ns();
                 if (wire::U32(tx.data()) == wire::kMagic) {
                     Check(wire::U16(tx.data() + 4) == wire::kMajor &&
                               wire::U32(tx.data() + 32) ==
@@ -306,6 +324,10 @@ int main(int argc, char** argv) {
                     Check(active ? wire::U64(tx.data() + 16) == session
                                  : !wire::U64(tx.data() + 16),
                           "Session mismatch");
+                    if (pending && !trace.ack &&
+                        wire::U32(tx.data() + 48) == batch) {
+                        trace.ack = Ns();
+                    }
                     const auto* f = tx.data() + feedback;
                     const auto seq = wire::U32(f);
                     const auto count = wire::U16(f + 8);
@@ -332,7 +354,22 @@ int main(int argc, char** argv) {
                                   "DM did not report disabled state");
                             Check(received > sent && received - sent <= 8000000,
                                   "Response outside 8ms window");
-                            samples.push_back({sent, received, pending_wake});
+                            trace.tx = sent;
+                            trace.rx = received;
+                            trace.wake = pending_wake;
+                            trace.boot = boot;
+                            trace.session = session;
+                            trace.batch = batch;
+                            trace.publication = wire::U32(tx.data() + 24);
+                            trace.can_sequence = wire::U32(frame + 4);
+                            trace.receive_enter = receive_enter;
+                            trace.processed = processed;
+                            trace.copied = copied;
+                            trace.decoded = Ns();
+                            trace.consumed =
+                                Ns();  // Bench consumer; controller is not
+                                       // running.
+                            samples.push_back(trace);
                             pending = false;
                         }
                     }
@@ -366,7 +403,8 @@ int main(int argc, char** argv) {
                           << " first_poll_after_send_us="
                           << (check_started - last_pdo_send) / 1000.0
                           << " final_poll_after_send_us="
-                          << (last_receive - last_pdo_send) / 1000.0 << std::endl;
+                          << (last_receive - last_pdo_send) / 1000.0
+                          << std::endl;
                 throw std::runtime_error(
                     ("OP/WKC lost during measurement: AL=" +
                      std::to_string(ss.al_state) +
@@ -397,6 +435,9 @@ int main(int argc, char** argv) {
             }
             new_command = false;
             if (active && !pending && Ns() >= next_send) {
+                trace = {};
+                trace.built = Ns();
+                trace.exchange = exchange;
                 auto* p = rx.data() + source;
                 wire::Put32(p, ++batch);
                 wire::Put32(p + 4, 20000);
@@ -408,6 +449,7 @@ int main(int argc, char** argv) {
                 wire::Put32(p + 20, 3);
                 std::fill(p + 24, p + 31, 0xff);
                 p[31] = 0xfd;
+                trace.encoded = Ns();
                 new_command = true;
                 pending_wake = wake;
             }
@@ -416,7 +458,13 @@ int main(int argc, char** argv) {
             for (const auto& e : output) {
                 std::memcpy(data + e.domain, rx.data() + e.image, e.bytes);
             }
+            if (new_command) {
+                trace.output_copied = Ns();
+            }
             ecrt_domain_queue(domain);
+            if (new_command) {
+                trace.queued = Ns();
+            }
             last_pdo_send = Ns();
             if (new_command) {
                 sent = last_pdo_send;
@@ -424,7 +472,13 @@ int main(int argc, char** argv) {
                 pending = true;
                 ++commands;
             }
+            if (new_command) {
+                trace.send_enter = Ns();
+            }
             ecrt_master_send(master.ptr);
+            if (new_command) {
+                trace.send_return = Ns();
+            }
             if (Clock::now() > next + std::chrono::milliseconds(5)) {
                 next = Clock::now();
             }

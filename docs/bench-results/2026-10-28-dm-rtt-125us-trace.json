@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-28",
+  "firmware_base": "47fcc87ccce7d1adfe9bdacffaa9e0664cad804d",
+  "trace_abi": 1,
+  "record_bytes": 168,
+  "record_capacity": 128,
+  "clock_hz": 24000000,
+  "cycle_us": 125,
+  "samples": 64,
+  "pdo_rx_bytes": 96,
+  "pdo_tx_bytes": 400,
+  "layout_signature": 3858229428,
+  "command": "CAN3 ID3 FF FF FF FF FF FF FF FD",
+  "response_id": 19,
+  "scheduler": "FIFO40 CPU7",
+  "aspm": "temporarily off; restored all 1",
+  "sha256": {
+    "firmware_elf": "8f3ab2ad53173c324edfd486e3c1d30863af8114e36e0d9b25f2508d46383d06",
+    "firmware_hex": "04b2ef7913b331c28b75f45e07e4a852066269d5d0063ee7da572bad0b8d6186",
+    "host_source": "851b2713da267a7cb9e9da8ffef91f632e605b77253d5efe338c4492788825d4",
+    "firmware_dump": "d20a97e2ed86e986f308a6ed23aad433ca2f7548b2fa98c601582de451285623",
+    "host_csv": "cf66f0138add2255be11bdd402be2c00e2fc4173f92de01ae7313f1a671643a8"
+  },
+  "firmware_commit": "abc0557",
+  "note": "Hashes identify the tested image; final commit includes formatting and documentation added after the run."
+}

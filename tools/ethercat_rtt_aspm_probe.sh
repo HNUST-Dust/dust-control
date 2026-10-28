@@ -4,12 +4,16 @@ set -euo pipefail
 [[ $EUID == 0 ]] || { echo 'Run with sudo'; exit 2; }
 period=${1:-250}
 case "$period" in 125|250|500) ;; *) echo 'Period must be 125, 250 or 500 us'; exit 2 ;; esac
+samples=${2:-1000}
+tag=${3:-aspmoff}
+[[ $samples =~ ^[0-9]+$ && $samples -ge 1 && $samples -le 2000 ]] || exit 2
+[[ $tag =~ ^[a-zA-Z0-9_-]+$ ]] || exit 2
 bench=/tmp/dust-ecat-bench
 pci=/sys/bus/pci/devices/0000:58:00.0
 [[ $(basename "$(readlink "$pci/driver")") == ec_igc ]] || { echo 'Expected ec_igc at 58:00.0'; exit 2; }
 [[ $(cat "$pci/vendor") == 0x8086 ]] || exit 2
 [[ -x $bench/dust_ethercat_dm_rtt && -f $bench/ethercat_dm_rtt_${period}us.yaml ]] || exit 2
-exec > >(tee "$bench/dm-rtt-${period}us-aspmoff.log") 2>&1
+exec > >(tee "$bench/dm-rtt-${period}us-${tag}.log") 2>&1
 names=(l1_aspm l1_1_aspm l1_1_pcipm)
 saved=()
 for name in "${names[@]}"; do
@@ -30,4 +34,4 @@ for name in l1_1_aspm l1_1_pcipm l1_aspm; do
     printf '0\n' > "$pci/link/$name"
     echo "temporary $name=$(cat "$pci/link/$name")"
 done
-"$bench/dust_ethercat_dm_rtt" "$bench/ethercat_dm_rtt_${period}us.yaml" "$bench/dm-rtt-${period}us-aspmoff.csv" 1000
+"$bench/dust_ethercat_dm_rtt" "$bench/ethercat_dm_rtt_${period}us.yaml" "$bench/dm-rtt-${period}us-${tag}.csv" "$samples"
