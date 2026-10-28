@@ -257,10 +257,47 @@ CAN/UART 发送仍由当前异步驱动处理，未改 PDO/YAML 布局，DMA 关
 队列等待降低，但快照到发布的等待增加；本轮没有端到端性能收益。
 更大的异常仍位于 CAN 提交到反馈回调，尚不能区分总线/电机应答和 RX 中断交付延迟。
 这与 DMA 轮约 6 ms 异常相似，不能据此认定线程本身直接造成所有新增延迟。
-已烧录同源码单线程对照（接收线程 n、main priority 0），等待紧邻实测。
+已完成同源码单线程对照（接收线程 n、main priority 0），结果见下节。
 
 原始数据：[主机 CSV](bench-results/2026-10-28-dm-rtt-125us-canthread.csv)、
 [分段 CSV](bench-results/2026-10-28-dm-rtt-125us-canthread-stages.csv)、
 [RAM](bench-results/2026-10-28-dm-rtt-125us-canthread.bin)、
 [日志](bench-results/2026-10-28-dm-rtt-125us-canthread.txt)、
 [构建指纹](bench-results/2026-10-28-dm-rtt-125us-canthread.json)。
+
+### 紧邻单线程对照结果
+
+同源码 `16f8fe2`，仅关闭接收线程并把 main priority 从 1 恢复为 0；其他协议、
+白名单、PDO、125 us 周期及主机条件保持一致。两项调度配置一起变化，因此不能把全部
+差异归因于线程创建本身或某一个优先级。主站已退出，RAM 导出后恢复 CPU；板子保持该单线程镜像。
+
+| 平均耗时 us | 接收线程 | 紧邻单线程 |
+|---|---:|---:|
+| NUC RTT | 7221.735 | 752.928 |
+| CAN提交→TX完成回调 | 169.217 | 148.680 |
+| CAN提交→RX反馈回调 | 6682.119 | 274.589 |
+| CAN队列等待（入队→出队） | 28.688 | 34.741 |
+| CAN回调→快照 | 40.665 | 41.377 |
+| 快照→发布 | 52.454 | 17.563 |
+| ESC输入写入 | 51.927 | 52.410 |
+
+单线程 64/64 通过、18 点完整、无异常记录、无超时/WKC 丢失，P95=874.038 us、
+最大=874.836 us、标准差=69.764 us；ASPM 三项均恢复为 1。
+
+新增约 6 ms 在紧邻单线程轮消失，并主要处于 TX 完成回调到 RX 反馈回调之间：
+平均约 6512.902 us 对 125.909 us。现有点仍不能区分物理 CAN/电机反馈时延和
+MCAN RX IRQ 交付延迟，也不能将回调视作精确的线上收发时刻。
+此前 DMA 轮也有相似现象，机制尚未定位。需要后续用 MCAN 硬件接收时间戳或独立
+CAN 观测点确认报文实际到达时间，再考虑 IRQ/线程优先级与临界区测量。
+
+用紧邻结果比较，线程只缩短队列等待约 6.053 us，回调到快照几乎相同，
+快照到发布增加约 34.891 us。即使暂时扣除 CAN 段异常，也不能据此宣布当前接收线程
+带来端到端收益。保留实验实现和单线程对照开关，当前实板采用单线程；
+仓库 prj.conf 的线程实验开关仍为 y，重新构建当前对照时必须显式传 n 和 main priority 0。
+64 样本不构成长期抖动上界；DM 没有命令序号回显，仍为顺序配对推断。
+
+数据：[主机 CSV](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.csv)、
+[分段 CSV](bench-results/2026-10-28-dm-rtt-125us-threadcontrol-stages.csv)、
+[RAM](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.bin)、
+[日志](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.txt)、
+[构建指纹](bench-results/2026-10-28-dm-rtt-125us-threadcontrol.json)。

@@ -1,0 +1,25 @@
+{
+  "firmware_commit": "16f8fe2c340d4117b022221a32c2675b2f8c53f8",
+  "hpm_support_commit": "1823f983c31d38a543093ea1325952c2063ec155",
+  "can_profile": "config/can_bench_dm_rtt.yaml",
+  "can_rx_thread": false,
+  "main_priority": 0,
+  "trace": true,
+  "dma": false,
+  "rtt_mean_us": 752.928,
+  "rtt_max_us": 874.836,
+  "samples": 64,
+  "complete_trace_records": 64,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "aspm_restored": [
+    1,
+    1,
+    1
+  ],
+  "sha256": {
+    "zephyr.elf": "e61978b1ae1917a3f2bf90247e8aeb8b98c26db7257355f1aae03ebabfabf806",
+    "zephyr.bin": "77f7b6e6e164766a9e755861a5355f269a72ab01a247bb8d3231ac6ee2558e5b",
+    ".config": "0edb3cf56f9c5ab0bf7935381f8dd6f34b368b8202326ef65cee2a5ddde5b36b"
+  }
+}
