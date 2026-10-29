@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -191,6 +192,30 @@ int main(int argc, char** argv) {
         for (const auto& uart : c.uart) {
             Check(!uart.tx_bytes && !uart.rx_bytes, "No UART traffic allowed");
         }
+        const char* sync_env = std::getenv("DUST_RTT_SM_SYNC");
+        Check(!sync_env || std::string(sync_env) == "0" ||
+                  std::string(sync_env) == "1", "SM sync must be0 or1");
+        const bool sm_sync = sync_env && std::string(sync_env) == "1";
+        const char* dc_env = std::getenv("DUST_RTT_DC_SYNC");
+        Check(!dc_env || std::string(dc_env) == "0" || std::string(dc_env) == "1",
+              "DC sync must be0 or1");
+        const bool dc_sync = dc_env && std::string(dc_env) == "1";
+        Check(!dc_sync || (!sm_sync && (config.cycle_time_us == 1000 || config.cycle_time_us == 500)),
+              "DC lab requires500us or1ms cycle and no forced SM mode");
+        uint32_t dc_shift = 0;
+        if (dc_sync) {
+            const char* shift_env = std::getenv("DUST_RTT_DC_SHIFT_NS");
+            const std::string shift = shift_env ? shift_env : std::to_string(config.cycle_time_us * 500);
+            Check(!shift.empty() && shift.find_first_not_of("0123456789") ==
+                      std::string::npos, "DC shift must be unsigned nanoseconds");
+            const auto parsed = std::stoull(shift);
+            Check(parsed <= config.cycle_time_us * 1000 - 100000, "DC shift must leave100us before cycle end");
+            dc_shift = static_cast<uint32_t>(parsed);
+        }
+        Check(!std::getenv("DUST_RTT_RECEIVE_OFFSET_US"),
+              "Receive phase experiment is separate from SM synchronization");
+        std::cout << "ssc_sync=" << (dc_sync ? "DC-Sync0" : sm_sync ? "SM2" : "FreeRun")
+                  << " dc_shift_ns=" << dc_shift << std::endl;
         const auto all = BuildPdoLayout(config);
         const auto& layout = all.adapters.begin()->second;
         Master master{ecrt_request_master(config.master_index)};
@@ -212,6 +237,14 @@ int main(int argc, char** argv) {
         auto* sc = ecrt_master_slave_config(master.ptr, c.alias, c.position,
                                             c.vendor_id, c.product_code);
         Check(sc, "Cannot configure slave");
+        if (dc_sync) {
+            Check(ecrt_master_select_reference_clock(master.ptr, sc) == 0,
+                  "Cannot select DC reference slave");
+            Check(ecrt_slave_config_dc(sc, 0x0300, config.cycle_time_us * 1000,
+                                      dc_shift, 0, 0) == 0,
+                  "Cannot configure DC Sync0");
+            ecrt_master_application_time(master.ptr, uint64_t(Ns()));
+        }
         const uint32_t values[] = {layout.layout_signature,
                                    config.cycle_time_us,
                                    20000,
@@ -238,9 +271,15 @@ int main(int argc, char** argv) {
             Check(ecrt_slave_config_sdo32(sc, 0x2100, i + 1, values[i]) == 0,
                   "Cannot queue configuration SDO");
         }
-        Check(ecrt_slave_config_sdo16(sc, 0x1c32, 1, 0) == 0 &&
-                  ecrt_slave_config_sdo16(sc, 0x1c33, 1, 0) == 0,
-              "Cannot queue FreeRun synchronization selection");
+        // SSC validates explicit SM sync writes against nPdOutputSize, which
+        // is not known until PREOP->SAFEOP mapping. Leave sync unforced in the
+        // SM lab mode so SSC selects SM2/SM2-input after mapping; verify counters
+        // after the run. The default path still explicitly selects FreeRun.
+        if (!sm_sync && !dc_sync) {
+            Check(ecrt_slave_config_sdo16(sc, 0x1c32, 1, 0) == 0 &&
+                      ecrt_slave_config_sdo16(sc, 0x1c33, 1, 0) == 0,
+                  "Cannot queue FreeRun synchronization selection");
+        }
         std::vector<Copy> output, input;
         Map(sc, domain, layout.rx, true, output);
         Map(sc, domain, layout.tx, false, input);
@@ -288,6 +327,7 @@ int main(int argc, char** argv) {
             const auto wake =
                 std::chrono::duration<double, std::micro>(woke - next).count();
             next += std::chrono::microseconds(config.cycle_time_us);
+            if (dc_sync) ecrt_master_application_time(master.ptr, uint64_t(Ns()));
             const int64_t receive_enter = Ns();
             ecrt_master_receive(master.ptr);
             const int64_t received = Ns();
@@ -425,6 +465,10 @@ int main(int argc, char** argv) {
                     std::memcpy(data + e.domain, rx.data() + e.image, e.bytes);
                 }
                 ecrt_domain_queue(domain);
+                if (dc_sync) {
+                    ecrt_master_sync_reference_clock(master.ptr);
+                    ecrt_master_sync_slave_clocks(master.ptr);
+                }
                 ecrt_master_send(master.ptr);
                 Report(argv[2], samples);
                 std::cout << "PASS commands=" << commands
@@ -460,6 +504,10 @@ int main(int argc, char** argv) {
             }
             if (new_command) {
                 trace.output_copied = Ns();
+            }
+            if (dc_sync) {
+                if (exchange % 10 == 1) ecrt_master_sync_reference_clock(master.ptr);
+                ecrt_master_sync_slave_clocks(master.ptr);
             }
             ecrt_domain_queue(domain);
             if (new_command) {
