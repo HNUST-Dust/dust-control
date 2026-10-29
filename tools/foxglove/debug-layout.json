@@ -125,7 +125,7 @@
       "followingViewWidth": 15
     },
     "Plot!timing": {
-      "title": "控制计算与 USB 提交耗时 (us)",
+      "title": "控制计算耗时 (us)",
       "paths": [
         {
           "value": "/dust_control/chassis/telemetry.control_duration_us",

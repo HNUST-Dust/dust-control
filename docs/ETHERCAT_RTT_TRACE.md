@@ -1,3 +1,5 @@
+> 历史实验：固件 RTT 跟踪及相应主站工具已退役，恢复位置见 `docs/handoff/2026-10-30-retired-experiments/README.md`。
+
 # DM RTT 分段时间戳
 
 适用于 CAN3 命令 ID `0x003` 的 `FF FF FF FF FF FF FF FD` 失能帧与反馈 ID `0x013`，每次只有一条在途命令。协议、PDO 布局和发送白名单保持不变。DM 没有回显命令序号，因此仍是顺序配对，不能证明电机对每条命令严格一一应答。

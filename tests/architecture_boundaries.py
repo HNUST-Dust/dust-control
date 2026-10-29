@@ -56,6 +56,8 @@ for directory in ("src", "tests"):
         if path.suffix not in (".cpp", ".cc", ".h", ".hpp"):
             continue
         relative = path.relative_to(root).as_posix()
+        if relative.startswith("tests/SOEM/"):
+            continue
         if path.suffix in (".h", ".hpp", ".hh", ".hxx"):
             if len(re.findall(r"^\s*#\s*pragma\s+once\s*$", path.read_text(), re.M)) != 1:
                 violations.append(f"{relative}: header must use exactly one pragma once")

@@ -37,7 +37,7 @@ struct MotorConfig {
     }
 };
 void ValidateMotorConfig(const MotorConfig& config);
-// 单个 USB 会话的编解码器只能持有一块板的设备。
+// 单个适配器的编解码器只能持有一块板的设备。
 void ValidateMotorAdapterConfig(const MotorConfig& config);
 // 启动时返回完整校验的配置值，不修改任何已存在的设备实例。
 MotorConfig LoadMotorConfig(const std::string& file);
