@@ -1,0 +1,26 @@
+
+/lib/modules/5.15.0-1114-realtime/ethercat/master/ec_master.ko:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000001720 <ec_device_poll>:
+    1720:	e8 00 00 00 00       	call   1725 <ec_device_poll+0x5>
+    1725:	55                   	push   %rbp
+    1726:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 172d <ec_device_poll+0xd>
+    172d:	4c 8b 47 08          	mov    0x8(%rdi),%r8
+    1731:	48 89 47 40          	mov    %rax,0x40(%rdi)
+    1735:	48 8b 47 10          	mov    0x10(%rdi),%rax
+    1739:	48 89 e5             	mov    %rsp,%rbp
+    173c:	4c 89 c7             	mov    %r8,%rdi
+    173f:	e8 00 00 00 00       	call   1744 <ec_device_poll+0x24>
+    1744:	5d                   	pop    %rbp
+    1745:	e9 00 00 00 00       	jmp    174a <ec_device_poll+0x2a>
+
+Disassembly of section .text.unlikely:
+
+Disassembly of section .altinstr_replacement:
+
+Disassembly of section .init.text:
+
+Disassembly of section .exit.text:

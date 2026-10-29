@@ -1,0 +1,40 @@
+Open On-Chip Debugger 0.12.0+dev-00003-g9667dff8a (2026-09-01-09:53)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+srst_only separate srst_gates_jtag srst_open_drain connect_deassert_srst
+reset_soc
+trst_only separate trst_push_pull
+adapter speed: 500 kHz
+Info : Using CMSIS-DAPv2 interface with VID:PID=0x1209:0x6666, serial=Vllink.Basic2.3091FD7A76
+Info : CMSIS-DAP: SWD supported
+Info : CMSIS-DAP: JTAG supported
+Info : CMSIS-DAP: SWO-UART supported
+Info : CMSIS-DAP: Atomic commands supported
+Info : CMSIS-DAP: Test domain timer supported
+Info : CMSIS-DAP: FW Version = 0254
+Info : CMSIS-DAP: Serial# = Vllink.Basic2.D0783C2176
+Info : CMSIS-DAP: Interface Initialised (JTAG)
+Info : SWCLK/TCK = 0 SWDIO/TMS = 0 TDI = 0 TDO = 0 nTRST = 1 nRESET = 1
+Info : CMSIS-DAP: Interface ready
+Info : clock speed 500 kHz
+Info : cmsis-dap JTAG TLR_RESET
+Info : cmsis-dap JTAG TLR_RESET
+Info : JTAG tap: hpm5e00.cpu tap/device found: 0x1000563d (mfg: 0x31e (Andes Technology Corporation), part: 0x0005, ver: 0x1)
+Info : [hpm5e00.cpu0] datacount=4 progbufsize=8
+Info : [hpm5e00.cpu0] Examined RISC-V core
+Info : [hpm5e00.cpu0]  XLEN=32, misa=0x4094112d
+[hpm5e00.cpu0] Target successfully examined.
+Info : [hpm5e00.cpu0] Examination succeed
+Info : [hpm5e00.cpu0] starting gdb server on 3333
+Info : Listening on port 3333 for gdb connections
+hpm5e00.cpu0 halted due to debug-request.
+pc (/32): 0x80013404
+ra (/32): 0x8001340e
+sp (/32): 0x0121ecb0
+mcause (/32): 0x8000000b
+mepc (/32): 0x8000fa06
+a0 (/32): 0x00000001
+a1 (/32): 0x00000000
+s1 (/32): 0x0120ec80
+shutdown command invoked

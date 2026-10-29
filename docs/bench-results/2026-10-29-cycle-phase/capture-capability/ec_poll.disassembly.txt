@@ -1,0 +1,62 @@
+
+/lib/modules/5.15.0-1114-realtime/ethercat/devices/igc/ec_igc.ko:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000008eb0 <ec_poll>:
+    8eb0:	e8 00 00 00 00       	call   8eb5 <ec_poll+0x5>
+    8eb5:	55                   	push   %rbp
+    8eb6:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 8ebd <ec_poll+0xd>
+    8ebd:	48 89 e5             	mov    %rsp,%rbp
+    8ec0:	41 55                	push   %r13
+    8ec2:	49 89 fd             	mov    %rdi,%r13
+    8ec5:	41 54                	push   %r12
+    8ec7:	53                   	push   %rbx
+    8ec8:	48 2b 87 f0 16 00 00 	sub    0x16f0(%rdi),%rax
+    8ecf:	48 3d f3 01 00 00    	cmp    $0x1f3,%rax
+    8ed5:	77 5f                	ja     8f36 <ec_poll+0x86>
+    8ed7:	41 8b 85 44 0a 00 00 	mov    0xa44(%r13),%eax
+    8ede:	85 c0                	test   %eax,%eax
+    8ee0:	74 49                	je     8f2b <ec_poll+0x7b>
+    8ee2:	31 db                	xor    %ebx,%ebx
+    8ee4:	4c 63 e3             	movslq %ebx,%r12
+    8ee7:	49 83 fc 07          	cmp    $0x7,%r12
+    8eeb:	77 62                	ja     8f4f <ec_poll+0x9f>
+    8eed:	4f 8b a4 e5 20 12 00 	mov    0x1220(%r13,%r12,8),%r12
+    8ef4:	00 
+    8ef5:	49 83 7c 24 30 00    	cmpq   $0x0,0x30(%r12)
+    8efb:	74 0d                	je     8f0a <ec_poll+0x5a>
+    8efd:	be 40 00 00 00       	mov    $0x40,%esi
+    8f02:	4c 89 e7             	mov    %r12,%rdi
+    8f05:	e8 56 f1 ff ff       	call   8060 <igc_clean_tx_irq>
+    8f0a:	49 83 7c 24 18 00    	cmpq   $0x0,0x18(%r12)
+    8f10:	74 0d                	je     8f1f <ec_poll+0x6f>
+    8f12:	be 40 00 00 00       	mov    $0x40,%esi
+    8f17:	4c 89 e7             	mov    %r12,%rdi
+    8f1a:	e8 b1 a9 ff ff       	call   38d0 <igc_clean_rx_irq>
+    8f1f:	83 c3 01             	add    $0x1,%ebx
+    8f22:	41 39 9d 44 0a 00 00 	cmp    %ebx,0xa44(%r13)
+    8f29:	77 b9                	ja     8ee4 <ec_poll+0x34>
+    8f2b:	5b                   	pop    %rbx
+    8f2c:	41 5c                	pop    %r12
+    8f2e:	41 5d                	pop    %r13
+    8f30:	5d                   	pop    %rbp
+    8f31:	e9 00 00 00 00       	jmp    8f36 <ec_poll+0x86>
+    8f36:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 8f3d <ec_poll+0x8d>
+    8f3d:	48 8d bf f8 16 00 00 	lea    0x16f8(%rdi),%rdi
+    8f44:	48 89 47 f8          	mov    %rax,-0x8(%rdi)
+    8f48:	e8 00 00 00 00       	call   8f4d <ec_poll+0x9d>
+    8f4d:	eb 88                	jmp    8ed7 <ec_poll+0x27>
+    8f4f:	4c 89 e6             	mov    %r12,%rsi
+    8f52:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+    8f59:	e8 00 00 00 00       	call   8f5e <ec_poll+0xae>
+    8f5e:	eb 8d                	jmp    8eed <ec_poll+0x3d>
+
+Disassembly of section .text.unlikely:
+
+Disassembly of section .altinstr_replacement:
+
+Disassembly of section .init.text:
+
+Disassembly of section .exit.text:

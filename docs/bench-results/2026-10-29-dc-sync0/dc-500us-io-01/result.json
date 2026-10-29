@@ -1,0 +1,118 @@
+{
+  "result": "PASS",
+  "samples": 64,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "rtt_us": {
+    "mean": 1498.611,
+    "p50": 1498.406,
+    "p95": 1509.402,
+    "max": 1513.368
+  },
+  "active_services": 1307,
+  "mean_handler_us": 116.9888102524866,
+  "max_handler_us": 238.29166666666666,
+  "max_active_lateness_us": 77.91666666666667,
+  "same_slowest_lateness_us": 23.333333333333332,
+  "worker_check": {
+    "cumulative_cycles": 25946,
+    "active_wakes": 65,
+    "active_changes": 64,
+    "overlap_cycles": 0,
+    "interpretation": "Worker instrument executed, zero measured body overlap in accepted Active Sync0 cycles. Does not exclude IRQ/other-thread interference."
+  },
+  "stages": [
+    {
+      "name": "SSCother",
+      "mean_us": 6.762751849018108,
+      "max_us": 45.791666666666664,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 9.916666666666666,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "Tick",
+      "mean_us": 2.0518362662586074,
+      "max_us": 25.083333333333332,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 0.75,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "CANreceive",
+      "mean_us": 1.528691660290742,
+      "max_us": 25.166666666666668,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 0.6666666666666666,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "ProcessDispatch",
+      "mean_us": 27.602588625350677,
+      "max_us": 79.58333333333333,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 79.58333333333333,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "ServiceIOscope",
+      "mean_us": 0.47389058913542464,
+      "max_us": 1.0,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 0.4583333333333333,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "CapturePublish",
+      "mean_us": 21.217769701606734,
+      "max_us": 59.791666666666664,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 25.166666666666668,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "Mapping",
+      "mean_us": 2.9167623055343026,
+      "max_us": 39.291666666666664,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 2.8333333333333335,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "ESCwrite",
+      "mean_us": 49.95390206579955,
+      "max_us": 92.79166666666667,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 49.291666666666664,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "IOchecks",
+      "mean_us": 0.7921448610048457,
+      "max_us": 1.3333333333333333,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 0.75,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "CANtx",
+      "mean_us": 2.605776587605203,
+      "max_us": 71.16666666666667,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 67.75,
+      "worker_worst_us": 0.0
+    },
+    {
+      "name": "UARTtx",
+      "mean_us": 1.0826957408824278,
+      "max_us": 5.25,
+      "worker_at_max_us": 0.0,
+      "worst_cycle_us": 1.125,
+      "worker_worst_us": 0.0
+    }
+  ],
+  "sync_fault": 0,
+  "ssc_snapshot_errors": 0,
+  "first_protection": "normal Stop frame core.cpp:205",
+  "next": "Decompose PumpCan admission/preparation vs driver submit, then driver messageRAM write/request. No assumption that peak is wire-transmit time. HPM6200 RX workaround macro is not defined for target HPM5E31 per SDK search."
+}

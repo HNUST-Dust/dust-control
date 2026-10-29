@@ -1,0 +1,21 @@
+# 专用 DM 失能帧 RTT 台架，工具限制 CAN3 ID3 → ID0x13；禁用 UART 流量。
+schema_version: 1
+ethercat:
+  master_index: 0
+  cycle_time_us: 125
+  limits:
+    max_rxpdo_bytes: 1024
+    max_txpdo_bytes: 1536
+    max_wire_time_us: 800
+adapters:
+  bench:
+    alias: 0
+    position: 0
+    vendor_id: 0
+    product_code: 0x44544331
+    pdo:
+      can:
+        tx_slots: {chassis: 1, gimbal: 0}
+        rx_slots: {0: 0, 1: 0, 2: 0, 3: 1}
+      uart: {}
+      onboard_imu: false

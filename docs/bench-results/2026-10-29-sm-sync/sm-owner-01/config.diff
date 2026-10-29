@@ -1,0 +1,8 @@
+--- control.config
++++ sm-sync.config
+@@ -1249,4 +1249,4 @@
+ CONFIG_DUST_ECAT_SCHED_STATS=y
+ # CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE is not set
+ # CONFIG_DUST_ECAT_INPUT_LATE_REFRESH is not set
+-# CONFIG_DUST_ECAT_SM_SYNC is not set
++CONFIG_DUST_ECAT_SM_SYNC=y

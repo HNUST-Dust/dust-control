@@ -1,0 +1,39 @@
+
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/bench-host/fast-v7-01/zephyr.elf:     file format elf32-littleriscv
+
+
+Disassembly of section rom_start:
+
+Disassembly of section reset:
+
+Disassembly of section text:
+
+8000702a <_ZN4dust4ecat17CanReceivePendingEv>:
+8000702a:	01208537          	lui	a0,0x1208
+8000702e:	1141                	addi	sp,sp,-16
+80007030:	08c50513          	addi	a0,a0,140 # 120808c <_ZN4dust4ecat12_GLOBAL__N_118can_notice_versionE>
+80007034:	c606                	sw	ra,12(sp)
+80007036:	3860d0ef          	jal	ra,800143bc <atomic_get>
+8000703a:	012087b7          	lui	a5,0x1208
+8000703e:	0887a603          	lw	a2,136(a5) # 1208088 <_ZN4dust4ecat12_GLOBAL__N_123observed_notice_versionE>
+80007042:	012357b7          	lui	a5,0x1235
+80007046:	7d078793          	addi	a5,a5,2000 # 12357d0 <dust_ecat_can_notice_stats>
+8000704a:	43d4                	lw	a3,4(a5)
+8000704c:	872a                	mv	a4,a0
+8000704e:	8d11                	sub	a0,a0,a2
+80007050:	0685                	addi	a3,a3,1
+80007052:	c3d4                	sw	a3,4(a5)
+80007054:	00a03533          	snez	a0,a0
+80007058:	00c70863          	beq	a4,a2,80007068 <_ZN4dust4ecat17CanReceivePendingEv+0x3e>
+8000705c:	4798                	lw	a4,8(a5)
+8000705e:	0705                	addi	a4,a4,1
+80007060:	c798                	sw	a4,8(a5)
+80007062:	40b2                	lw	ra,12(sp)
+80007064:	0141                	addi	sp,sp,16
+80007066:	8082                	ret
+80007068:	47d8                	lw	a4,12(a5)
+8000706a:	0705                	addi	a4,a4,1
+8000706c:	c7d8                	sw	a4,12(a5)
+8000706e:	bfd5                	j	80007062 <_ZN4dust4ecat17CanReceivePendingEv+0x38>
+
+Disassembly of section _ITCM_SECTION_NAME:

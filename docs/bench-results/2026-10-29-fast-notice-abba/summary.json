@@ -1,0 +1,111 @@
+{
+  "runs": {
+    "A1": {
+      "run": "A1",
+      "samples": 1000,
+      "timeouts": 0,
+      "WKC_misses": 0,
+      "metrics": {
+        "rtt_us": {
+          "mean": 784.610826,
+          "p50": 749.049,
+          "p95": 874.335,
+          "p99": 998.869,
+          "max": 999.611
+        },
+        "wake_lateness_us": {
+          "mean": 0.061803,
+          "p50": 0.062,
+          "p95": 0.083,
+          "p99": 0.086,
+          "max": 0.091
+        }
+      }
+    },
+    "B1": {
+      "run": "B1",
+      "samples": 1000,
+      "timeouts": 0,
+      "WKC_misses": 0,
+      "metrics": {
+        "rtt_us": {
+          "mean": 789.351212,
+          "p50": 749.141,
+          "p95": 874.229,
+          "p99": 998.669,
+          "max": 999.468
+        },
+        "wake_lateness_us": {
+          "mean": 0.061462,
+          "p50": 0.061,
+          "p95": 0.082,
+          "p99": 0.086,
+          "max": 0.092
+        }
+      }
+    },
+    "B2": {
+      "run": "B2",
+      "samples": 1000,
+      "timeouts": 0,
+      "WKC_misses": 0,
+      "metrics": {
+        "rtt_us": {
+          "mean": 772.925066,
+          "p50": 749.006,
+          "p95": 874.184,
+          "p99": 874.778,
+          "max": 999.138
+        },
+        "wake_lateness_us": {
+          "mean": 0.06005,
+          "p50": 0.06,
+          "p95": 0.08,
+          "p99": 0.084,
+          "max": 0.579
+        }
+      }
+    },
+    "A2": {
+      "run": "A2",
+      "samples": 1000,
+      "timeouts": 0,
+      "WKC_misses": 0,
+      "metrics": {
+        "rtt_us": {
+          "mean": 787.091417,
+          "p50": 749.043,
+          "p95": 874.369,
+          "p99": 998.969,
+          "max": 999.448
+        },
+        "wake_lateness_us": {
+          "mean": 0.057263,
+          "p50": 0.057,
+          "p95": 0.078,
+          "p99": 0.083,
+          "max": 0.093
+        }
+      }
+    }
+  },
+  "pooled": {
+    "A": {
+      "mean": 785.8511215,
+      "p50": 749.047,
+      "p95": 874.358,
+      "p99": 998.959,
+      "max": 999.611
+    },
+    "B": {
+      "mean": 781.138139,
+      "p50": 749.031,
+      "p95": 874.201,
+      "p99": 998.61,
+      "max": 999.468
+    }
+  },
+  "B_minus_A_mean_us": -4.712982499999953,
+  "B_mean_change_percent": -0.5997296906574356,
+  "conclusion": "No stable trace-off RTT gain demonstrated; leave optional candidate disabled. Two runs per image are insufficient to establish a small effect. Board remains A."
+}

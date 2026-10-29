@@ -1,0 +1,8 @@
+{
+  "/Users/panpoming/Documents/zephyr_projects/sdk_env/hpm_sdk/samples/ethercat/port/hpm_ecat_hw.h": "8a17c3105cb26a2aa765a9c3ddef54f3c0a0851511e561bbb12a565067d169e2",
+  "/Users/panpoming/Documents/zephyr_projects/sdk_env/hpm_sdk/samples/ethercat/port/hpm_ecat_hw.c": "e29886ead2ee3ec5812c83587579ca88380b8c3fee7b5afc53aa4c3b53787652",
+  "/Users/panpoming/Documents/zephyr_projects/sdk_env/hpm_sdk/samples/ethercat/ecat_io/ecat.c": "5bf48b61b0d4d2c6e353525d7d706cf726efe845cb6d493454613002a8c503fb",
+  "/Users/panpoming/Documents/zephyr_projects/sdk_env/hpm_sdk/boards/hpm5e00evk/board.c": "84cfc50f0a57729a577f69d290922535c46a4aa9517e6545b917cb1ce3496a9e",
+  "/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/ethercat/esc_hpmicro.c": "580f650167b10d5097ab98692b9ed7a508b4bd165c7eaded0f97f5f0796c35d5",
+  "/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/bench-host/ssc-v7-01/zephyr.elf": "66bbd309891747d22cbf839fa5291c6ddea2d9934e202755450350279d0303e5"
+}

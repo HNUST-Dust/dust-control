@@ -1,0 +1,61 @@
+{
+  "samples": 1000,
+  "cycle_records": 7231,
+  "slot_grid_errors": [],
+  "actual_contiguous_send_interval_us": {
+    "n": 6230,
+    "mean": 124.99653643659711,
+    "median": 124.997,
+    "p95": 125.03,
+    "minimum": 123.524,
+    "maximum": 126.449
+  },
+  "send_lateness_us": {
+    "n": 7230,
+    "mean": 0.04732600276625173,
+    "median": 0.046,
+    "p95": 0.067,
+    "minimum": 0.02,
+    "maximum": 1.297
+  },
+  "actual_send_enter_minus_slot_us": {
+    "n": 7230,
+    "mean": 0.08069681881051176,
+    "median": 0.079,
+    "p95": 0.107,
+    "minimum": 0.05,
+    "maximum": 1.554
+  },
+  "receive_enter_minus_previous_send_us": {
+    "n": 7231,
+    "mean": 90.02995298022404,
+    "median": 90.031,
+    "p95": 90.063,
+    "minimum": 88.59,
+    "maximum": 90.812
+  },
+  "receive_wake_lateness_us": {
+    "n": 7231,
+    "mean": 0.07754446134697829,
+    "median": 0.077,
+    "p95": 0.098,
+    "minimum": 0.054,
+    "maximum": 0.456
+  },
+  "rtt_us": {
+    "n": 1000,
+    "mean": 744.876421,
+    "median": 716.05,
+    "p95": 841.084,
+    "minimum": 590.631,
+    "maximum": 966.451
+  },
+  "command_interval_us": {
+    "n": 999,
+    "mean": 10124.999991991992,
+    "median": 10125.0,
+    "p95": 10125.032,
+    "minimum": 10124.178,
+    "maximum": 10125.797
+  }
+}

@@ -1,0 +1,13 @@
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+ssc_sync=DC-Sync0 dc_shift_ns=500000
+PDO Rx=96 Tx=400 signature=2699856283 cycle_us=1000 command_interval_us=10000 timeout_us=8000
+FAIL: Slave state=3 fault=11
+No RTT samples.
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1

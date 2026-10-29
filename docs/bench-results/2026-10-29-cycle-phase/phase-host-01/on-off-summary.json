@@ -1,0 +1,34 @@
+{
+  "phase-on-01": {
+    "samples": 1000,
+    "mean_us": 786.362417,
+    "median_us": 749.0505,
+    "p95_us": 874.355,
+    "p99_us": 999.036,
+    "max_us": 1124.434,
+    "nominal_bands": {
+      "5": 47,
+      "6": 629,
+      "7": 303,
+      "8": 20,
+      "9": 1
+    }
+  },
+  "phase-off-02": {
+    "samples": 1000,
+    "mean_us": 792.241245,
+    "median_us": 749.125,
+    "p95_us": 874.42,
+    "p99_us": 999.036,
+    "max_us": 1124.024,
+    "nominal_bands": {
+      "5": 33,
+      "6": 611,
+      "7": 334,
+      "8": 21,
+      "9": 1
+    }
+  },
+  "on_minus_off_mean_us": -5.878827999999999,
+  "conclusion": "No obvious RTT inflation observed in this pair; one run each does not quantify instrumentation overhead or establish zero overhead. Startup conditions differ; off-01 failed and is excluded."
+}

@@ -1,0 +1,1036 @@
+diff --git a/Kconfig b/Kconfig
+index 51c012b..24da36a 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -90,3 +90,12 @@ config DUST_ECAT_SCHED_STATS
+     bool "Bounded CAN worker wakeup counters in RAM (lab only)"
+     depends on DUST_ECAT_CAN_RX_THREAD
+     default n
++
++config DUST_ECAT_INPUT_WRITE_COALESCE
++    bool "Skip already committed input publications in active FreeRun"
++    default n
++    help
++      Keep SSC input mapping calls, but omit the synchronous PDRAM write for
++      an unchanged successfully committed application publication. Restricted
++      to active FreeRun in thread context. State/mapping changes and transport
++      errors force normal writes. Experimental until board validation.
+diff --git a/docs/ETHERCAT_RTT_TRACE.md b/docs/ETHERCAT_RTT_TRACE.md
+index 5313b82..da3c08a 100644
+--- a/docs/ETHERCAT_RTT_TRACE.md
++++ b/docs/ETHERCAT_RTT_TRACE.md
+@@ -47,3 +47,118 @@ comparison. Support-level contracts run through scripts/test_protocol.sh.
+ DMA 实验、错误处理及对照结果见 [ETHERCAT_ESC_DMA.md](ETHERCAT_ESC_DMA.md)。默认保持 CPU word 路径。
+ 
+ CAN 独立采集、UART 保持与时间戳 ABI v2 见 [ETHERCAT_CAN_RX_FAST_PATH.md](ETHERCAT_CAN_RX_FAST_PATH.md)。
++
++
++## DTR1 v4 worker execution markers (2026-10-29)
++
++Record size is 208 bytes (`<IIQIIIIii21Q>`); the 40-byte header and 128-record
++capacity are unchanged. All v3 stages retain their indices. Append stages 19
++WORKER_WAKE and 20 WORKER_LOCKED. This adds 2048 bytes of trace RAM.
++
++WORKER_WAKE records the first trace call after `k_sem_take` returns;
++WORKER_LOCKED records the first trace call after acquiring the capture mutex.
++Both are accepted only after the matching feedback has been enqueued and before
++it is dequeued. They are optional: the worker may already be executing when an
++IRQ queues feedback, including a wake marker before enqueue followed by a lock
++marker after enqueue. Missing markers must not be interpreted as zero latency.
++First accepted markers are retained; stale wakeups before enqueue and passes
++after dequeue cannot overwrite them. Existing CAN sequence matching and the
++CAN_SNAPSHOT requirement for PUBLISH remain unchanged.
++
++Decode enqueue→wake, wake→locked, and locked→dequeue when both endpoints exist.
++These measure execution boundaries, not pure scheduler or mutex costs: they
++include instrumentation, interrupt preemption and per-port queue scanning.
++The first interval includes semaphore signaling and remaining ISR execution.
++No IRQ-exit hook or SSC phase attribution is added in this revision; those need
++separate observation before assigning the remaining waits to a cause.
++
++The host decoder accepts v1–v4; v4 completeness requires the original 19 stages,
++with worker markers exported and checked for order only when present. This
++revision changes observation only, not polling, priorities, PDO or IO policy.
++Native trace/IO and host decoder tests pass. Target build is checked separately;
++no board measurement or latency improvement is implied by these changes.
++
++
++## DTR1 v5 CAN3 scan boundary (2026-10-29)
++
++Append optional stage 21 CAN3_SCAN at the start of the CAN3 iteration of
++DrainCanReceive, before retained snapshot filtering and message queue reads.
++Record size is 216 bytes (`<IIQIIIIii22Q>`); header and capacity unchanged.
++The same enqueue-before / dequeue-after acceptance window used for worker
++markers applies. Host v1–v4 decoding is retained; the archived worker-v4-01
++run replays to byte-identical CSV. Native trace and IO contracts, 8 host decode
++contracts and the HPM5E31 trace build pass.
++
++When endpoints exist, WORKER_LOCKED→CAN3_SCAN covers worker bookkeeping and
++CAN0–2 scanning; CAN3_SCAN→CAN_DEQUEUED covers retained CAN3 snapshot filtering,
++queue read and trace entry. Both include instrumentation and preemption. They
++are optional observation markers, not pure CPU service times, and can be
++missing if an IRQ arrives during an already executing pass. No receive policy,
++priorities, polling, or SSC ownership changes are made.
++
++Source inspection also shows empty bus iterations still invoke nonblocking
++k_msgq_get and Now() for expiry. Zephyr's queue read takes a spinlock even for
++an empty queue, and k_uptime_ticks takes the timeout spinlock. This provides
++concrete candidates for later measurement, not evidence of their individual
++cost. In particular, avoid skipping disabled ports without considering queued
++frames, drops, configuration transitions and stale feedback cleanup.
++
++
++## DTR1 v6 SSC snapshot-wait attribution (2026-10-29)
++
++Record 256 bytes: `<IIQIIIIii26QII>`, 40-byte header and capacity 128 unchanged.
++Stages 0–21 retain v5 meanings. Append optional WORKER_WAIT (22), SSC_SERVICE
++(23), SNAPSHOT_BEGIN (24), SNAPSHOT_LOCKED (25). These are first calls after
++matched CAPTURE and before matched CAN_SNAPSHOT. Missing markers are not zero
++latency: the owner may already be inside a service/capture call when preempted.
++WORKER_WAIT marks the next semaphore-take entry after the capture pass releases
++its cache mutex, not proof that the worker actually blocked (a token can exist).
++SSC_SERVICE is ServiceCanReceive entry; SNAPSHOT_BEGIN is CaptureCanFeedback
++entry; SNAPSHOT_LOCKED follows acquisition of the snapshot mutex. Existing
++CAN sequence matching and SNAPSHOT-before-PUBLISH eligibility are preserved.
++
++Two uint32 fields follow the 26 timestamps: capture_phase and snapshot_phase.
++They latch the owner's coarse phase at the first matching CAPTURE and SNAPSHOT.
++Phase enum IDs 0–15: unknown, outer, ssc, maintenance, wait, poll_tick, poll_io,
++poll_can, poll_publish, app_tick, app_can, app_process, app_io, app_publish,
++esc_read, esc_write. Gateway/application callbacks restore the caller phase on
++all exits; ESC block transfers >=64 bytes temporarily override it. Small ESC
++register operations are included in the enclosing phase. No SSC vendor sources
++are modified. Owner phase is an observation label, not a scheduler state; a
++phase at capture does not prove all later waiting is spent in that phase.
++
++Interpret capture→worker_wait as worker tail + instrumentation/preemption;
++capture→ssc_service as delay until the next CAN service checkpoint;
++capture→snapshot_begin, begin→locked and locked→snapshot split snapshot request,
++mutex and expiry/copy work. Check markers individually: not all events form one
++mandatory linear chain. In particular a main-thread checkpoint is not an exact
++scheduler resume hook. No pure context-switch cost or continuous phase duration
++is inferred. Main checkpoints/phase changes add trace overhead; use this build
++for localization, not a direct performance comparison with v5 / trace-off.
++
++Host decoder accepts v1–v6 and retains the original mandatory stage mask. Nine
++host decoder tests pass, as do native trace, IO and SSC integration contracts;
++v5 measured replay is byte-identical. HPM5E31 trace build passes (243936 B RAM).
++Empty-cache optimization from worker-v5-opt-01 is retained unchanged.
++
++
++## DTR1 v7 pending write and SSC loop tail (2026-10-29)
++
++Record 280 bytes `<IIQIIIIii29QII>`, header/capacity unchanged. Append optional
++PENDING_WRITE_END (26), SSC_RETURN (27), POLL_ENTRY (28); phase fields remain at
++the end of the record. Same matched CAPTURE-before / SNAPSHOT-after acceptance
++window as v6 wait markers. These markers never replace sequence-matched ESC_END.
++PENDING_WRITE_END marks the first completion of an input write at 0x1d00,
++length >=64, while the feedback still awaits a snapshot. It is not necessarily
++the write executing at capture; require capture_phase=esc_write for that group.
++SSC_RETURN follows MainLoop return, before restoring the outer phase. POLL_ENTRY
++precedes gateway poll bookkeeping. All are optional and preserve their first
++accepted value; the matching feedback's later ESC write cannot fill a missing
++pending marker after snapshot. No recursive poll/SSC calls are introduced.
++
++For records containing the chain, inspect capture→pending_write_end,
++pending_write_end→ssc_return, ssc_return→poll_entry, poll_entry→ssc_service.
++These include worker execution, preemption and instrumentation, not pure CPU
++service times. Records captured in another phase may not traverse every point.
++No mandatory completion rule is added. Native trace/SSC and ten host decode
++tests pass; v6 measured replay is byte-identical; target trace build passes.
+diff --git a/scripts/test_ethercat_ssc.sh b/scripts/test_ethercat_ssc.sh
+index 764b193..89c7888 100755
+--- a/scripts/test_ethercat_ssc.sh
++++ b/scripts/test_ethercat_ssc.sh
+@@ -19,10 +19,16 @@ for source in objdef coeappl; do
+   # 保留真实 SSC 的 SDO 分派、长度和状态检查；只替换 ESC/时钟边界。
+   "${CC:-cc}" -std=c11 "${flags[@]}" -c "$build/$source.c" -o "$build/$source.o"
+ done
+-"${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror -fno-exceptions "${flags[@]}" \
+-  "$root/src/ethercat/slave/gateway.cpp" "$root/src/ethercat/layout.cpp" \
+-  "$root/src/ethercat/core.cpp" "$root/src/ethercat/pdo_dictionary.cpp" \
+-  "$root/tests/ssc_native/io_stub.cpp" "$root/tests/ethercat_ssc_contracts.cpp" "$build/objdef.o" "$build/coeappl.o" \
+-  "${gc_flags[@]}" -o "$build/ssc_contracts"
+-"$build/ssc_contracts"
++for mode in baseline coalesce; do
++  mode_flags=()
++  if [[ $mode == coalesce ]]; then
++    mode_flags=(-DCONFIG_DUST_ECAT_INPUT_WRITE_COALESCE=1 -DCONFIG_DUST_ECAT_SCHED_STATS=1)
++  fi
++  "${CXX:-c++}" -std=c++17 "${mode_flags[@]}" -Wall -Wextra -Werror -fno-exceptions "${flags[@]}" \
++    "$root/src/ethercat/slave/gateway.cpp" "$root/src/ethercat/layout.cpp" \
++    "$root/src/ethercat/core.cpp" "$root/src/ethercat/pdo_dictionary.cpp" \
++    "$root/tests/ssc_native/io_stub.cpp" "$root/tests/ethercat_ssc_contracts.cpp" "$build/objdef.o" "$build/coeappl.o" \
++    "${gc_flags[@]}" -o "$build/ssc_contracts"
++  "$build/ssc_contracts"
++done
+ python3 "$root/tests/ethercat_esi_contracts.py"
+diff --git a/src/ethercat/slave/gateway.cpp b/src/ethercat/slave/gateway.cpp
+index 181d060..f6b8c8a 100644
+--- a/src/ethercat/slave/gateway.cpp
++++ b/src/ethercat/slave/gateway.cpp
+@@ -23,6 +23,12 @@ extern "C" {
+ #include "sdoserv.h"
+ }
+ 
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE) && defined(CONFIG_DUST_ECAT_SCHED_STATS)
++extern "C" {
++DustInputWriteStats dust_ecat_input_write_stats = {1, 0, 0, 0, 0};
++}
++static_assert(sizeof(DustInputWriteStats) == 20);
++#endif
+ namespace {
+ using namespace dust::ecat;
+ constexpr unsigned kObjectCount = 35;
+@@ -58,6 +64,26 @@ bool new_output;
+ bool can_dirty;
+ uint64_t last_publish = 0;
+ BusinessState published_state = BusinessState::Unconfigured;
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++uint64_t input_revision, mapped_revision, written_revision;
++const volatile void* mapped_input_buffer;
++bool input_write_pending, input_write_valid;
++#endif
++void InvalidateInputWrite() {
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    input_write_pending = input_write_valid = false;
++    mapped_input_buffer = nullptr;
++#endif
++}
++void InputPublicationCommitted() {
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    // Independent of the wrapping 32-bit wire publication number.
++    if (++input_revision == 0) {
++        ++input_revision;
++        input_write_valid = false;
++    }
++#endif
++}
+ const UCHAR kObjectName[] = "DTC1 gateway\0\xff";
+ 
+ uint64_t Now() {
+@@ -280,6 +306,13 @@ extern "C" int dust_gateway_init(void) {
+     core = new (core_storage) Core(boot, IoProtection());
+     dust_trace_reset(boot);
+     can_dirty = false;
++    InvalidateInputWrite();
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    input_revision = mapped_revision = written_revision = 0;
++#if defined(CONFIG_DUST_ECAT_SCHED_STATS)
++    dust_ecat_input_write_stats = {1, 0, 0, 0, 0};
++#endif
++#endif
+     last_publish = 0;
+     published_state = BusinessState::Unconfigured;
+     transaction.Clear();
+@@ -339,6 +372,8 @@ extern "C" int dust_gateway_init(void) {
+     return 0;
+ }
+ extern "C" void dust_gateway_poll(void) {
++    dust_trace_stamp(DUST_TR_POLL_ENTRY, 0);
++    DustTracePhaseScope phase(DUST_PHASE_POLL_TICK);
+     if (!core) {
+         return;
+     }
+@@ -349,15 +384,19 @@ extern "C" void dust_gateway_poll(void) {
+         core->Protect(Error::Transport);
+     }
+     core->Tick(now, bEcatOutputUpdateRunning && (watchdog & 1));
++    (void)dust_trace_phase(DUST_PHASE_POLL_IO);
+     ServiceIo(*core, now);
+     if (core->state() == BusinessState::Active) {
++        (void)dust_trace_phase(DUST_PHASE_POLL_CAN);
+         can_dirty |= ServiceCanReceive();
+         // Main-thread FreeRun only; one bounded extra input refresh per poll.
+         // Use SSC's mapping/write path instead of bypassing SyncManager handling.
+         if (can_dirty && mapping_ready && bEcatInputUpdateRunning && !bEscIntEnabled) {
++            (void)dust_trace_phase(DUST_PHASE_POLL_PUBLISH);
+             CaptureCanFeedback(feedback);
+             if (core->Publish({tx_image.data(), prepared.tx.bytes}, Now(),
+                               feedback, false) == Error::None) {
++                InputPublicationCommitted();
+                 can_dirty = false;
+                 dust_trace_stamp(DUST_TR_PUBLISH, U32(tx_image.data() + 24));
+                 last_publish = Now();
+@@ -375,6 +414,7 @@ extern "C" UINT16 APPL_StopMailboxHandler(void) {
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_GenerateMapping(UINT16* input, UINT16* output) {
++    InvalidateInputWrite();
+     *input = 0;
+     *output = 0;
+     mapping_ready = false;
+@@ -402,6 +442,7 @@ extern "C" UINT16 APPL_GenerateMapping(UINT16* input, UINT16* output) {
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_StartInputHandler(UINT16*) {
++    InvalidateInputWrite();
+     if (!mapping_ready || !CheckSm() ||
+         sSyncManOutPar.u16SyncType != SYNCTYPE_FREERUN ||
+         sSyncManInPar.u16SyncType != SYNCTYPE_FREERUN ||
+@@ -414,6 +455,7 @@ extern "C" UINT16 APPL_StartInputHandler(UINT16*) {
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_StopInputHandler(void) {
++    InvalidateInputWrite();
+     if (core && core->state() != BusinessState::Unconfigured) {
+         core->Protect(Error::Transport);
+     }
+@@ -424,11 +466,13 @@ extern "C" UINT16 APPL_StopInputHandler(void) {
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_StartOutputHandler(void) {
++    InvalidateInputWrite();
+     return mapping_ready && core->state() == BusinessState::Ready
+                ? ALSTATUSCODE_NOERROR
+                : ALSTATUSCODE_INVALIDOUTPUTMAPPING;
+ }
+ extern "C" UINT16 APPL_StopOutputHandler(void) {
++    InvalidateInputWrite();
+     if (core && core->state() == BusinessState::Active) {
+         core->Protect(Error::Transport);
+     }
+@@ -443,15 +487,64 @@ extern "C" void APPL_OutputMapping(UINT16* data) {
+     }
+ }
+ extern "C" void APPL_InputMapping(UINT16* data) {
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    input_write_pending = false;
++#endif
+     if (mapping_ready) {
+         std::memcpy(data, tx_image.data(), prepared.tx.bytes);
+         dust_trace_input(U32(tx_image.data()+24), prepared.tx.bytes);
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++        mapped_input_buffer = data;
++        mapped_revision = input_revision;
++        input_write_pending = true;
++#endif
++    }
++}
++extern "C" void dust_gateway_esc_write_isr(const volatile void* data,
++                                            uint16_t address, uint16_t length) {
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    // Only the exact buffer just copied by APPL_InputMapping is eligible.
++    // No partial writes, mailbox accesses, ISR or synchronized cycles coalesce.
++    const bool eligible = input_write_pending && data == mapped_input_buffer &&
++        address == DUST_TX_ADDRESS && length == prepared.tx.bytes &&
++        mapping_ready && core && core->state() == BusinessState::Active &&
++        bEcatInputUpdateRunning && bEcatOutputUpdateRunning &&
++        !bEscIntEnabled && !bDcSyncActive && !k_is_in_isr() &&
++        input_revision && mapped_revision == input_revision && !dust_esc_dma_error();
++    input_write_pending = false;
++#if defined(CONFIG_DUST_ECAT_SCHED_STATS)
++    // Freeze benchmark counters once business state leaves Active.
++    const bool count_active = core && core->state() == BusinessState::Active;
++    if (count_active) ++dust_ecat_input_write_stats.requests;
++#endif
++    if (eligible && input_write_valid && written_revision == mapped_revision) {
++#if defined(CONFIG_DUST_ECAT_SCHED_STATS)
++        ++dust_ecat_input_write_stats.skipped;
++#endif
++        return;
+     }
++    // A fault or lifecycle/mode change may not inherit a previous write credit.
++    input_write_valid = false;
++#endif
++    hpm5e_ssc_esc_write(data, address, length);
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++#if defined(CONFIG_DUST_ECAT_SCHED_STATS)
++    if (count_active) {
++        ++dust_ecat_input_write_stats.writes;
++        if (dust_esc_dma_error()) ++dust_ecat_input_write_stats.failures;
++    }
++#endif
++    if (eligible && !dust_esc_dma_error()) {
++        written_revision = mapped_revision;
++        input_write_valid = true;
++    }
++#endif
+ }
+ extern "C" bool dust_gateway_active(void) {
+     return core && core->state() == BusinessState::Active;
+ }
+ extern "C" void APPL_Application(void) {
++    DustTracePhaseScope phase(DUST_PHASE_APP_TICK);
+     if (!mapping_ready || !core ||
+         core->state() == BusinessState::Unconfigured) {
+         return;
+@@ -463,8 +556,10 @@ extern "C" void APPL_Application(void) {
+     const uint64_t now = Now();
+     core->Tick(now, bEcatOutputUpdateRunning);
+     if (core->state() == BusinessState::Active) {
++        (void)dust_trace_phase(DUST_PHASE_APP_CAN);
+         can_dirty |= ServiceCanReceive();
+     }
++    (void)dust_trace_phase(DUST_PHASE_APP_PROCESS);
+     const bool received = new_output;
+     if (received) {
+         new_output = false;
+@@ -475,12 +570,14 @@ extern "C" void APPL_Application(void) {
+             DispatchIo(*core, actions, now);
+         }
+     }
++    (void)dust_trace_phase(DUST_PHASE_APP_IO);
+     ServiceIo(*core, now);
+     // 常规发布推进 UART 窗口；额外 CAN 发布保留上一份 UART 字节及窗口状态。
+     const bool changed = published_state != core->state();
+     const bool regular = received || changed ||
+         (!bEcatOutputUpdateRunning && now - last_publish >= transaction.candidate().cycle_us);
+     if (regular || can_dirty) {
++        (void)dust_trace_phase(DUST_PHASE_APP_PUBLISH);
+         if (regular) {
+             CaptureIo(*core, feedback, now);
+         } else {
+@@ -489,6 +586,7 @@ extern "C" void APPL_Application(void) {
+         // 捕获期间 IRQ 仍可入队；发布时刻必须晚于已取出的外设时间戳。
+         if (core->Publish({tx_image.data(), prepared.tx.bytes}, Now(),
+                             feedback, regular) == Error::None) {
++            InputPublicationCommitted();
+             can_dirty = false;
+             dust_trace_stamp(DUST_TR_PUBLISH, U32(tx_image.data()+24));
+         }
+diff --git a/src/ethercat/slave/gateway.h b/src/ethercat/slave/gateway.h
+index 32f7943..879d1f1 100644
+--- a/src/ethercat/slave/gateway.h
++++ b/src/ethercat/slave/gateway.h
+@@ -1,12 +1,23 @@
+ /* SPDX-License-Identifier: Apache-2.0 */
+ #pragma once
+ #include <stdbool.h>
++#include <stdint.h>
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+ int dust_gateway_init(void);
+ void dust_gateway_poll(void);
+ bool dust_gateway_active(void);
++// SSC PDO input write adapter; all other accesses use the raw hardware path.
++void dust_gateway_esc_write_isr(const volatile void* data, uint16_t address,
++                                uint16_t length);
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE) && defined(CONFIG_DUST_ECAT_SCHED_STATS)
++// Active-state calls only; writes counts raw synchronous write attempts.
++struct DustInputWriteStats {
++    uint32_t version, requests, writes, skipped, failures;
++};
++extern struct DustInputWriteStats dust_ecat_input_write_stats;
++#endif
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/src/ethercat/slave/hpm5e_esc_hw.c b/src/ethercat/slave/hpm5e_esc_hw.c
+index 94b94b0..6fe7091 100644
+--- a/src/ethercat/slave/hpm5e_esc_hw.c
++++ b/src/ethercat/slave/hpm5e_esc_hw.c
+@@ -28,6 +28,9 @@ void hpm5e_ssc_hw_release(void)
+ 
+ void hpm5e_ssc_esc_read(volatile void *data, uint16_t address, uint16_t length)
+ {
++#if defined(CONFIG_DUST_ECAT_RTT_TRACE)
++	const unsigned previous_phase = length >= 64 ? dust_trace_phase(DUST_PHASE_ESC_READ) : 0;
++#endif
+ 	dust_trace_read(DUST_TR_ESC_READ_BEGIN, address, length);
+ 	int result = dust_esc_dma_read((void *)data, address, length);
+ 	if (result == 1) {
+@@ -36,15 +39,29 @@ void hpm5e_ssc_esc_read(volatile void *data, uint16_t address, uint16_t length)
+ 		memset((void *)data, 0, length);
+ 	}
+ 	dust_trace_read(DUST_TR_ESC_READ_END, address, length);
++#if defined(CONFIG_DUST_ECAT_RTT_TRACE)
++	if (length >= 64) (void)dust_trace_phase(previous_phase);
++#endif
+ }
+ 
+ void hpm5e_ssc_esc_write(const volatile void *data, uint16_t address, uint16_t length)
+ {
++#if defined(CONFIG_DUST_ECAT_RTT_TRACE)
++	const unsigned previous_phase = length >= 64 ? dust_trace_phase(DUST_PHASE_ESC_WRITE) : 0;
++#endif
+ 	dust_trace_esc(DUST_TR_ESC_BEGIN, address, length);
+ 	if (dust_esc_dma_write((const void *)data, address, length) == 1) {
+ 		hpm_esc_write(esc, address, (const void *)data, length);
+ 	}
++	/* This checkpoint belongs to feedback still waiting for a snapshot, not
++	 * the later sequence-matched ESC_END publication interval. */
++	if (address == 0x1d00 && length >= 64) {
++		dust_trace_stamp(DUST_TR_PENDING_WRITE_END, 0);
++	}
+ 	dust_trace_esc(DUST_TR_ESC_END, address, length);
++#if defined(CONFIG_DUST_ECAT_RTT_TRACE)
++	if (length >= 64) (void)dust_trace_phase(previous_phase);
++#endif
+ }
+ 
+ uint16_t hpm5e_ssc_al_event(void)
+diff --git a/src/ethercat/slave/hpm5e_esc_hw.h b/src/ethercat/slave/hpm5e_esc_hw.h
+index b48afee..c10b86f 100644
+--- a/src/ethercat/slave/hpm5e_esc_hw.h
++++ b/src/ethercat/slave/hpm5e_esc_hw.h
+@@ -3,6 +3,7 @@
+ #ifndef WBR_HPM5E_ESC_HW_H_
+ #define WBR_HPM5E_ESC_HW_H_
+ 
++#include "gateway.h"
+ #include <stddef.h>
+ #include <stdint.h>
+ #include <zephyr/drivers/ethercat/hpm_esc.h>
+@@ -42,8 +43,13 @@ void hpm5e_ssc_leave_critical(void);
+     HW_EscRead((pData), (Address), (Len))
+ #define HW_EscWrite(pData, Address, Len) \
+     hpm5e_ssc_esc_write((pData), (uint16_t)(Address), (uint16_t)(Len))
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++#define HW_EscWriteIsr(pData, Address, Len) \
++    dust_gateway_esc_write_isr((pData), (uint16_t)(Address), (uint16_t)(Len))
++#else
+ #define HW_EscWriteIsr(pData, Address, Len) \
+     HW_EscWrite((pData), (Address), (Len))
++#endif
+ #define HW_EscWriteMbxMem(pData, Address, Len) \
+     HW_EscWrite((pData), (Address), (Len))
+ 
+diff --git a/src/ethercat/slave/io_backend.cpp b/src/ethercat/slave/io_backend.cpp
+index 2f16740..ea8807e 100644
+--- a/src/ethercat/slave/io_backend.cpp
++++ b/src/ethercat/slave/io_backend.cpp
+@@ -168,11 +168,14 @@ void ExpireCanSnapshots(uint32_t now) {
+ }
+ void CanRxLoop(void*, void*, void*) {
+     for (;;) {
++        dust_trace_stamp(DUST_TR_WORKER_WAIT, 0);
+         const int result = k_sem_take(
+             &can_rx_wake, CONFIG_DUST_ECAT_CAN_RX_POLL_US
+                               ? K_USEC(CONFIG_DUST_ECAT_CAN_RX_POLL_US)
+                               : K_FOREVER);
++        dust_trace_stamp(DUST_TR_WORKER_WAKE, 0);
+         CaptureGuard guard;
++        dust_trace_stamp(DUST_TR_WORKER_LOCKED, 0);
+         if (!can_capture_enabled) {
+             continue;
+         }
+@@ -875,12 +878,16 @@ namespace {
+ bool DrainCanReceive() {
+     bool changed = false;
+     for (auto& bus : buses) {
++        if (bus.index == 3) {
++            dust_trace_stamp(DUST_TR_CAN3_SCAN, 0);
++        }
+         unsigned count = 0;
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+         // Coalesce IRQ wakeups until SSC takes a copy. Scheduling must not
+         // turn one pending batch into a series of overwritten one-frame
+         // batches.
+-        if (!bus.snapshot_consumed) {
++        // Empty snapshots need no age check; keep draining the IRQ queue below.
++        if (!bus.snapshot_consumed && bus.feedback_count) {
+             const auto current = uint32_t(Now());
+             for (unsigned n = 0; n < bus.feedback_count; ++n) {
+                 if (uint32_t(current - bus.feedback[n].capture_us) <
+@@ -930,7 +937,8 @@ bool DrainCanReceive() {
+             bus.feedback_count = count;
+             ++bus.batch;
+             changed = true;
+-        } else {
++        } else if (bus.feedback_count) {
++            // Empty caches have nothing to expire and need no clock read.
+             // 保留最新快照直到下一批或过期。否则同一 EtherCAT 帧先写 SM2 后读
+             // SM3 时，下一次空发布可能抢先覆盖尚未被主站读取的 CAN 反馈。
+             const auto before = bus.feedback_count;
+@@ -959,6 +967,7 @@ bool DrainCanReceive() {
+ }
+ }  // namespace
+ bool ServiceCanReceive() {
++    dust_trace_stamp(DUST_TR_SSC_SERVICE, 0);
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+     CaptureGuard guard;
+     if (have_can_snapshot) ExpireCanSnapshots(uint32_t(Now()));
+@@ -970,9 +979,11 @@ bool ServiceCanReceive() {
+ #endif
+ }
+ void CaptureCanFeedback(Core::Feedback& feedback) {
++    dust_trace_stamp(DUST_TR_SNAPSHOT_BEGIN, 0);
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+     {
+         CaptureGuard guard;
++        dust_trace_stamp(DUST_TR_SNAPSHOT_LOCKED, 0);
+         if (have_can_snapshot) {
+             ExpireCanSnapshots(uint32_t(Now()));
+         }
+diff --git a/src/ethercat/slave/rtt_trace.cpp b/src/ethercat/slave/rtt_trace.cpp
+index e71fccd..7d1e9d7 100644
+--- a/src/ethercat/slave/rtt_trace.cpp
++++ b/src/ethercat/slave/rtt_trace.cpp
+@@ -16,6 +16,7 @@ struct TraceRecord {
+     uint32_t batch, exchange, publication, can_sequence;
+     int32_t submit_result, done_result;
+     uint64_t cycles[DUST_TR_STAGES];
++    uint32_t capture_phase, snapshot_phase;
+ };
+ struct TraceBuffer {
+     uint32_t magic, version, record_bytes, capacity, count, overflow, clock_hz,
+@@ -23,7 +24,7 @@ struct TraceBuffer {
+     uint64_t boot;
+     TraceRecord records[128];
+ };
+-static_assert(sizeof(TraceRecord) == 192 &&
++static_assert(sizeof(TraceRecord) == 280 &&
+               offsetof(TraceBuffer, records) == 40);
+ extern "C" {
+ TraceBuffer dust_ecat_trace;
+@@ -46,6 +47,7 @@ CanTimingBuffer dust_mcan_timing;
+ }
+ namespace {
+ TraceRecord* active;
++unsigned owner_phase;
+ uint64_t mapped_session, mapped_at, process_at, processed_at, read_begin,
+     read_end;
+ uint32_t mapped_exchange, input_bytes;
+@@ -70,6 +72,8 @@ void Stamp(unsigned stage, uint64_t at, uint32_t value) {
+     if (stage == DUST_TR_TX_DONE) {
+         active->done_result = int32_t(value);
+     }
++    if (stage == DUST_TR_CAPTURE) active->capture_phase = owner_phase;
++    if (stage == DUST_TR_CAN_SNAPSHOT) active->snapshot_phase = owner_phase;
+     active->valid |= 1U << stage;
+     ++active->revision;
+ }
+@@ -88,18 +92,26 @@ extern "C" void dust_trace_reset(uint64_t boot) {
+     dust_mcan_timing.boot = boot;
+ #endif
+     dust_ecat_trace.magic = 0x31525444;  // DTR1
+-    dust_ecat_trace.version = 3;
++    dust_ecat_trace.version = 7;
+     dust_ecat_trace.record_bytes = sizeof(TraceRecord);
+     dust_ecat_trace.capacity = 128;
+     dust_ecat_trace.clock_hz = CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC;
+     dust_ecat_trace.header_bytes = 40;
+     dust_ecat_trace.boot = boot;
+     active = nullptr;
++    owner_phase = DUST_PHASE_UNKNOWN;
+     mapped_at = process_at = processed_at = mapped_session = read_begin =
+         read_end = 0;
+     input_bytes = 0;
+     irq_unlock(key);
+ }
++extern "C" unsigned dust_trace_phase(unsigned phase) {
++    const auto key = irq_lock();
++    const unsigned previous = owner_phase;
++    owner_phase = phase;
++    irq_unlock(key);
++    return previous;
++}
+ extern "C" void dust_trace_mapping(uint64_t session, uint32_t exchange) {
+     const auto key = irq_lock();
+     mapped_at = k_cycle_get_64();
+@@ -155,6 +167,23 @@ extern "C" void dust_trace_stamp(unsigned stage, uint32_t value) {
+     const auto key = irq_lock();
+     // A worker capture may preempt a publication using an older SSC snapshot.
+     // Only the matching main-thread snapshot makes that publication eligible.
++    // First execution markers after this feedback was queued. A stale semaphore
++    // wake or a worker pass after dequeue must not claim this command.
++    if ((stage == DUST_TR_WORKER_WAKE || stage == DUST_TR_WORKER_LOCKED ||
++         stage == DUST_TR_CAN3_SCAN) &&
++        (!Has(DUST_TR_CAN_ENQUEUED) || Has(DUST_TR_CAN_DEQUEUED))) {
++        irq_unlock(key);
++        return;
++    }
++    // These are first execution boundaries while this feedback awaits SSC.
++    if ((stage == DUST_TR_WORKER_WAIT || stage == DUST_TR_SSC_SERVICE ||
++         stage == DUST_TR_SNAPSHOT_BEGIN || stage == DUST_TR_SNAPSHOT_LOCKED ||
++         stage == DUST_TR_PENDING_WRITE_END || stage == DUST_TR_SSC_RETURN ||
++         stage == DUST_TR_POLL_ENTRY) &&
++        (!Has(DUST_TR_CAPTURE) || Has(DUST_TR_CAN_SNAPSHOT))) {
++        irq_unlock(key);
++        return;
++    }
+     if ((stage != DUST_TR_PUBLISH || Has(DUST_TR_CAN_SNAPSHOT)) &&
+         (stage != DUST_TR_CAN_RX || Has(DUST_TR_SUBMIT))) {
+         Stamp(stage, k_cycle_get_64(), value);
+diff --git a/src/ethercat/slave/rtt_trace.h b/src/ethercat/slave/rtt_trace.h
+index 123723d..3238d0a 100644
+--- a/src/ethercat/slave/rtt_trace.h
++++ b/src/ethercat/slave/rtt_trace.h
+@@ -25,9 +25,29 @@ enum dust_trace_stage {
+     DUST_TR_CAN_ENQUEUED,
+     DUST_TR_CAN_DEQUEUED,
+     DUST_TR_CAN_SNAPSHOT,
++    DUST_TR_WORKER_WAKE,
++    DUST_TR_WORKER_LOCKED,
++    DUST_TR_CAN3_SCAN,
++    DUST_TR_WORKER_WAIT,
++    DUST_TR_SSC_SERVICE,
++    DUST_TR_SNAPSHOT_BEGIN,
++    DUST_TR_SNAPSHOT_LOCKED,
++    DUST_TR_PENDING_WRITE_END,
++    DUST_TR_SSC_RETURN,
++    DUST_TR_POLL_ENTRY,
+     DUST_TR_STAGES
+ };
++// Written only by the SSC owner; captured by the worker under trace IRQ lock.
++enum dust_trace_phase_id {
++    DUST_PHASE_UNKNOWN, DUST_PHASE_OUTER, DUST_PHASE_SSC,
++    DUST_PHASE_MAINTENANCE, DUST_PHASE_WAIT,
++    DUST_PHASE_POLL_TICK, DUST_PHASE_POLL_IO, DUST_PHASE_POLL_CAN,
++    DUST_PHASE_POLL_PUBLISH, DUST_PHASE_APP_TICK, DUST_PHASE_APP_CAN,
++    DUST_PHASE_APP_PROCESS, DUST_PHASE_APP_IO, DUST_PHASE_APP_PUBLISH,
++    DUST_PHASE_ESC_READ, DUST_PHASE_ESC_WRITE
++};
+ #if defined(CONFIG_DUST_ECAT_RTT_TRACE)
++unsigned dust_trace_phase(unsigned phase);
+ void dust_trace_reset(uint64_t boot);
+ #if defined(CONFIG_HPM_MCAN_RX_TIMING)
+ void dust_trace_can_timing(uint32_t sequence, const struct hpm_mcan_rx_timing *timing);
+@@ -43,6 +63,10 @@ void dust_trace_can_queue(unsigned stage, uint32_t can_sequence);
+ void dust_trace_input(uint32_t publication, uint32_t bytes);
+ void dust_trace_esc(unsigned stage, uint16_t address, uint16_t bytes);
+ #else
++static inline unsigned dust_trace_phase(unsigned phase) {
++    (void)phase;
++    return DUST_PHASE_UNKNOWN;
++}
+ static inline void dust_trace_reset(uint64_t b) {
+     (void)b;
+ }
+@@ -84,4 +108,13 @@ static inline void dust_trace_esc(unsigned s, uint16_t a, uint16_t b) {
+ #endif
+ #ifdef __cplusplus
+ }
++// Restore the caller's phase even on early return from an application callback.
++class DustTracePhaseScope {
++    unsigned previous_;
++public:
++    explicit DustTracePhaseScope(unsigned phase) : previous_(dust_trace_phase(phase)) {}
++    ~DustTracePhaseScope() { (void)dust_trace_phase(previous_); }
++    DustTracePhaseScope(const DustTracePhaseScope&) = delete;
++    DustTracePhaseScope& operator=(const DustTracePhaseScope&) = delete;
++};
+ #endif
+diff --git a/src/main.c b/src/main.c
+index 2610c24..89f6448 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -15,6 +15,7 @@
+ #include "applInterface.h"
+ #include "ecatappl.h"
+ #include "gateway.h"
++#include "rtt_trace.h"
+ #include "hpm5e31_phy.h"
+ #include "hpm5e_esc_hw.h"
+ 
+@@ -358,9 +359,14 @@ int main(void) {
+             irq_disable(DT_IRQN_BY_IDX(DT_NODELABEL(esc0), 2));
+             printk("SSC reset handled\n");
+         }
++        (void)dust_trace_phase(DUST_PHASE_OUTER);
+         dust_gateway_poll();
++        (void)dust_trace_phase(DUST_PHASE_SSC);
+         MainLoop();
++        dust_trace_stamp(DUST_TR_SSC_RETURN, 0);
++        (void)dust_trace_phase(DUST_PHASE_OUTER);
+         dust_gateway_poll();
++        (void)dust_trace_phase(DUST_PHASE_MAINTENANCE);
+         if (k_uptime_get() >= next_link_poll) {
+             ecat_phy_update_link(esc);
+             next_link_poll = k_uptime_get() + 100;
+@@ -370,6 +376,7 @@ int main(void) {
+             next_phy_poll = k_uptime_get() + 1000;
+         }
+         // Active 时避免 100 us 系统 tick 取整形成额外周期延迟；ISR 仍可抢占。
++        (void)dust_trace_phase(DUST_PHASE_WAIT);
+         if (dust_gateway_active()) {
+             k_busy_wait(10);
+         } else {
+diff --git a/tests/ethercat_rtt_trace_contracts.cpp b/tests/ethercat_rtt_trace_contracts.cpp
+index 7dbfb54..31fb66d 100644
+--- a/tests/ethercat_rtt_trace_contracts.cpp
++++ b/tests/ethercat_rtt_trace_contracts.cpp
+@@ -42,16 +42,62 @@ int main() {
+     assert(!(r.valid & (1U << DUST_TR_CAPTURE)));
+     dust_trace_can_queue(DUST_TR_CAN_ENQUEUED, 8);
+     assert(!(r.valid & (1U << DUST_TR_CAN_ENQUEUED)));
++    dust_trace_stamp(DUST_TR_CAN3_SCAN, 0);
++    assert(!(r.valid & (1U << DUST_TR_CAN3_SCAN)));
++    dust_trace_stamp(DUST_TR_WORKER_WAKE, 0);
++    assert(!(r.valid & (1U << DUST_TR_WORKER_WAKE))); // Unrelated wake.
+     dust_trace_can_queue(DUST_TR_CAN_ENQUEUED, 9);
++    dust_trace_stamp(DUST_TR_WORKER_WAKE, 0);
++    dust_trace_stamp(DUST_TR_WORKER_LOCKED, 0);
++    assert(r.cycles[DUST_TR_WORKER_WAKE] > r.cycles[DUST_TR_CAN_ENQUEUED]);
++    assert(r.cycles[DUST_TR_WORKER_LOCKED] > r.cycles[DUST_TR_WORKER_WAKE]);
++    dust_trace_stamp(DUST_TR_CAN3_SCAN, 0);
++    assert(r.cycles[DUST_TR_CAN3_SCAN] > r.cycles[DUST_TR_WORKER_LOCKED]);
+     dust_trace_can_queue(DUST_TR_CAN_DEQUEUED, 9);
++    auto scan = r.cycles[DUST_TR_CAN3_SCAN];
++    dust_trace_stamp(DUST_TR_CAN3_SCAN, 0);
++    assert(r.cycles[DUST_TR_CAN3_SCAN] == scan);
+     assert(r.cycles[DUST_TR_CAN_DEQUEUED] > r.cycles[DUST_TR_CAN_ENQUEUED]);
+-    dust_trace_capture(9);
++    auto wake = r.cycles[DUST_TR_WORKER_WAKE];
++    dust_trace_stamp(DUST_TR_WORKER_WAKE, 0);
++    assert(r.cycles[DUST_TR_WORKER_WAKE] == wake);
++    dust_trace_stamp(DUST_TR_PENDING_WRITE_END, 0);
++    assert(!(r.valid & (1U << DUST_TR_PENDING_WRITE_END)));
++    dust_trace_stamp(DUST_TR_SNAPSHOT_BEGIN, 0);
++    assert(!(r.valid & (1U << DUST_TR_SNAPSHOT_BEGIN)));
++    (void)dust_trace_phase(DUST_PHASE_SSC);
++    {
++        DustTracePhaseScope phase(DUST_PHASE_POLL_IO);
++        dust_trace_capture(9);
++        assert(r.capture_phase == DUST_PHASE_POLL_IO);
++    }
++    assert(dust_trace_phase(DUST_PHASE_APP_PUBLISH) == DUST_PHASE_SSC);
++    dust_trace_capture(9); // Duplicate must preserve original capture phase.
++    assert(r.capture_phase == DUST_PHASE_POLL_IO);
++    dust_trace_stamp(DUST_TR_WORKER_WAIT, 0);
++    dust_trace_stamp(DUST_TR_PENDING_WRITE_END, 0);
++    dust_trace_stamp(DUST_TR_SSC_RETURN, 0);
++    dust_trace_stamp(DUST_TR_POLL_ENTRY, 0);
++    dust_trace_stamp(DUST_TR_SSC_SERVICE, 0);
++    dust_trace_stamp(DUST_TR_SNAPSHOT_BEGIN, 0);
++    dust_trace_stamp(DUST_TR_SNAPSHOT_LOCKED, 0);
++    assert(r.cycles[DUST_TR_WORKER_WAIT] > r.cycles[DUST_TR_CAPTURE]);
++    assert(r.cycles[DUST_TR_SNAPSHOT_LOCKED] > r.cycles[DUST_TR_SNAPSHOT_BEGIN]);
+     dust_trace_stamp(DUST_TR_PUBLISH, 98);
+     assert(!(r.valid & (1U << DUST_TR_PUBLISH))); // Worker capture alone is insufficient.
+     dust_trace_can_queue(DUST_TR_CAN_SNAPSHOT, 8);
+     assert(!(r.valid & (1U << DUST_TR_CAN_SNAPSHOT)));
+     dust_trace_can_queue(DUST_TR_CAN_SNAPSHOT, 9);
+     assert(r.cycles[DUST_TR_CAN_SNAPSHOT] > r.cycles[DUST_TR_CAPTURE]);
++    assert(r.snapshot_phase == DUST_PHASE_APP_PUBLISH);
++    auto pending_write = r.cycles[DUST_TR_PENDING_WRITE_END];
++    dust_trace_stamp(DUST_TR_PENDING_WRITE_END, 0);
++    assert(r.cycles[DUST_TR_PENDING_WRITE_END] == pending_write);
++    assert(r.cycles[DUST_TR_SSC_RETURN] > pending_write);
++    assert(r.cycles[DUST_TR_POLL_ENTRY] > r.cycles[DUST_TR_SSC_RETURN]);
++    auto snapshot_begin = r.cycles[DUST_TR_SNAPSHOT_BEGIN];
++    dust_trace_stamp(DUST_TR_SNAPSHOT_BEGIN, 0);
++    assert(r.cycles[DUST_TR_SNAPSHOT_BEGIN] == snapshot_begin);
+     dust_trace_stamp(DUST_TR_PUBLISH, 99);
+     dust_trace_input(98, 400);
+     assert(!(r.valid & (1U << DUST_TR_INPUT_MAP)));
+@@ -75,9 +121,23 @@ int main() {
+     assert(dust_ecat_trace.records[127].can_sequence == 0);
+     dust_trace_reset(8);
+     assert(dust_ecat_trace.count == 0 && dust_ecat_trace.boot == 8);
+-    assert(dust_ecat_trace.version == 3 && dust_ecat_trace.record_bytes == 192);
++    assert(dust_ecat_trace.version == 7 && dust_ecat_trace.record_bytes == 280);
++    assert(dust_trace_phase(DUST_PHASE_OUTER) == DUST_PHASE_UNKNOWN);
+     dust_trace_mapping(12, 1);
+     dust_trace_process();
+     dust_trace_begin(13, 1);
+     assert(dust_ecat_trace.count == 0);
++    dust_trace_begin(12, 2);
++    dust_trace_stamp(DUST_TR_SUBMIT, 0);
++    dust_trace_stamp(DUST_TR_CAN_RX, 10);
++    dust_trace_capture(10);
++    dust_trace_can_queue(DUST_TR_CAN_SNAPSHOT, 10);
++    // A new publication write must not fill an absent old-write checkpoint.
++    dust_trace_stamp(DUST_TR_PENDING_WRITE_END, 0);
++    dust_trace_stamp(DUST_TR_SSC_RETURN, 0);
++    dust_trace_stamp(DUST_TR_POLL_ENTRY, 0);
++    const auto& later = dust_ecat_trace.records[0];
++    assert(!(later.valid & ((1U << DUST_TR_PENDING_WRITE_END) |
++                           (1U << DUST_TR_SSC_RETURN) |
++                           (1U << DUST_TR_POLL_ENTRY))));
+ }
+diff --git a/tests/ethercat_ssc_contracts.cpp b/tests/ethercat_ssc_contracts.cpp
+index 4a59e3b..df47304 100644
+--- a/tests/ethercat_ssc_contracts.cpp
++++ b/tests/ethercat_ssc_contracts.cpp
+@@ -26,6 +26,8 @@ UINT16 nPdOutputSize;
+ BOOL bEscIntEnabled;
+ BOOL bDcSyncActive;
+ BOOL bEcatFirstOutputsReceived;
++static bool native_in_isr;
++bool k_is_in_isr(void) { return native_in_isr; }
+ void hpm5e_ssc_enter_critical(void) {}
+ void hpm5e_ssc_leave_critical(void) {}
+ int printk(const char*, ...) {
+@@ -50,11 +52,28 @@ extern "C" void hpm5e_ssc_esc_read(volatile void* out, uint16_t address,
+     assert(unsigned(address) + count <= esc.size());
+     std::memcpy(const_cast<void*>(out), esc.data() + address, count);
+ }
+-static unsigned native_input_refreshes;
++static unsigned native_input_refreshes, native_pdram_writes;
++static bool native_fail_next_write;
++static std::array<UINT16, MAX_PD_INPUT_SIZE / 2> native_mapped_inputs;
++extern int native_esc_dma_fault;
++extern "C" void hpm5e_ssc_esc_write(const volatile void* data, uint16_t address,
++                                    uint16_t count) {
++    ++native_pdram_writes;
++    if (native_fail_next_write) {
++        native_fail_next_write = false;
++        native_esc_dma_fault = -5;
++        return;
++    }
++    assert(unsigned(address) + count <= esc.size());
++    std::memcpy(esc.data() + address, const_cast<const void*>(data), count);
++}
++static void WriteMappedInputs() {
++    APPL_InputMapping(native_mapped_inputs.data());
++    dust_gateway_esc_write_isr(native_mapped_inputs.data(), DUST_TX_ADDRESS, nPdInputSize);
++}
+ extern "C" void PDO_InputMapping(void) {
+     ++native_input_refreshes;
+-    std::array<UINT16, MAX_PD_INPUT_SIZE / 2> mapped{};
+-    APPL_InputMapping(mapped.data());
++    WriteMappedInputs();
+ }
+ static uint8_t Write(uint16_t index, uint8_t sub, uint32_t value,
+                      unsigned bytes) {
+@@ -138,6 +157,8 @@ static void Configure() {
+     assert(Write(0x2100, 18, 0, 4) == 0);
+     assert(APPL_GenerateMapping(&input, &output) == 0);
+     assert(input == expected.tx.bytes && output == expected.rx.bytes);
++    nPdInputSize = input;
++    nPdOutputSize = output;
+     // 经由真实 SSC 元数据接口读取逐项位宽、映射标记及业务记录大小。
+     for (const auto* image : {&expected.rx, &expected.tx}) {
+         for (unsigned i = 0; i < image->count; ++i) {
+@@ -283,10 +304,81 @@ int main() {
+     esc[0x440] = 1;
+     bEcatInputUpdateRunning = true;
+     bEscIntEnabled = false;
++    // Complete new publications once; suppress only repeated commits in Active FreeRun.
++    unsigned writes = native_pdram_writes;
++    WriteMappedInputs();
++    assert(native_pdram_writes == writes + 1);
++    WriteMappedInputs();
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    assert(native_pdram_writes == writes + 1);
++    assert(dust_ecat_input_write_stats.skipped > 0);
++#else
++    assert(native_pdram_writes == writes + 2);
++#endif
++    // Even a rejected lifecycle transition revokes a previous commit credit.
++    writes = native_pdram_writes;
++    assert(APPL_StartOutputHandler() != 0); // Already Active, not Ready.
++    WriteMappedInputs();
++    assert(native_pdram_writes == writes + 1);
++    // Sync/DC/ISR/stopped-input calls must execute normally, and invalidate credit.
++    for (unsigned mode = 0; mode < 4; ++mode) {
++        bEscIntEnabled = mode == 0;
++        bDcSyncActive = mode == 1;
++        native_in_isr = mode == 2;
++        bEcatInputUpdateRunning = mode != 3;
++        writes = native_pdram_writes;
++        WriteMappedInputs(); WriteMappedInputs();
++        assert(native_pdram_writes == writes + 2);
++        bEscIntEnabled = bDcSyncActive = native_in_isr = false;
++        bEcatInputUpdateRunning = true;
++        WriteMappedInputs();
++        assert(native_pdram_writes == writes + 3);
++    }
++    // An interrupted mapping handshake or partial/non-PDO write is never coalesced.
++    writes = native_pdram_writes;
++    APPL_InputMapping(native_mapped_inputs.data());
++    dust_gateway_esc_write_isr(native_mapped_inputs.data(), DUST_TX_ADDRESS, 4);
++    dust_gateway_esc_write_isr(native_mapped_inputs.data(), DUST_TX_ADDRESS, 4);
++    dust_gateway_esc_write_isr(native_mapped_inputs.data(), 0x1000, 4);
++    assert(native_pdram_writes == writes + 3);
++    WriteMappedInputs();
++    // A different source pointer does not match the mapping handoff.
++    writes = native_pdram_writes;
++    APPL_InputMapping(native_mapped_inputs.data());
++    dust_gateway_esc_write_isr(tx.data(), DUST_TX_ADDRESS, nPdInputSize);
++    dust_gateway_esc_write_isr(tx.data(), DUST_TX_ADDRESS, nPdInputSize);
++    assert(native_pdram_writes == writes + 2);
++    // A failed transport write cannot mark a publication as committed.
++    writes = native_pdram_writes;
++    bEscIntEnabled = true; // Force a write even if this revision already committed.
++    native_fail_next_write = true;
++    WriteMappedInputs();
++    bEscIntEnabled = false;
++    native_esc_dma_fault = 0;
++    WriteMappedInputs();
++    assert(native_pdram_writes == writes + 2);
++    // New CAN publication must reach ESC, then idle passes leave bytes/version unchanged.
++    writes = native_pdram_writes;
++    dust::ecat::native_can_dirty = true;
++    APPL_Application();
++    WriteMappedInputs();
++    assert(native_pdram_writes == writes + 1);
++    const auto committed_esc = esc;
++    WriteMappedInputs();
++#if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
++    assert(native_pdram_writes == writes + 1);
++    assert(esc == committed_esc);
++    assert(dust_ecat_input_write_stats.requests == dust_ecat_input_write_stats.writes +
++                                                   dust_ecat_input_write_stats.skipped);
++#else
++    assert(native_pdram_writes == writes + 2);
++    assert(esc == committed_esc);
++#endif
++    // Account for the extra publication made above in the existing sequence checks.
+     dust::ecat::native_can_dirty = true;
+     dust_gateway_poll();
+     APPL_InputMapping(tx.data());
+-    assert(U32(bytes + 24) == previous_publication + 2);
++    assert(U32(bytes + 24) == previous_publication + 3);
+     assert(native_input_refreshes == 1);
+     assert(native_io_dispatches == dispatched + 1);
+     dust_gateway_poll();
+@@ -316,5 +408,44 @@ int main() {
+     assert(native_io_stops == stops_before_dma + 1);
+     dust_gateway_poll();
+     assert(native_io_stops == stops_before_dma + 1);
++    native_esc_dma_fault = 0;
++    APPL_Application();
++    writes = native_pdram_writes;
++    WriteMappedInputs(); WriteMappedInputs();
++    assert(native_pdram_writes == writes + 2);
++    assert(U32(esc.data() + DUST_TX_ADDRESS + 40) == uint32_t(BusinessState::Protected));
++    assert(APPL_StopInputHandler() == 0);
++    APPL_InputMapping(native_mapped_inputs.data());
++    writes = native_pdram_writes;
++    dust_gateway_esc_write_isr(native_mapped_inputs.data(), DUST_TX_ADDRESS, nPdInputSize);
++    dust_gateway_esc_write_isr(native_mapped_inputs.data(), DUST_TX_ADDRESS, nPdInputSize);
++    assert(native_pdram_writes == writes + 2);
++    // MMIO suppression must not stop watchdog checks on otherwise idle passes.
++    bEcatOutputUpdateRunning = bEcatInputUpdateRunning = false;
++    nAlStatus = STATE_PREOP;
++    assert(COE_ObjDictionaryInit() == 0);
++    assert(dust_gateway_init() == 0);
++    Configure();
++    APPL_Application();
++    APPL_InputMapping(tx.data());
++    Put64(request + 16, U64(bytes + 8));
++    Put32(request + 24, 1);
++    Put32(request + 28, kArm);
++    assert(APPL_StartOutputHandler() == 0);
++    bEcatOutputUpdateRunning = bEcatInputUpdateRunning = true;
++    nAlStatus = STATE_OP;
++    esc[0x440] = 1;
++    APPL_OutputMapping(rx.data());
++    APPL_Application();
++    assert(dust_gateway_active());
++    WriteMappedInputs(); WriteMappedInputs();
++    const auto stops_before_watchdog = native_io_stops;
++    esc[0x440] = 0;
++    dust_gateway_poll();
++    assert(!dust_gateway_active());
++    assert(native_io_stops == stops_before_watchdog + 1);
++    APPL_Application();
++    WriteMappedInputs();
++    assert(U32(esc.data() + DUST_TX_ADDRESS + 40) == uint32_t(BusinessState::Protected));
+     std::puts("Real SSC SDO / mapping / cycle integration contracts PASS");
+ }
+diff --git a/tests/ssc_native/platform.h b/tests/ssc_native/platform.h
+index 80cd72d..5c26e16 100644
+--- a/tests/ssc_native/platform.h
++++ b/tests/ssc_native/platform.h
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: Apache-2.0 */
+ #pragma once
+ #include <stddef.h>
++#include <stdbool.h>
+ #include <stdint.h>
+ /* 使用目标机的整数字宽，LP64 测试机的 unsigned long 为 64 位。 */
+ #define UINT32 uint32_t
+@@ -10,6 +11,8 @@
+ extern "C" {
+ #endif
+ void hpm5e_ssc_esc_read(volatile void*, uint16_t, uint16_t);
++void hpm5e_ssc_esc_write(const volatile void*, uint16_t, uint16_t);
++bool k_is_in_isr(void);
+ void hpm5e_ssc_enter_critical(void);
+ void hpm5e_ssc_leave_critical(void);
+ uint64_t k_cycle_get_64(void);

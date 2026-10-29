@@ -1,0 +1,43 @@
+{
+  "result": "PASS",
+  "samples": 64,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "nominal_shift_ns": 250000,
+  "rtt_us": {
+    "min": 2820.615,
+    "mean": 2984.262,
+    "p50": 2905.122,
+    "p95": 3139.633,
+    "p99": 3146.427,
+    "max": 3146.427,
+    "stddev": 134.307
+  },
+  "sync0": {
+    "notifications": 1891,
+    "services": 1891,
+    "coalesced": 0,
+    "fault_bits": 0,
+    "max_lateness_us": 25.0,
+    "max_work_us": 289.6666666666667
+  },
+  "ssc_snapshot": {
+    "types": [
+      2,
+      2
+    ],
+    "cycle_ns": 1000000,
+    "missed": 0,
+    "exceeded": 0,
+    "short": 0,
+    "error": 0
+  },
+  "first_protection": {
+    "reason": 6,
+    "state": 2,
+    "file": "core.cpp",
+    "line": 205,
+    "interpretation": "Stop frame handling; successful benchmark teardown"
+  },
+  "limits": "Single run each; phase causality not established. Snapshot counters include startup/stop."
+}

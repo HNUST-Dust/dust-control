@@ -1,0 +1,249 @@
+diff --git a/tools/ethercat_dm_rtt.cpp b/tools/ethercat_dm_rtt.cpp
+index 5e42558..24583f9 100644
+--- a/tools/ethercat_dm_rtt.cpp
++++ b/tools/ethercat_dm_rtt.cpp
+@@ -10,6 +10,7 @@
+ #include <chrono>
+ #include <cmath>
+ #include <cstring>
++#include <cstdlib>
+ #include <fstream>
+ #include <iomanip>
+ #include <iostream>
+@@ -133,6 +134,73 @@ static void Report(const std::string& path,
+               << " peak_to_peak=" << v.back() - v.front()
+               << " max_adjacent_change=" << delta << std::endl;
+ }
++// Optional host-clock telemetry. Bounded storage is allocated before activation;
++// no file IO or allocation in the cyclic loop. No NIC/ESC timestamp is implied.
++struct CycleRecord {
++    uint32_t iteration, command_batch, publication, feedback_batch, accepted;
++    unsigned wkc;
++    int64_t receive_enter, received, processed, previous_send;
++    int64_t send_enter = 0, send_return = 0;
++    double wake;
++    int64_t send_schedule = 0;
++    double send_lateness = 0;
++};
++struct CycleLog {
++    const char* path = std::getenv("DUST_RTT_CYCLE_LOG");
++    std::vector<CycleRecord> rows;
++    size_t capacity = 0;
++    bool enabled() const { return path && *path; }
++    void Prepare(unsigned period) {
++        if (!enabled()) return;
++        capacity = 35000000U / period + 2;
++        rows.reserve(capacity);
++        std::ofstream preflight(path);
++        Check(bool(preflight), "Cannot create cycle CSV");
++    }
++    void Add(const CycleRecord& row) {
++        if (!enabled()) return;
++        Check(rows.size() < capacity, "Cycle telemetry overflow");
++        rows.push_back(row);
++    }
++    void Write() const {
++        if (!enabled()) return;
++        std::ofstream out(path);
++        Check(bool(out), "Cannot write cycle CSV");
++        out << "iteration,command_batch,publication,feedback_batch,accepted,"
++               "wkc,receive_enter_ns,received_ns,processed_ns,previous_send_ns,"
++               "send_enter_ns,send_return_ns,wake_lateness_us,send_schedule_ns,send_lateness_us\n";
++        out << std::fixed << std::setprecision(3);
++        for (const auto& r : rows) {
++            out << r.iteration << ',' << r.command_batch << ',' << r.publication
++                << ',' << r.feedback_batch << ',' << r.accepted << ',' << r.wkc
++                << ',' << r.receive_enter << ',' << r.received << ',' << r.processed
++                << ',' << r.previous_send << ',' << r.send_enter << ','
++                << r.send_return << ',' << r.wake << ',' << r.send_schedule
++                << ',' << r.send_lateness << '\n';
++        }
++        out.flush();
++        Check(bool(out), "Cycle CSV write failed");
++    }
++};
++static unsigned ReceiveOffset(const char* value, unsigned period) {
++    if (!value || !*value) return 0; // original receive-then-send mode
++    const std::string text(value);
++    Check(period == 125 && (text == "30" || text == "60" || text == "90"),
++          "Receive offset requires cycle125 and exactly30/60/90 us");
++    return static_cast<unsigned>(std::stoul(text));
++}
++static void WaitUntil(Clock::time_point due, bool realtime, unsigned period) {
++    const auto spin_begin = due - std::chrono::microseconds(realtime ? 40 : 150);
++    if ((realtime || period > 250) && Clock::now() < spin_begin)
++        std::this_thread::sleep_until(spin_begin);
++    while (Clock::now() < due) {
++#if defined(__x86_64__) || defined(__i386__)
++        asm volatile("pause");
++#else
++        std::atomic_signal_fence(std::memory_order_seq_cst);
++#endif
++    }
++}
+ int main(int argc, char** argv) {
+     if (argc < 3 || argc > 4) {
+         std::cerr << "Usage: dust_ethercat_dm_rtt CONFIG.yaml RESULTS.csv "
+@@ -141,6 +209,7 @@ int main(int argc, char** argv) {
+         return 2;
+     }
+     std::vector<Sample> samples;
++    CycleLog cycle_log;
+     try {
+         const unsigned target = argc == 4 ? std::stoul(argv[3]) : 1000;
+         Check(target && target <= 2000, "Sample count must be 1..2000");
+@@ -191,6 +260,14 @@ int main(int argc, char** argv) {
+         for (const auto& uart : c.uart) {
+             Check(!uart.tx_bytes && !uart.rx_bytes, "No UART traffic allowed");
+         }
++        const unsigned receive_offset = ReceiveOffset(
++            std::getenv("DUST_RTT_RECEIVE_OFFSET_US"), config.cycle_time_us);
++        Check(!receive_offset || cycle_log.enabled(),
++              "Receive phase experiment requires cycle telemetry");
++        cycle_log.Prepare(config.cycle_time_us);
++        std::cout << "cycle_telemetry=" << cycle_log.enabled()
++                  << " receive_offset_us=" << receive_offset
++                  << " phase_send_lateness_limit_us=20" << std::endl;
+         const auto all = BuildPdoLayout(config);
+         const auto& layout = all.adapters.begin()->second;
+         Master master{ecrt_request_master(config.master_index)};
+@@ -278,15 +355,19 @@ int main(int argc, char** argv) {
+         Sample trace{};
+         unsigned wkc_misses = 0, commands = 0;
+         auto next = Clock::now();
++        auto receive_due = next;
++        unsigned startup_op = 0, startup_complete = 0, last_al = 0;
+         const auto deadline = next + std::chrono::seconds(35);
+         std::cout << "PDO Rx=" << rx.size() << " Tx=" << tx.size()
+                   << " signature=" << layout.layout_signature
+                   << " cycle_us=" << config.cycle_time_us
+                   << " command_interval_us=10000 timeout_us=8000" << std::endl;
+         for (uint32_t exchange = 1; Clock::now() < deadline; ++exchange) {
++            const bool pending_at_receive = pending;
++            auto send_slot = next;
+             const auto woke = Clock::now();
+             const auto wake =
+-                std::chrono::duration<double, std::micro>(woke - next).count();
++                std::chrono::duration<double, std::micro>(woke - (receive_offset ? receive_due : next)).count();
+             next += std::chrono::microseconds(config.cycle_time_us);
+             const int64_t receive_enter = Ns();
+             ecrt_master_receive(master.ptr);
+@@ -297,6 +378,12 @@ int main(int argc, char** argv) {
+             ec_slave_config_state_t ss{};
+             ecrt_domain_state(domain, &ds);
+             ecrt_slave_config_state(sc, &ss);
++            last_al = ss.al_state;
++            if (ss.operational) ++startup_op;
++            if (ds.wc_state == EC_WC_COMPLETE) ++startup_complete;
++            CycleRecord cycle{exchange, pending ? batch : 0U, 0, 0, 0,
++                              ds.working_counter, receive_enter, received,
++                              processed, last_pdo_send, 0, 0, wake};
+             bool active = false;
+             if (ss.operational && ds.wc_state == EC_WC_COMPLETE) {
+                 for (const auto& e : input) {
+@@ -329,7 +416,10 @@ int main(int argc, char** argv) {
+                         trace.ack = Ns();
+                     }
+                     const auto* f = tx.data() + feedback;
++                    cycle.publication = wire::U32(tx.data() + 24);
++                    cycle.accepted = wire::U32(tx.data() + 48);
+                     const auto seq = wire::U32(f);
++                    cycle.feedback_batch = seq;
+                     const auto count = wire::U16(f + 8);
+                     Check(count <= c.can_rx_slots[3], "Invalid feedback count");
+                     if (!have_feedback || wire::Newer(seq, last_feedback)) {
+@@ -418,6 +508,7 @@ int main(int argc, char** argv) {
+                     "pairing)");
+             }
+             if (samples.size() == target) {
++                cycle_log.Add(cycle);
+                 std::fill(rx.begin() + 64, rx.end(), 0);
+                 wire::Put32(rx.data() + 28, wire::kStop);
+                 wire::Put32(rx.data() + 24, exchange);
+@@ -427,6 +518,7 @@ int main(int argc, char** argv) {
+                 ecrt_domain_queue(domain);
+                 ecrt_master_send(master.ptr);
+                 Report(argv[2], samples);
++                cycle_log.Write();
+                 std::cout << "PASS commands=" << commands
+                           << " timeouts=0 WKC_misses=" << wkc_misses
+                           << "; sequential DM pairing, no sequence echo; no "
+@@ -465,6 +557,22 @@ int main(int argc, char** argv) {
+             if (new_command) {
+                 trace.queued = Ns();
+             }
++            if (receive_offset) {
++                // Keep sends on absolute slots; earlier receive must not pull
++                // the next PDO send forward. No rebasing in measured operation.
++                if (!armed && Clock::now() > send_slot +
++                        std::chrono::microseconds(config.cycle_time_us)) {
++                    send_slot = Clock::now();
++                    next = send_slot + std::chrono::microseconds(config.cycle_time_us);
++                }
++                WaitUntil(send_slot, realtime, config.cycle_time_us);
++                cycle.send_schedule = std::chrono::duration_cast<
++                    std::chrono::nanoseconds>(send_slot.time_since_epoch()).count();
++                cycle.send_lateness = std::chrono::duration<double, std::micro>(
++                    Clock::now() - send_slot).count();
++                Check(!armed || cycle.send_lateness <= 20,
++                      "Phase experiment missed send slot by more than20us");
++            }
+             last_pdo_send = Ns();
+             if (new_command) {
+                 sent = last_pdo_send;
+@@ -475,34 +583,39 @@ int main(int argc, char** argv) {
+             if (new_command) {
+                 trace.send_enter = Ns();
+             }
++            if (cycle_log.enabled()) cycle.send_enter = Ns();
+             ecrt_master_send(master.ptr);
++            if (cycle_log.enabled()) cycle.send_return = Ns();
+             if (new_command) {
+                 trace.send_return = Ns();
+             }
+-            if (Clock::now() > next + std::chrono::milliseconds(5)) {
+-                next = Clock::now();
++            if (pending_at_receive || new_command) {
++                // Receive fields describe the image before this iteration sends.
++                // The command iteration therefore contains the preceding image.
++                cycle.command_batch = batch;
++                cycle_log.Add(cycle);
+             }
+-            // 普通调度下先提前唤醒，末段忙等，避免把系统定时器唤醒误差当作链路耗时。
+-            const auto spin_begin =
+-                next - std::chrono::microseconds(realtime ? 40 : 150);
+-            if ((realtime || config.cycle_time_us > 250) &&
+-                Clock::now() < spin_begin) {
+-                std::this_thread::sleep_until(spin_begin);
+-            }
+-            while (Clock::now() < next) {
+-                // 保持可抢占；不改变调度权限，也不丢弃迟到样本。
+-#if defined(__x86_64__) || defined(__i386__)
+-                asm volatile("pause");
+-#else
+-                std::atomic_signal_fence(std::memory_order_seq_cst);
+-#endif
++            if (receive_offset) {
++                receive_due = send_slot + std::chrono::microseconds(receive_offset);
++                Check(!armed || Clock::now() <= receive_due,
++                      "Phase experiment send/processing overran receive target");
++                WaitUntil(receive_due, realtime, config.cycle_time_us);
++            } else {
++                if (Clock::now() > next + std::chrono::milliseconds(5))
++                    next = Clock::now();
++                WaitUntil(next, realtime, config.cycle_time_us);
+             }
+         }
++        std::cerr << "Startup diagnostic: operational_cycles=" << startup_op
++                  << " complete_cycles=" << startup_complete << " last_AL="
++                  << last_al << " armed=" << armed << " commands=" << commands
++                  << " boot=" << boot << std::endl;
+         throw std::runtime_error("Benchmark deadline exceeded");
+     } catch (const std::exception& e) {
+         std::cerr << "FAIL: " << e.what() << std::endl;
+         try {
+             Report(argv[2], samples);
++            cycle_log.Write();
+         } catch (const std::exception& report) {
+             std::cerr << report.what() << std::endl;
+         }

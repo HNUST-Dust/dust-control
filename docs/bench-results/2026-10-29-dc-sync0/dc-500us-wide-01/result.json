@@ -1,0 +1,54 @@
+{
+  "result": "FAIL feedback timeout after419 completed RTT samples",
+  "requested_samples": 512,
+  "rtt_successes_us": {
+    "mean": 1931.924,
+    "p50": 1996.638,
+    "p95": 2006.397,
+    "max": 2012.405
+  },
+  "active_cycles": 8640,
+  "phase_mean_us": 140.21196469907406,
+  "phase_max_us": 294.125,
+  "histogram": {
+    "lt100": 235,
+    "100to125": 484,
+    "125to150": 6363,
+    "150to200": 1302,
+    "200to250": 245,
+    "250to500": 11,
+    "ge500": 0
+  },
+  "sync0_deadline_fault": 0,
+  "first_protection_valid": 0,
+  "can3": {
+    "submitted": 420,
+    "completed": 420,
+    "received": 419,
+    "busy": 0,
+    "fault": 0,
+    "errors": 0,
+    "drops": 0
+  },
+  "fatal_evidence": {
+    "pc": "0x80013404 arch_system_halt",
+    "ra": "0x8001340e z_fatal_error",
+    "a0": 1,
+    "mcause": "0x8000000b machine external interrupt",
+    "mepc": "0x8000fa06 plic_irq_enable_set_state",
+    "save_irq": 0,
+    "stack_ra": "0x8000fa5e immediately after z_irq_spurious call in plic_irq_handler",
+    "interpretation": "PLIC claim returned0; Zephyr range check calls z_irq_spurious -> fatal halt. This explains halted firmware and timeout; exact masking/pending race not yet established. CAN counts alone do not prove motor failed."
+  },
+  "al_registers_after_exit": {
+    "status": "0x0008",
+    "status_code": 0,
+    "note": "initial slaves display OP E, later direct regs no persistent AL status error; do not infer specific SSC AL fault"
+  },
+  "worker_overlap": {
+    "total_cycles": 60125,
+    "active_changes": 419,
+    "measured_owner_overlap": 0
+  },
+  "next_priority": "Investigate legitimate empty PLIC claim handling/race before performance tuning. Keep snapshot and original image. Do not relax safety watchdog or retry late DM feedback."
+}

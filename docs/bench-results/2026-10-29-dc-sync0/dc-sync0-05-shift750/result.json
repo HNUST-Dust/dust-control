@@ -1,0 +1,22 @@
+{
+  "result": "PASS",
+  "samples": 64,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "rtt_us": {
+    "mean": 2996.846,
+    "p50": 3001.926,
+    "p95": 3141.135,
+    "max": 3142.039
+  },
+  "sync0": {
+    "notifications": 1891,
+    "services": 1891,
+    "coalesced": 0,
+    "fault": 0,
+    "max_lateness_us": 281.875,
+    "max_work_us": 275.5833333333333
+  },
+  "first_protection": "core.cpp:205 reason State, Stop frame at teardown",
+  "next": "User stopped phase sweep; shorten cycle to500us"
+}

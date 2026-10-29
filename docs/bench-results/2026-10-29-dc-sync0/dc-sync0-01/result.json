@@ -1,0 +1,23 @@
+{
+  "result": "FAIL: Slave state=3 fault=11; no RTT samples",
+  "master_after_test": "Idle, inactive; slave PREOP",
+  "sync0": {
+    "notifications": 8074,
+    "services": 8074,
+    "coalesced": 0,
+    "fault_bits": 0,
+    "period_us": 1000,
+    "max_lateness_us": 377.875,
+    "max_work_us": 188.54166666666666
+  },
+  "ssc": {
+    "output_sync_type": 2,
+    "input_sync_type": 2,
+    "cycle_ns": 1000000,
+    "snapshot_missed": 0,
+    "snapshot_exceeded": 0,
+    "snapshot_shift_short": 0,
+    "snapshot_sync_error": 0
+  },
+  "limits": "Counters include startup/stop; snapshots cannot exclude transient SSC errors. Transport source unresolved. No latency benefit established."
+}

@@ -1,0 +1,22 @@
+--- a/src/ethercat/slave/io_backend.cpp
++++ b/src/ethercat/slave/io_backend.cpp
+@@ -885,7 +885,8 @@
+         // Coalesce IRQ wakeups until SSC takes a copy. Scheduling must not
+         // turn one pending batch into a series of overwritten one-frame
+         // batches.
+-        if (!bus.snapshot_consumed) {
++        // Empty snapshots need no age check; keep draining the IRQ queue below.
++        if (!bus.snapshot_consumed && bus.feedback_count) {
+             const auto current = uint32_t(Now());
+             for (unsigned n = 0; n < bus.feedback_count; ++n) {
+                 if (uint32_t(current - bus.feedback[n].capture_us) <
+@@ -935,7 +936,8 @@
+             bus.feedback_count = count;
+             ++bus.batch;
+             changed = true;
+-        } else {
++        } else if (bus.feedback_count) {
++            // Empty caches have nothing to expire and need no clock read.
+             // 保留最新快照直到下一批或过期。否则同一 EtherCAT 帧先写 SM2 后读
+             // SM3 时，下一次空发布可能抢先覆盖尚未被主站读取的 CAN 反馈。
+             const auto before = bus.feedback_count;

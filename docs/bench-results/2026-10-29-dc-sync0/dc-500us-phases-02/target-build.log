@@ -1,0 +1,57 @@
+[0/2] Re-checking globbed directories...
+[1/16] Building C object CMakeFiles/app.dir/ssc_gateway/mailbox.c.obj
+[2/16] Building C object CMakeFiles/app.dir/ssc_gateway/ecatslv.c.obj
+[3/16] Building C object CMakeFiles/app.dir/src/ethercat/slave/hpm5e_esc_hw.c.obj
+[4/16] Building C object CMakeFiles/app.dir/ssc_gateway/coeappl.c.obj
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/coeappl.c: In function 'COE_ObjDictionaryInit':
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/coeappl.c:877:26: warning: the comparison will always evaluate as 'true' for the address of 'ApplicationObjDic' will never be NULL [-Waddress]
+  877 |     if(ApplicationObjDic != NULL)
+      |                          ^~
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/coeappl.c:134:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sampleappl.h:20:9: note: 'ApplicationObjDic' declared here
+   20 | TOBJECT ApplicationObjDic[] = {
+      |         ^~~~~~~~~~~~~~~~~
+[5/16] Building C object CMakeFiles/app.dir/ssc_gateway/sdoserv.c.obj
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sdoserv.c: In function 'SdoUploadSegmentInd':
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sdoserv.c:410:52: warning: overflow in conversion from 'int' to 'unsigned char' changes value from '(int)pSdoSegRes->SdoHeader.SegHeader & -256' to '0' [-Woverflow]
+  410 |                 pSdoSegRes->SdoHeader.SegHeader &= ~SEGHEADER_MASK;
+      |                                                    ^
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sdoserv.c: In function 'SDOS_SdoInd':
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sdoserv.c:632:83: warning: taking address of packed member of 'struct <anonymous>' may result in an unaligned pointer value [-Waddress-of-packed-member]
+  632 |                                                         pData = (UINT16 MBXMEM *) ((TINITSDOUPLOADEXPRESMBX MBXMEM *) pSdoInd)->Data;
+      |                                                                                   ^
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sdoserv.c:654:91: warning: taking address of packed member of 'struct <anonymous>' may result in an unaligned pointer value [-Waddress-of-packed-member]
+  654 |                                                                 pData = (UINT16 MBXMEM *) ((TINITSDOUPLOADNORMRESMBX MBXMEM *) pSdoInd)->Data;
+      |                                                                                           ^
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/ssc_gateway/sdoserv.c:708:67: warning: taking address of packed member of 'struct <anonymous>' may result in an unaligned pointer value [-Waddress-of-packed-member]
+  708 |                                         pData = (UINT16 MBXMEM *) ((TINITSDODOWNLOADNORMREQMBX MBXMEM *) pSdoInd)->Data;
+      |                                                                   ^
+[6/16] Building C object CMakeFiles/app.dir/src/main.c.obj
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/devicetree.h:26,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/device.h:12,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/src/main.c:9:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/sys/util.h:127: warning: "ARRAY_SIZE" redefined
+  127 | #define ARRAY_SIZE(array) \
+      | 
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/inc/hpm_esc_drv.h:12,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/src/main.c:4:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/inc/hpm_common.h:42: note: this is the location of the previous definition
+   42 | #define ARRAY_SIZE(a)   (sizeof(a) / sizeof((a)[0]))
+      | 
+[7/16] Building CXX object CMakeFiles/app.dir/src/ethercat/slave/gateway.cpp.obj
+[8/16] Building C object CMakeFiles/app.dir/ssc_gateway/objdef.c.obj
+[9/16] Building C object CMakeFiles/app.dir/ssc_gateway/ecatappl.c.obj
+[10/16] Linking CXX static library app/libapp.a
+[11/16] Linking CXX executable zephyr/zephyr_pre0.elf; Logical command for additional byproducts on target: zephyr_pre0
+[12/16] Generating linker.cmd
+[13/16] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[14/16] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[15/16] Linking CXX executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+             ROM:      178460 B       832 KB     20.95%
+             RAM:      211484 B       256 KB     80.67%
+            ITCM:        1478 B       128 KB      1.13%
+            DTCM:          1 KB       128 KB      0.78%
+        AHB_SRAM:         10 KB        32 KB     31.25%
+        IDT_LIST:          0 GB         2 KB      0.00%
+Generating files from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc/zephyr/zephyr.elf for board: dust-hpm5e31

@@ -1,0 +1,44 @@
+{
+  "capture_to_pending_write_end": {
+    "n": 48,
+    "mean": 34.799479166666664,
+    "p95": 64.25,
+    "maximum": 73.625
+  },
+  "pending_write_end_to_ssc_return": {
+    "n": 48,
+    "mean": 11.776909722222221,
+    "p95": 15.5,
+    "maximum": 17.916666666666668
+  },
+  "ssc_return_to_poll_entry": {
+    "n": 48,
+    "mean": 4.183159722222222,
+    "p95": 5.166666666666667,
+    "maximum": 5.25
+  },
+  "poll_entry_to_ssc_service": {
+    "n": 48,
+    "mean": 5.443576388888889,
+    "p95": 8.916666666666666,
+    "maximum": 13.791666666666666
+  },
+  "ssc_service_to_snapshot_begin": {
+    "n": 48,
+    "mean": 4.661458333333333,
+    "p95": 8.333333333333334,
+    "maximum": 13.5
+  },
+  "snapshot_begin_to_snapshot_locked": {
+    "n": 48,
+    "mean": 5.997395833333333,
+    "p95": 8.291666666666666,
+    "maximum": 8.791666666666666
+  },
+  "snapshot_locked_to_can_snapshot": {
+    "n": 48,
+    "mean": 3.959201388888889,
+    "p95": 7.416666666666667,
+    "maximum": 11.0
+  }
+}

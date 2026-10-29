@@ -1,0 +1,61 @@
+{
+  "pdi_stats": {
+    "version": 1,
+    "notifications": 3356,
+    "services": 3356,
+    "waits": 9603,
+    "sync_cycles": 1678
+  },
+  "layout": {
+    "subindex0": 0,
+    "sync_type": 2,
+    "cycle_ns": 4,
+    "reserved3": 8,
+    "supported": 12,
+    "min_cycle_ns": 16,
+    "calc_copy_ns": 20,
+    "reserved7": 24,
+    "get_cycle": 28,
+    "delay_ns": 32,
+    "sync0_cycle_ns": 36,
+    "sm_missed": 40,
+    "cycle_exceeded": 42,
+    "shift_short": 44,
+    "reserved14": 46,
+    "reserved15": 48,
+    "reserved16": 52,
+    "reserved17": 56,
+    "reserved18": 60,
+    "sync_error": 64
+  },
+  "out": {
+    "subindex0": 32,
+    "sync_type": 1,
+    "cycle_ns": 0,
+    "supported": 3,
+    "min_cycle_ns": 1000000,
+    "calc_copy_ns": 0,
+    "get_cycle": 0,
+    "delay_ns": 0,
+    "sync0_cycle_ns": 0,
+    "sm_missed": 0,
+    "cycle_exceeded": 0,
+    "shift_short": 0,
+    "sync_error": 0
+  },
+  "in": {
+    "subindex0": 32,
+    "sync_type": 34,
+    "cycle_ns": 0,
+    "supported": 3,
+    "min_cycle_ns": 1000000,
+    "calc_copy_ns": 0,
+    "get_cycle": 0,
+    "delay_ns": 0,
+    "sync0_cycle_ns": 0,
+    "sm_missed": 0,
+    "cycle_exceeded": 0,
+    "shift_short": 0,
+    "sync_error": 0
+  }
+}

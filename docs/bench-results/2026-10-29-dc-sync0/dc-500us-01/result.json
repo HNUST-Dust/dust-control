@@ -1,0 +1,52 @@
+{
+  "result": "PASS",
+  "samples": 64,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "period_us": 500,
+  "nominal_shift_ns": 250000,
+  "layout_signature": 1073964873,
+  "rtt_us": {
+    "min": 1485.222,
+    "mean": 1560.582,
+    "p50": 1499.493,
+    "p95": 1999.751,
+    "max": 2008.091,
+    "stddev": 164.948
+  },
+  "active_sync0": {
+    "services": 1310,
+    "coalesced": 0,
+    "fault": 0,
+    "max_lateness_us": 118.83333333333333,
+    "max_work_us": 226.41666666666666
+  },
+  "all_sync0": {
+    "notifications": 3730,
+    "services": 3730,
+    "coalesced": 0,
+    "fault": 0,
+    "period_cycles": 12000,
+    "max_lateness_us": 379.4166666666667,
+    "max_work_us": 226.41666666666666
+  },
+  "ssc_snapshot": {
+    "sync_types": [
+      2,
+      2
+    ],
+    "period_ns": 500000,
+    "missed": 0,
+    "exceeded": 0,
+    "short": 0,
+    "error": 0
+  },
+  "first_protection": {
+    "reason": 6,
+    "state": 2,
+    "file": "core.cpp",
+    "line": 205,
+    "meaning": "Stop frame on successful teardown"
+  },
+  "interpretation": "Functionally passes500us. Active Sync0 handler max226.417us exceeds125us and leaves only23.583us in250us before any other work. Decompose active handler before lowering further. Per-run maxima may occur on different cycles; do not sum as observed worst-case cycle. 64 probes are not long-duration reliability proof."
+}

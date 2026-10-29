@@ -1,0 +1,27 @@
+{
+  "pdi_stats": {
+    "version": 1,
+    "notifications": 0,
+    "services": 0,
+    "waits": 0,
+    "sync_cycles": 0
+  },
+  "out": {
+    "sync_type": 0,
+    "supported": 3,
+    "min_cycle_ns": 1000000,
+    "sm_missed": 0,
+    "cycle_exceeded": 0,
+    "shift_short": 0,
+    "sync_error": 0
+  },
+  "in": {
+    "sync_type": 0,
+    "supported": 3,
+    "min_cycle_ns": 1000000,
+    "sm_missed": 0,
+    "cycle_exceeded": 0,
+    "shift_short": 0,
+    "sync_error": 0
+  }
+}

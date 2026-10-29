@@ -1,0 +1,279 @@
+{
+  "refresh_stats": {
+    "version": 1,
+    "checks": 4020,
+    "refreshes": 2,
+    "failures": 0
+  },
+  "notice_stats": {
+    "version": 1,
+    "probes": 4020,
+    "pending": 2,
+    "unchanged": 4018
+  },
+  "intervals": {
+    "rtt_us": {
+      "n": 64,
+      "mean": 774.0359375,
+      "p95": 874.142,
+      "maximum": 999.146
+    },
+    "mcu_esc_read_begin_to_esc_read_end_us": {
+      "n": 64,
+      "mean": 14.467515625,
+      "p95": 14.833,
+      "maximum": 34.958
+    },
+    "mcu_esc_read_end_to_rx_map_us": {
+      "n": 64,
+      "mean": 1.079265625,
+      "p95": 1.125,
+      "maximum": 1.125
+    },
+    "mcu_rx_map_to_process_us": {
+      "n": 64,
+      "mean": 7.36265625,
+      "p95": 10.708,
+      "maximum": 14.417
+    },
+    "mcu_process_to_process_done_us": {
+      "n": 64,
+      "mean": 17.880890625,
+      "p95": 19.375,
+      "maximum": 25.833
+    },
+    "mcu_process_done_to_accept_us": {
+      "n": 64,
+      "mean": 4.7525625,
+      "p95": 5.833,
+      "maximum": 16.042
+    },
+    "mcu_accept_to_enqueue_us": {
+      "n": 64,
+      "mean": 2.2714374999999998,
+      "p95": 3.5,
+      "maximum": 10.375
+    },
+    "mcu_enqueue_to_submit_us": {
+      "n": 64,
+      "mean": 2.276,
+      "p95": 1.958,
+      "maximum": 15.458
+    },
+    "mcu_submit_to_submitted_us": {
+      "n": 64,
+      "mean": 26.459656250000002,
+      "p95": 35.208,
+      "maximum": 62.083
+    },
+    "mcu_submit_to_tx_done_us": {
+      "n": 64,
+      "mean": 153.658171875,
+      "p95": 220.375,
+      "maximum": 254.375
+    },
+    "mcu_submit_to_can_rx_us": {
+      "n": 64,
+      "mean": 278.040359375,
+      "p95": 343.75,
+      "maximum": 387.458
+    },
+    "mcu_can_rx_to_capture_us": {
+      "n": 64,
+      "mean": 24.347671875,
+      "p95": 43.042,
+      "maximum": 68.375
+    },
+    "mcu_capture_to_publish_us": {
+      "n": 64,
+      "mean": 69.426421875,
+      "p95": 103.0,
+      "maximum": 108.125
+    },
+    "mcu_can_rx_to_can_enqueued_us": {
+      "n": 64,
+      "mean": 2.44803125,
+      "p95": 3.833,
+      "maximum": 20.917
+    },
+    "mcu_can_enqueued_to_can_dequeued_us": {
+      "n": 64,
+      "mean": 19.072890625,
+      "p95": 34.458,
+      "maximum": 42.375
+    },
+    "mcu_can_dequeued_to_capture_us": {
+      "n": 64,
+      "mean": 2.826796875,
+      "p95": 6.458,
+      "maximum": 9.958
+    },
+    "mcu_capture_to_can_snapshot_us": {
+      "n": 64,
+      "mean": 51.345703125,
+      "p95": 84.75,
+      "maximum": 87.583
+    },
+    "mcu_can_snapshot_to_publish_us": {
+      "n": 64,
+      "mean": 18.080765625,
+      "p95": 23.25,
+      "maximum": 41.0
+    },
+    "mcu_can_enqueued_to_worker_wake_us": {
+      "n": 64,
+      "mean": 8.432265625,
+      "p95": 13.083,
+      "maximum": 20.625
+    },
+    "mcu_worker_wake_to_worker_locked_us": {
+      "n": 64,
+      "mean": 1.682265625,
+      "p95": 6.458,
+      "maximum": 20.542
+    },
+    "mcu_worker_locked_to_can_dequeued_us": {
+      "n": 64,
+      "mean": 8.95834375,
+      "p95": 12.0,
+      "maximum": 17.75
+    },
+    "mcu_worker_locked_to_can3_scan_us": {
+      "n": 64,
+      "mean": 7.864546875,
+      "p95": 10.958,
+      "maximum": 15.792
+    },
+    "mcu_can3_scan_to_can_dequeued_us": {
+      "n": 64,
+      "mean": 1.093859375,
+      "p95": 1.958,
+      "maximum": 3.917
+    },
+    "mcu_publish_to_input_map_us": {
+      "n": 64,
+      "mean": 5.780015625,
+      "p95": 7.458,
+      "maximum": 22.917
+    },
+    "mcu_input_map_to_esc_begin_us": {
+      "n": 64,
+      "mean": 1.00703125,
+      "p95": 3.75,
+      "maximum": 5.167
+    },
+    "mcu_esc_begin_to_esc_end_us": {
+      "n": 64,
+      "mean": 49.754546875,
+      "p95": 52.375,
+      "maximum": 71.375
+    },
+    "mcu_capture_to_worker_wait_us": {
+      "n": 64,
+      "mean": 9.49025,
+      "p95": 14.167,
+      "maximum": 30.792
+    },
+    "mcu_capture_to_ssc_service_us": {
+      "n": 63,
+      "mean": 42.35453968253968,
+      "p95": 72.292,
+      "maximum": 79.875
+    },
+    "mcu_capture_to_snapshot_begin_us": {
+      "n": 64,
+      "mean": 47.196640625,
+      "p95": 77.417,
+      "maximum": 82.917
+    },
+    "mcu_snapshot_begin_to_snapshot_locked_us": {
+      "n": 64,
+      "mean": 0.7839375,
+      "p95": 2.417,
+      "maximum": 3.125
+    },
+    "mcu_snapshot_locked_to_can_snapshot_us": {
+      "n": 64,
+      "mean": 3.365171875,
+      "p95": 5.167,
+      "maximum": 28.5
+    },
+    "mcu_ssc_service_to_can_snapshot_us": {
+      "n": 63,
+      "mean": 9.538349206349206,
+      "p95": 32.0,
+      "maximum": 37.833
+    },
+    "mcu_rx_map_to_esc_end_us": {
+      "n": 64,
+      "mean": 462.89975,
+      "p95": 547.083,
+      "maximum": 617.917
+    },
+    "mcu_capture_to_pending_write_end_us": {
+      "n": 43,
+      "mean": 35.907000000000004,
+      "p95": 56.667,
+      "maximum": 69.25
+    },
+    "mcu_pending_write_end_to_ssc_return_us": {
+      "n": 43,
+      "mean": 9.816837209302326,
+      "p95": 14.375,
+      "maximum": 16.917
+    },
+    "mcu_ssc_return_to_poll_entry_us": {
+      "n": 56,
+      "mean": 0.5053392857142857,
+      "p95": 1.792,
+      "maximum": 2.5
+    },
+    "mcu_poll_entry_to_ssc_service_us": {
+      "n": 57,
+      "mean": 3.3275263157894734,
+      "p95": 5.0,
+      "maximum": 6.792
+    },
+    "mcu_capture_to_poll_entry_us": {
+      "n": 57,
+      "mean": 40.7989649122807,
+      "p95": 69.167,
+      "maximum": 76.75
+    },
+    "mcu_pending_write_end_to_can_snapshot_us": {
+      "n": 43,
+      "mean": 22.76846511627907,
+      "p95": 35.417,
+      "maximum": 51.542
+    },
+    "capture_to_esc_end_us": {
+      "n": 64,
+      "mean": 125.96809895833333,
+      "p95": 158.91666666666666,
+      "maximum": 164.45833333333334
+    },
+    "can_rx_to_esc_end_us": {
+      "n": 64,
+      "mean": 150.31575520833334,
+      "p95": 187.33333333333334,
+      "maximum": 221.95833333333334
+    }
+  },
+  "trace_status": {
+    "ok": 64
+  },
+  "capture_phases": {
+    "app_publish": 3,
+    "esc_write": 43,
+    "ssc": 14,
+    "poll_can": 1,
+    "app_process": 1,
+    "app_io": 1,
+    "esc_read": 1
+  },
+  "snapshot_phases": {
+    "ssc": 1,
+    "poll_publish": 57,
+    "app_publish": 6
+  }
+}

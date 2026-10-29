@@ -1,0 +1,99 @@
+diff --git a/tests/tools/test_ethercat_rtt_decode.py b/tests/tools/test_ethercat_rtt_decode.py
+index 968572e..4d76800 100644
+--- a/tests/tools/test_ethercat_rtt_decode.py
++++ b/tests/tools/test_ethercat_rtt_decode.py
+@@ -54,6 +54,44 @@ class TraceContracts(unittest.TestCase):
+         self.assertEqual(out['mcu_capture_to_can_snapshot_us'],'5.000')
+         self.assertEqual(out['mcu_can_snapshot_to_publish_us'],'5.000')
+ 
++    def test_v4_worker_markers_optional_and_ordered(self):
++        old,row=self.fixture()
++        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
++        cycles=values[9:]
++        values[0]=42
++        values[1]=(1<<21)-1
++        values += [cycles[10]+40, cycles[11]-40, cycles[11]+120,
++                   cycles[10]+80, cycles[10]+120]
++        header=d.HEADER.pack(0x31525444,4,208,128,1,0,24000000,40,7)
++        def decode():
++            return d.join(header+d.RECORD_V4.pack(*values)+bytes(127*208),[row])[0]
++        self.assertEqual(decode()['trace_status'],'ok')
++        self.assertEqual(decode()['mcu_worker_wake_to_worker_locked_us'],'1.667')
++        values[1]=(1<<19)-1
++        self.assertEqual(decode()['trace_status'],'ok')
++        values[1]=(1<<21)-1
++        values[-1]=values[-2]-1
++        self.assertIn('nonmonotonic_worker_wake_worker_locked',decode()['trace_status'])
++
++    def test_v5_can3_scan_boundary(self):
++        old,row=self.fixture()
++        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
++        cycles=values[9:]
++        values[0]=44
++        values[1]=(1<<22)-1
++        values += [cycles[10]+40, cycles[11]-40, cycles[11]+120,
++                   cycles[10]+80, cycles[10]+120, cycles[10]+160]
++        header=d.HEADER.pack(0x31525444,5,216,128,1,0,24000000,40,7)
++        def decode():
++            return d.join(header+d.RECORD_V5.pack(*values)+bytes(127*216),[row])[0]
++        self.assertEqual(decode()['trace_status'],'ok')
++        self.assertEqual(decode()['mcu_worker_locked_to_can3_scan_us'],'1.667')
++        values[1]=(1<<19)-1
++        self.assertEqual(decode()['trace_status'],'ok')
++        values[1]=(1<<22)-1
++        values[-1]=cycles[11]+40
++        self.assertIn('nonmonotonic_can3_scan_can_dequeued',decode()['trace_status'])
++
+     def test_missing_mismatched_and_incomplete(self):
+         data,row = self.fixture(valid=2047, seq=10)
+         flags = d.join(data,[row])[0]['trace_status']
+diff --git a/tools/ethercat_rtt_decode.py b/tools/ethercat_rtt_decode.py
+index 3ac8941..a0bd2d3 100644
+--- a/tools/ethercat_rtt_decode.py
++++ b/tools/ethercat_rtt_decode.py
+@@ -7,11 +7,13 @@ from pathlib import Path
+ 
+ STAGES = ('esc_read_begin', 'esc_read_end', 'rx_map', 'process', 'process_done',
+           'accept', 'enqueue', 'submit', 'submitted',
+-          'tx_done', 'can_rx', 'capture', 'publish', 'input_map', 'esc_begin', 'esc_end', 'can_enqueued', 'can_dequeued', 'can_snapshot')
++          'tx_done', 'can_rx', 'capture', 'publish', 'input_map', 'esc_begin', 'esc_end', 'can_enqueued', 'can_dequeued', 'can_snapshot', 'worker_wake', 'worker_locked', 'can3_scan')
+ HEADER = struct.Struct('<8IQ')
+ RECORD = struct.Struct('<IIQIIIIii16Q')
+ RECORD_V2 = struct.Struct('<IIQIIIIii18Q')
+ RECORD_V3 = struct.Struct('<IIQIIIIii19Q')
++RECORD_V4 = struct.Struct('<IIQIIIIii21Q')
++RECORD_V5 = struct.Struct('<IIQIIIIii22Q')
+ # TX completion callback and RX callback may run in either order after IRQ latency.
+ PAIRS = [('esc_read_begin', 'esc_read_end'), ('esc_read_end', 'rx_map'),
+          ('rx_map', 'process'), ('process', 'process_done'),
+@@ -21,6 +23,9 @@ PAIRS = [('esc_read_begin', 'esc_read_end'), ('esc_read_end', 'rx_map'),
+          ('can_rx', 'can_enqueued'), ('can_enqueued', 'can_dequeued'),
+          ('can_dequeued', 'capture'), ('capture', 'can_snapshot'),
+          ('can_snapshot', 'publish'),
++         ('can_enqueued', 'worker_wake'), ('worker_wake', 'worker_locked'),
++         ('worker_locked', 'can_dequeued'),
++         ('worker_locked', 'can3_scan'), ('can3_scan', 'can_dequeued'),
+          ('publish', 'input_map'), ('input_map', 'esc_begin'), ('esc_begin', 'esc_end'),
+          ('rx_map', 'esc_end')]
+ HOST_PAIRS = [('built', 'encoded'), ('encoded', 'output_copied'),
+@@ -35,7 +40,8 @@ def read_trace(data):
+         raise ValueError('truncated trace header')
+     magic, version, size, capacity, count, overflow, hz, header, boot = HEADER.unpack_from(data)
+     formats = {1: (RECORD, STAGES[:16]), 2: (RECORD_V2, STAGES[:18]),
+-               3: (RECORD_V3, STAGES)}
++               3: (RECORD_V3, STAGES[:19]), 4: (RECORD_V4, STAGES[:21]),
++               5: (RECORD_V5, STAGES)}
+     if version not in formats:
+         raise ValueError('unsupported trace ABI')
+     record_format, stages = formats[version]
+@@ -77,7 +83,9 @@ def join(data, host):
+             out.update({f'mcu_{k}': record[k] for k in ('valid', 'exchange', 'publication', 'can_sequence', 'submit_result', 'done_result')})
+             out.update({f'mcu_{k}_cycles': v for k, v in record['cycles'].items()})
+             valid = record['valid']
+-            if valid != (1 << record['stage_count'])-1:
++            # Worker markers are optional: a pass can already be running when IRQ queues.
++            required = (1 << min(record['stage_count'], 19))-1
++            if valid & required != required:
+                 flags.append('incomplete_firmware_record')
+             if record['submit_result'] or record['done_result']:
+                 flags.append('can_driver_error')

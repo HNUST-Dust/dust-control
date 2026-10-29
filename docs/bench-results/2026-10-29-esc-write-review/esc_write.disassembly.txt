@@ -1,0 +1,85 @@
+
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/bench-host/ssc-v7-01/zephyr.elf:     file format elf32-littleriscv
+
+
+Disassembly of section rom_start:
+
+Disassembly of section reset:
+
+Disassembly of section text:
+
+80012308 <esc_write>:
+80012308:	7179                	addi	sp,sp,-48
+8001230a:	d422                	sw	s0,40(sp)
+8001230c:	d606                	sw	ra,44(sp)
+8001230e:	d226                	sw	s1,36(sp)
+80012310:	d04a                	sw	s2,32(sp)
+80012312:	ce4e                	sw	s3,28(sp)
+80012314:	415c                	lw	a5,4(a0)
+80012316:	8432                	mv	s0,a2
+80012318:	0007a903          	lw	s2,0(a5)
+8001231c:	4785                	li	a5,1
+8001231e:	992e                	add	s2,s2,a1
+80012320:	00f69d63          	bne	a3,a5,8001233a <esc_write+0x32>
+80012324:	00064783          	lbu	a5,0(a2)
+80012328:	00f90023          	sb	a5,0(s2)
+8001232c:	50b2                	lw	ra,44(sp)
+8001232e:	5422                	lw	s0,40(sp)
+80012330:	5492                	lw	s1,36(sp)
+80012332:	5902                	lw	s2,32(sp)
+80012334:	49f2                	lw	s3,28(sp)
+80012336:	6145                	addi	sp,sp,48
+80012338:	8082                	ret
+8001233a:	4789                	li	a5,2
+8001233c:	84b6                	mv	s1,a3
+8001233e:	00f69f63          	bne	a3,a5,8001235c <esc_write+0x54>
+80012342:	00064783          	lbu	a5,0(a2)
+80012346:	00f10623          	sb	a5,12(sp)
+8001234a:	00164783          	lbu	a5,1(a2)
+8001234e:	00f106a3          	sb	a5,13(sp)
+80012352:	00c15783          	lhu	a5,12(sp)
+80012356:	00f91023          	sh	a5,0(s2)
+8001235a:	bfc9                	j	8001232c <esc_write+0x24>
+8001235c:	4791                	li	a5,4
+8001235e:	00f69b63          	bne	a3,a5,80012374 <esc_write+0x6c>
+80012362:	4611                	li	a2,4
+80012364:	85a2                	mv	a1,s0
+80012366:	0068                	addi	a0,sp,12
+80012368:	42b040ef          	jal	ra,80016f92 <memcpy>
+8001236c:	47b2                	lw	a5,12(sp)
+8001236e:	00f92023          	sw	a5,0(s2)
+80012372:	bf6d                	j	8001232c <esc_write+0x24>
+80012374:	852e                	mv	a0,a1
+80012376:	85b6                	mv	a1,a3
+80012378:	cb9ff0ef          	jal	ra,80012030 <esc_pdram_word_access>
+8001237c:	4781                	li	a5,0
+8001237e:	c531                	beqz	a0,800123ca <esc_write+0xc2>
+80012380:	00347793          	andi	a5,s0,3
+80012384:	4981                	li	s3,0
+80012386:	e795                	bnez	a5,800123b2 <esc_write+0xaa>
+80012388:	fa97f2e3          	bgeu	a5,s1,8001232c <esc_write+0x24>
+8001238c:	00f40733          	add	a4,s0,a5
+80012390:	4314                	lw	a3,0(a4)
+80012392:	00f90733          	add	a4,s2,a5
+80012396:	0791                	addi	a5,a5,4
+80012398:	c314                	sw	a3,0(a4)
+8001239a:	b7fd                	j	80012388 <esc_write+0x80>
+8001239c:	013405b3          	add	a1,s0,s3
+800123a0:	4611                	li	a2,4
+800123a2:	0068                	addi	a0,sp,12
+800123a4:	3ef040ef          	jal	ra,80016f92 <memcpy>
+800123a8:	4732                	lw	a4,12(sp)
+800123aa:	013907b3          	add	a5,s2,s3
+800123ae:	0991                	addi	s3,s3,4
+800123b0:	c398                	sw	a4,0(a5)
+800123b2:	fe99e5e3          	bltu	s3,s1,8001239c <esc_write+0x94>
+800123b6:	bf9d                	j	8001232c <esc_write+0x24>
+800123b8:	00f406b3          	add	a3,s0,a5
+800123bc:	0006c683          	lbu	a3,0(a3)
+800123c0:	01278733          	add	a4,a5,s2
+800123c4:	0785                	addi	a5,a5,1
+800123c6:	00d70023          	sb	a3,0(a4)
+800123ca:	fe9797e3          	bne	a5,s1,800123b8 <esc_write+0xb0>
+800123ce:	bfb9                	j	8001232c <esc_write+0x24>
+
+Disassembly of section _ITCM_SECTION_NAME:

@@ -1,0 +1,15 @@
+
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/bench-host/fast-v7-01/zephyr.elf:     file format elf32-littleriscv
+
+
+Disassembly of section rom_start:
+
+Disassembly of section reset:
+
+Disassembly of section text:
+
+800143bc <atomic_get>:
+800143bc:	4108                	lw	a0,0(a0)
+800143be:	8082                	ret
+
+Disassembly of section _ITCM_SECTION_NAME:
