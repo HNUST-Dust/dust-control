@@ -1,0 +1,26 @@
+Requires a fresh gateway reset since previous startup/Stop.
+Startup-only: no Arm or motor business commands. CAN3 protection retained.
+ce330756f931633ab0060fe628ee7a6c2260e248804f186ab192b2da18438b10  /home/wbr-infantry/dust-ecat-bench/dust_ethercat_startup_can3_long_probe
+2592bc03610ab26e98f77297b82f61f33870824b97222157964f9975878249a5  /home/wbr-infantry/dust-ecat-bench/ethercat_peripheral_can3.yaml
+temporary l1_1_aspm=0
+temporary l1_1_pcipm=0
+temporary l1_aspm=0
+compiler_optimized=1
+CPU=7
+scheduler=OTHER (no realtime privilege) wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=208 Tx=688 signature=2616507966 cycle_us=125 command_interval_us=10000 timeout_us=8000
+STARTUP AL=2 OP=0 WC=0 WCstate=0 exchange=1
+STARTUP AL=1 OP=0 WC=0 WCstate=0 exchange=248
+STARTUP AL=2 OP=0 WC=0 WCstate=0 exchange=256
+STARTUP AL=2 OP=0 WC=2 WCstate=1 exchange=1235
+STARTUP AL=2 OP=0 WC=3 WCstate=2 exchange=1255
+STARTUP AL=4 OP=0 WC=3 WCstate=2 exchange=1269
+STARTUP AL=8 OP=1 WC=3 WCstate=2 exchange=1275
+OP_CYCLES 1000 WKC_MISSES 0
+STARTUP PASS OP/WKC/Ready valid1000 cycles; no Arm or motor commands
+restored l1_aspm=1
+restored l1_1_aspm=1
+restored l1_1_pcipm=1
+l1_aspm 1
+l1_1_aspm 1
+l1_1_pcipm 1

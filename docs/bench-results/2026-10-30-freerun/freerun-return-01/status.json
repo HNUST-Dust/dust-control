@@ -1,0 +1,9 @@
+{
+  "mode": "FreeRun",
+  "flash": "complete",
+  "boot": "LAB ready",
+  "bDcSyncActive": 0,
+  "bEscIntEnabled": 0,
+  "nAlStatus": 2,
+  "live_regression": "PASS2000"
+}

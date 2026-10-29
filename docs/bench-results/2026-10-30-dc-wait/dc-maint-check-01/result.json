@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "samples": 2000,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "rtt_us": {
+    "mean": 1638.662,
+    "p50": 1495.394,
+    "p95": 1995.569,
+    "p99": 1995.869,
+    "max": 1998.987
+  },
+  "active_fault": 0,
+  "active_coalesced": 0,
+  "active_services": 41975,
+  "mean_wait_us": 15.758240023823705,
+  "max_wait_us": 108.95833333333333,
+  "handler_mean_us": 97.82171629938455,
+  "handler_max_us": 270.0833333333333,
+  "interpretation": "Observed max wait171.708->108.958us; mean wait12.938->15.758us. RTT mean1775.518->1638.662us but single-run cycle phase variation prevents causal attribution. Top waits still spend79..102us in link maintenance. Pending checkpoint cannot preempt a started MDIO operation. Active faults/coalescing zero. One handler270.083us exceeds250us; no shorter-cycle feasibility claim. First protection is normal Stop at core.cpp:210. Full lifecycle sync fault zero."
+}

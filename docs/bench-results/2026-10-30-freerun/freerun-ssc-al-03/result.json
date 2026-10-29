@@ -1,0 +1,23 @@
+{
+  "result": "PASS",
+  "samples": 2000,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "rtt_us": {
+    "min": 621.148,
+    "mean": 722.802,
+    "p50": 748.539,
+    "p95": 873.379,
+    "p99": 873.885,
+    "max": 999.021
+  },
+  "bands_nearest125us": {
+    "625": 543,
+    "750": 1328,
+    "875": 128,
+    "1000": 1
+  },
+  "bDcSyncActive": 0,
+  "bEscIntEnabled": 0,
+  "interpretation": "Fresh reset of identical B image resolves startup failure. B means718.904/722.802us consistent, below single A755.877us, but P50/P95 unchanged and max999us reappears. No established tail improvement or per-read37us gain. Fresh-reset A control needed before promotion."
+}

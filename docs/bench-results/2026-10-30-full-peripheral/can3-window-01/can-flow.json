@@ -1,0 +1,3117 @@
+{
+  "version": 1,
+  "count": 18007,
+  "capacity": 512,
+  "cycles_per_second": 24000000,
+  "events": [
+    {
+      "cycles": 1243730504,
+      "event": 104,
+      "value": 57648,
+      "aux": 0
+    },
+    {
+      "cycles": 1243732723,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1243733416,
+      "event": 107,
+      "value": 57648,
+      "aux": 100281
+    },
+    {
+      "cycles": 1243877975,
+      "event": 106,
+      "value": 57648,
+      "aux": 26592
+    },
+    {
+      "cycles": 1243878418,
+      "event": 108,
+      "value": 57648,
+      "aux": 100312
+    },
+    {
+      "cycles": 1243955496,
+      "event": 99,
+      "value": 1945,
+      "aux": 3
+    },
+    {
+      "cycles": 1243957099,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1243968746,
+      "event": 102,
+      "value": 57661,
+      "aux": 19
+    },
+    {
+      "cycles": 1243968869,
+      "event": 103,
+      "value": 57661,
+      "aux": 0
+    },
+    {
+      "cycles": 1243969862,
+      "event": 104,
+      "value": 57661,
+      "aux": 0
+    },
+    {
+      "cycles": 1243970388,
+      "event": 107,
+      "value": 57661,
+      "aux": 100331
+    },
+    {
+      "cycles": 1243971911,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1244117165,
+      "event": 106,
+      "value": 57661,
+      "aux": 26605
+    },
+    {
+      "cycles": 1244117442,
+      "event": 108,
+      "value": 57661,
+      "aux": 100362
+    },
+    {
+      "cycles": 1244198565,
+      "event": 99,
+      "value": 1946,
+      "aux": 3
+    },
+    {
+      "cycles": 1244199593,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1244211242,
+      "event": 102,
+      "value": 57674,
+      "aux": 19
+    },
+    {
+      "cycles": 1244211367,
+      "event": 103,
+      "value": 57674,
+      "aux": 0
+    },
+    {
+      "cycles": 1244212590,
+      "event": 104,
+      "value": 57674,
+      "aux": 0
+    },
+    {
+      "cycles": 1244214434,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1244214629,
+      "event": 107,
+      "value": 57674,
+      "aux": 100382
+    },
+    {
+      "cycles": 1244356354,
+      "event": 106,
+      "value": 57674,
+      "aux": 26618
+    },
+    {
+      "cycles": 1244357125,
+      "event": 108,
+      "value": 57674,
+      "aux": 100411
+    },
+    {
+      "cycles": 1244442425,
+      "event": 99,
+      "value": 1947,
+      "aux": 3
+    },
+    {
+      "cycles": 1244443264,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1244454906,
+      "event": 102,
+      "value": 57687,
+      "aux": 19
+    },
+    {
+      "cycles": 1244455031,
+      "event": 103,
+      "value": 57687,
+      "aux": 0
+    },
+    {
+      "cycles": 1244456284,
+      "event": 104,
+      "value": 57687,
+      "aux": 0
+    },
+    {
+      "cycles": 1244456899,
+      "event": 107,
+      "value": 57687,
+      "aux": 100432
+    },
+    {
+      "cycles": 1244458075,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1244595826,
+      "event": 106,
+      "value": 57687,
+      "aux": 26631
+    },
+    {
+      "cycles": 1244596403,
+      "event": 108,
+      "value": 57687,
+      "aux": 100462
+    },
+    {
+      "cycles": 1244688817,
+      "event": 99,
+      "value": 1948,
+      "aux": 3
+    },
+    {
+      "cycles": 1244689565,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1244702636,
+      "event": 102,
+      "value": 57701,
+      "aux": 19
+    },
+    {
+      "cycles": 1244702761,
+      "event": 103,
+      "value": 57701,
+      "aux": 0
+    },
+    {
+      "cycles": 1244705790,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1244706036,
+      "event": 104,
+      "value": 57701,
+      "aux": 0
+    },
+    {
+      "cycles": 1244706674,
+      "event": 107,
+      "value": 57701,
+      "aux": 100485
+    },
+    {
+      "cycles": 1244858248,
+      "event": 106,
+      "value": 57701,
+      "aux": 26645
+    },
+    {
+      "cycles": 1244858870,
+      "event": 108,
+      "value": 57701,
+      "aux": 100517
+    },
+    {
+      "cycles": 1244930270,
+      "event": 99,
+      "value": 1949,
+      "aux": 3
+    },
+    {
+      "cycles": 1244931867,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1244943591,
+      "event": 102,
+      "value": 57714,
+      "aux": 19
+    },
+    {
+      "cycles": 1244943713,
+      "event": 103,
+      "value": 57714,
+      "aux": 0
+    },
+    {
+      "cycles": 1244944859,
+      "event": 104,
+      "value": 57714,
+      "aux": 0
+    },
+    {
+      "cycles": 1244946403,
+      "event": 107,
+      "value": 57714,
+      "aux": 100535
+    },
+    {
+      "cycles": 1244946780,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1245097338,
+      "event": 106,
+      "value": 57714,
+      "aux": 26658
+    },
+    {
+      "cycles": 1245097607,
+      "event": 108,
+      "value": 57714,
+      "aux": 100567
+    },
+    {
+      "cycles": 1245175178,
+      "event": 99,
+      "value": 1950,
+      "aux": 3
+    },
+    {
+      "cycles": 1245175990,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1245187647,
+      "event": 102,
+      "value": 57727,
+      "aux": 19
+    },
+    {
+      "cycles": 1245187770,
+      "event": 103,
+      "value": 57727,
+      "aux": 0
+    },
+    {
+      "cycles": 1245188394,
+      "event": 104,
+      "value": 57727,
+      "aux": 0
+    },
+    {
+      "cycles": 1245188940,
+      "event": 107,
+      "value": 57727,
+      "aux": 100586
+    },
+    {
+      "cycles": 1245190813,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1245336153,
+      "event": 106,
+      "value": 57727,
+      "aux": 26671
+    },
+    {
+      "cycles": 1245337421,
+      "event": 108,
+      "value": 57727,
+      "aux": 100618
+    },
+    {
+      "cycles": 1245417911,
+      "event": 99,
+      "value": 1951,
+      "aux": 3
+    },
+    {
+      "cycles": 1245418670,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1245430317,
+      "event": 102,
+      "value": 57740,
+      "aux": 19
+    },
+    {
+      "cycles": 1245430442,
+      "event": 103,
+      "value": 57740,
+      "aux": 0
+    },
+    {
+      "cycles": 1245431105,
+      "event": 104,
+      "value": 57740,
+      "aux": 0
+    },
+    {
+      "cycles": 1245431679,
+      "event": 107,
+      "value": 57740,
+      "aux": 100637
+    },
+    {
+      "cycles": 1245433477,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1245575387,
+      "event": 106,
+      "value": 57740,
+      "aux": 26684
+    },
+    {
+      "cycles": 1245575871,
+      "event": 108,
+      "value": 57740,
+      "aux": 100668
+    },
+    {
+      "cycles": 1245656460,
+      "event": 99,
+      "value": 1952,
+      "aux": 3
+    },
+    {
+      "cycles": 1245657216,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1245668966,
+      "event": 102,
+      "value": 57753,
+      "aux": 19
+    },
+    {
+      "cycles": 1245669088,
+      "event": 103,
+      "value": 57753,
+      "aux": 0
+    },
+    {
+      "cycles": 1245670994,
+      "event": 104,
+      "value": 57753,
+      "aux": 0
+    },
+    {
+      "cycles": 1245671563,
+      "event": 107,
+      "value": 57753,
+      "aux": 100688
+    },
+    {
+      "cycles": 1245672106,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1245815098,
+      "event": 106,
+      "value": 57753,
+      "aux": 26697
+    },
+    {
+      "cycles": 1245815583,
+      "event": 108,
+      "value": 57753,
+      "aux": 100718
+    },
+    {
+      "cycles": 1245902852,
+      "event": 99,
+      "value": 1953,
+      "aux": 3
+    },
+    {
+      "cycles": 1245904451,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1245916096,
+      "event": 102,
+      "value": 57766,
+      "aux": 19
+    },
+    {
+      "cycles": 1245916221,
+      "event": 103,
+      "value": 57766,
+      "aux": 0
+    },
+    {
+      "cycles": 1245917126,
+      "event": 104,
+      "value": 57766,
+      "aux": 0
+    },
+    {
+      "cycles": 1245917676,
+      "event": 107,
+      "value": 57766,
+      "aux": 100739
+    },
+    {
+      "cycles": 1245919256,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1246052358,
+      "event": 106,
+      "value": 57766,
+      "aux": 26710
+    },
+    {
+      "cycles": 1246052907,
+      "event": 108,
+      "value": 57766,
+      "aux": 100769
+    },
+    {
+      "cycles": 1246145080,
+      "event": 99,
+      "value": 1954,
+      "aux": 3
+    },
+    {
+      "cycles": 1246145869,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1246159272,
+      "event": 102,
+      "value": 57780,
+      "aux": 19
+    },
+    {
+      "cycles": 1246159395,
+      "event": 103,
+      "value": 57780,
+      "aux": 0
+    },
+    {
+      "cycles": 1246161075,
+      "event": 104,
+      "value": 57780,
+      "aux": 0
+    },
+    {
+      "cycles": 1246161698,
+      "event": 107,
+      "value": 57780,
+      "aux": 100792
+    },
+    {
+      "cycles": 1246162430,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1246315923,
+      "event": 106,
+      "value": 57780,
+      "aux": 26724
+    },
+    {
+      "cycles": 1246317316,
+      "event": 108,
+      "value": 57780,
+      "aux": 100824
+    },
+    {
+      "cycles": 1246392006,
+      "event": 99,
+      "value": 1955,
+      "aux": 3
+    },
+    {
+      "cycles": 1246393541,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1246405198,
+      "event": 102,
+      "value": 57793,
+      "aux": 19
+    },
+    {
+      "cycles": 1246405323,
+      "event": 103,
+      "value": 57793,
+      "aux": 0
+    },
+    {
+      "cycles": 1246406634,
+      "event": 104,
+      "value": 57793,
+      "aux": 0
+    },
+    {
+      "cycles": 1246407187,
+      "event": 107,
+      "value": 57793,
+      "aux": 100843
+    },
+    {
+      "cycles": 1246408351,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1246555269,
+      "event": 106,
+      "value": 57793,
+      "aux": 26737
+    },
+    {
+      "cycles": 1246555731,
+      "event": 108,
+      "value": 57793,
+      "aux": 100874
+    },
+    {
+      "cycles": 1246630380,
+      "event": 99,
+      "value": 1956,
+      "aux": 3
+    },
+    {
+      "cycles": 1246631135,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1246642785,
+      "event": 102,
+      "value": 57806,
+      "aux": 19
+    },
+    {
+      "cycles": 1246642908,
+      "event": 103,
+      "value": 57806,
+      "aux": 0
+    },
+    {
+      "cycles": 1246644132,
+      "event": 104,
+      "value": 57806,
+      "aux": 0
+    },
+    {
+      "cycles": 1246645994,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1246646231,
+      "event": 107,
+      "value": 57806,
+      "aux": 100893
+    },
+    {
+      "cycles": 1246793657,
+      "event": 106,
+      "value": 57806,
+      "aux": 26750
+    },
+    {
+      "cycles": 1246794140,
+      "event": 108,
+      "value": 57806,
+      "aux": 100923
+    },
+    {
+      "cycles": 1246875007,
+      "event": 99,
+      "value": 1957,
+      "aux": 3
+    },
+    {
+      "cycles": 1246875715,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1246887375,
+      "event": 102,
+      "value": 57819,
+      "aux": 19
+    },
+    {
+      "cycles": 1246887498,
+      "event": 103,
+      "value": 57819,
+      "aux": 0
+    },
+    {
+      "cycles": 1246889511,
+      "event": 104,
+      "value": 57819,
+      "aux": 0
+    },
+    {
+      "cycles": 1246890074,
+      "event": 107,
+      "value": 57819,
+      "aux": 100942
+    },
+    {
+      "cycles": 1246890541,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1247034229,
+      "event": 106,
+      "value": 57819,
+      "aux": 26763
+    },
+    {
+      "cycles": 1247034694,
+      "event": 108,
+      "value": 57819,
+      "aux": 100972
+    },
+    {
+      "cycles": 1247114572,
+      "event": 99,
+      "value": 1958,
+      "aux": 3
+    },
+    {
+      "cycles": 1247115436,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1247127076,
+      "event": 102,
+      "value": 57832,
+      "aux": 19
+    },
+    {
+      "cycles": 1247127155,
+      "event": 103,
+      "value": 57832,
+      "aux": 0
+    },
+    {
+      "cycles": 1247127993,
+      "event": 104,
+      "value": 57832,
+      "aux": 0
+    },
+    {
+      "cycles": 1247128571,
+      "event": 107,
+      "value": 57832,
+      "aux": 100992
+    },
+    {
+      "cycles": 1247130178,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1247272383,
+      "event": 106,
+      "value": 57832,
+      "aux": 26776
+    },
+    {
+      "cycles": 1247272937,
+      "event": 108,
+      "value": 57832,
+      "aux": 101023
+    },
+    {
+      "cycles": 1247362011,
+      "event": 99,
+      "value": 1959,
+      "aux": 3
+    },
+    {
+      "cycles": 1247362765,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1247374421,
+      "event": 102,
+      "value": 57845,
+      "aux": 19
+    },
+    {
+      "cycles": 1247374544,
+      "event": 103,
+      "value": 57845,
+      "aux": 0
+    },
+    {
+      "cycles": 1247375975,
+      "event": 104,
+      "value": 57845,
+      "aux": 0
+    },
+    {
+      "cycles": 1247376533,
+      "event": 107,
+      "value": 57845,
+      "aux": 101045
+    },
+    {
+      "cycles": 1247377593,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1247511223,
+      "event": 106,
+      "value": 57845,
+      "aux": 26789
+    },
+    {
+      "cycles": 1247511771,
+      "event": 108,
+      "value": 57845,
+      "aux": 101074
+    },
+    {
+      "cycles": 1247602808,
+      "event": 99,
+      "value": 1960,
+      "aux": 3
+    },
+    {
+      "cycles": 1247603601,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1247616896,
+      "event": 102,
+      "value": 57859,
+      "aux": 19
+    },
+    {
+      "cycles": 1247617021,
+      "event": 103,
+      "value": 57859,
+      "aux": 0
+    },
+    {
+      "cycles": 1247618524,
+      "event": 104,
+      "value": 57859,
+      "aux": 0
+    },
+    {
+      "cycles": 1247619047,
+      "event": 107,
+      "value": 57859,
+      "aux": 101097
+    },
+    {
+      "cycles": 1247620067,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1247774744,
+      "event": 106,
+      "value": 57859,
+      "aux": 26803
+    },
+    {
+      "cycles": 1247775196,
+      "event": 108,
+      "value": 57859,
+      "aux": 101129
+    },
+    {
+      "cycles": 1247850269,
+      "event": 99,
+      "value": 1961,
+      "aux": 3
+    },
+    {
+      "cycles": 1247851158,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1247862871,
+      "event": 102,
+      "value": 57872,
+      "aux": 19
+    },
+    {
+      "cycles": 1247862949,
+      "event": 103,
+      "value": 57872,
+      "aux": 0
+    },
+    {
+      "cycles": 1247864432,
+      "event": 104,
+      "value": 57872,
+      "aux": 0
+    },
+    {
+      "cycles": 1247865111,
+      "event": 107,
+      "value": 57872,
+      "aux": 101148
+    },
+    {
+      "cycles": 1247865970,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1248011609,
+      "event": 106,
+      "value": 57872,
+      "aux": 26816
+    },
+    {
+      "cycles": 1248012059,
+      "event": 108,
+      "value": 57872,
+      "aux": 101179
+    },
+    {
+      "cycles": 1248089582,
+      "event": 99,
+      "value": 1962,
+      "aux": 3
+    },
+    {
+      "cycles": 1248090424,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1248102075,
+      "event": 102,
+      "value": 57885,
+      "aux": 19
+    },
+    {
+      "cycles": 1248102152,
+      "event": 103,
+      "value": 57885,
+      "aux": 0
+    },
+    {
+      "cycles": 1248102905,
+      "event": 104,
+      "value": 57885,
+      "aux": 0
+    },
+    {
+      "cycles": 1248103426,
+      "event": 107,
+      "value": 57885,
+      "aux": 101197
+    },
+    {
+      "cycles": 1248105176,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1248250606,
+      "event": 106,
+      "value": 57885,
+      "aux": 26829
+    },
+    {
+      "cycles": 1248251000,
+      "event": 108,
+      "value": 57885,
+      "aux": 101229
+    },
+    {
+      "cycles": 1248331911,
+      "event": 99,
+      "value": 1963,
+      "aux": 3
+    },
+    {
+      "cycles": 1248332617,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1248344265,
+      "event": 102,
+      "value": 57898,
+      "aux": 19
+    },
+    {
+      "cycles": 1248344388,
+      "event": 103,
+      "value": 57898,
+      "aux": 0
+    },
+    {
+      "cycles": 1248345249,
+      "event": 104,
+      "value": 57898,
+      "aux": 0
+    },
+    {
+      "cycles": 1248345838,
+      "event": 107,
+      "value": 57898,
+      "aux": 101249
+    },
+    {
+      "cycles": 1248347430,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1248490477,
+      "event": 106,
+      "value": 57898,
+      "aux": 26842
+    },
+    {
+      "cycles": 1248492216,
+      "event": 108,
+      "value": 57898,
+      "aux": 101281
+    },
+    {
+      "cycles": 1248572908,
+      "event": 99,
+      "value": 1964,
+      "aux": 3
+    },
+    {
+      "cycles": 1248573652,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1248585310,
+      "event": 102,
+      "value": 57911,
+      "aux": 19
+    },
+    {
+      "cycles": 1248585434,
+      "event": 103,
+      "value": 57911,
+      "aux": 0
+    },
+    {
+      "cycles": 1248586254,
+      "event": 104,
+      "value": 57911,
+      "aux": 0
+    },
+    {
+      "cycles": 1248586775,
+      "event": 107,
+      "value": 57911,
+      "aux": 101301
+    },
+    {
+      "cycles": 1248588478,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1248729999,
+      "event": 106,
+      "value": 57911,
+      "aux": 26855
+    },
+    {
+      "cycles": 1248730438,
+      "event": 108,
+      "value": 57911,
+      "aux": 101332
+    },
+    {
+      "cycles": 1248816515,
+      "event": 99,
+      "value": 1965,
+      "aux": 3
+    },
+    {
+      "cycles": 1248817217,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1248828857,
+      "event": 102,
+      "value": 57924,
+      "aux": 19
+    },
+    {
+      "cycles": 1248828980,
+      "event": 103,
+      "value": 57924,
+      "aux": 0
+    },
+    {
+      "cycles": 1248831059,
+      "event": 104,
+      "value": 57924,
+      "aux": 0
+    },
+    {
+      "cycles": 1248832082,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1248833102,
+      "event": 107,
+      "value": 57924,
+      "aux": 101353
+    },
+    {
+      "cycles": 1248968658,
+      "event": 106,
+      "value": 57924,
+      "aux": 26868
+    },
+    {
+      "cycles": 1248969113,
+      "event": 108,
+      "value": 57924,
+      "aux": 101382
+    },
+    {
+      "cycles": 1249061501,
+      "event": 99,
+      "value": 1966,
+      "aux": 3
+    },
+    {
+      "cycles": 1249062244,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1249074267,
+      "event": 102,
+      "value": 57938,
+      "aux": 19
+    },
+    {
+      "cycles": 1249074390,
+      "event": 103,
+      "value": 57938,
+      "aux": 0
+    },
+    {
+      "cycles": 1249075143,
+      "event": 104,
+      "value": 57938,
+      "aux": 0
+    },
+    {
+      "cycles": 1249075669,
+      "event": 107,
+      "value": 57938,
+      "aux": 101404
+    },
+    {
+      "cycles": 1249077426,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1249231694,
+      "event": 106,
+      "value": 57938,
+      "aux": 26882
+    },
+    {
+      "cycles": 1249233005,
+      "event": 108,
+      "value": 57938,
+      "aux": 101437
+    },
+    {
+      "cycles": 1249298714,
+      "event": 99,
+      "value": 1967,
+      "aux": 3
+    },
+    {
+      "cycles": 1249299417,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1249313314,
+      "event": 102,
+      "value": 57951,
+      "aux": 19
+    },
+    {
+      "cycles": 1249313438,
+      "event": 103,
+      "value": 57951,
+      "aux": 0
+    },
+    {
+      "cycles": 1249315657,
+      "event": 104,
+      "value": 57951,
+      "aux": 0
+    },
+    {
+      "cycles": 1249316434,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1249316529,
+      "event": 107,
+      "value": 57951,
+      "aux": 101455
+    },
+    {
+      "cycles": 1249470513,
+      "event": 106,
+      "value": 57951,
+      "aux": 26895
+    },
+    {
+      "cycles": 1249470976,
+      "event": 108,
+      "value": 57951,
+      "aux": 101487
+    },
+    {
+      "cycles": 1249546246,
+      "event": 99,
+      "value": 1968,
+      "aux": 3
+    },
+    {
+      "cycles": 1249546976,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1249558665,
+      "event": 102,
+      "value": 57964,
+      "aux": 19
+    },
+    {
+      "cycles": 1249558791,
+      "event": 103,
+      "value": 57964,
+      "aux": 0
+    },
+    {
+      "cycles": 1249560046,
+      "event": 104,
+      "value": 57964,
+      "aux": 0
+    },
+    {
+      "cycles": 1249560595,
+      "event": 107,
+      "value": 57964,
+      "aux": 101506
+    },
+    {
+      "cycles": 1249561790,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1249709444,
+      "event": 106,
+      "value": 57964,
+      "aux": 26908
+    },
+    {
+      "cycles": 1249709968,
+      "event": 108,
+      "value": 57964,
+      "aux": 101537
+    },
+    {
+      "cycles": 1249786498,
+      "event": 99,
+      "value": 1969,
+      "aux": 3
+    },
+    {
+      "cycles": 1249787245,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1249798952,
+      "event": 102,
+      "value": 57977,
+      "aux": 19
+    },
+    {
+      "cycles": 1249799075,
+      "event": 103,
+      "value": 57977,
+      "aux": 0
+    },
+    {
+      "cycles": 1249801064,
+      "event": 104,
+      "value": 57977,
+      "aux": 0
+    },
+    {
+      "cycles": 1249802325,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1249802587,
+      "event": 107,
+      "value": 57977,
+      "aux": 101556
+    },
+    {
+      "cycles": 1249949444,
+      "event": 106,
+      "value": 57977,
+      "aux": 26921
+    },
+    {
+      "cycles": 1249949890,
+      "event": 108,
+      "value": 57977,
+      "aux": 101587
+    },
+    {
+      "cycles": 1250028755,
+      "event": 99,
+      "value": 1970,
+      "aux": 3
+    },
+    {
+      "cycles": 1250029700,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1250041403,
+      "event": 102,
+      "value": 57990,
+      "aux": 19
+    },
+    {
+      "cycles": 1250041482,
+      "event": 103,
+      "value": 57990,
+      "aux": 0
+    },
+    {
+      "cycles": 1250042395,
+      "event": 104,
+      "value": 57990,
+      "aux": 0
+    },
+    {
+      "cycles": 1250042992,
+      "event": 107,
+      "value": 57990,
+      "aux": 101606
+    },
+    {
+      "cycles": 1250044508,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1250187094,
+      "event": 106,
+      "value": 57990,
+      "aux": 26934
+    },
+    {
+      "cycles": 1250187369,
+      "event": 108,
+      "value": 57990,
+      "aux": 101636
+    },
+    {
+      "cycles": 1250272483,
+      "event": 99,
+      "value": 1971,
+      "aux": 3
+    },
+    {
+      "cycles": 1250273189,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1250284968,
+      "event": 102,
+      "value": 58003,
+      "aux": 19
+    },
+    {
+      "cycles": 1250285092,
+      "event": 103,
+      "value": 58003,
+      "aux": 0
+    },
+    {
+      "cycles": 1250286851,
+      "event": 104,
+      "value": 58003,
+      "aux": 0
+    },
+    {
+      "cycles": 1250287478,
+      "event": 107,
+      "value": 58003,
+      "aux": 101657
+    },
+    {
+      "cycles": 1250288699,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1250426317,
+      "event": 106,
+      "value": 58003,
+      "aux": 26947
+    },
+    {
+      "cycles": 1250426758,
+      "event": 108,
+      "value": 58003,
+      "aux": 101686
+    },
+    {
+      "cycles": 1250518075,
+      "event": 99,
+      "value": 1972,
+      "aux": 3
+    },
+    {
+      "cycles": 1250518866,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1250531973,
+      "event": 102,
+      "value": 58017,
+      "aux": 19
+    },
+    {
+      "cycles": 1250532094,
+      "event": 103,
+      "value": 58017,
+      "aux": 0
+    },
+    {
+      "cycles": 1250532229,
+      "event": 104,
+      "value": 58017,
+      "aux": 0
+    },
+    {
+      "cycles": 1250532770,
+      "event": 107,
+      "value": 58017,
+      "aux": 101708
+    },
+    {
+      "cycles": 1250535103,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1250687865,
+      "event": 106,
+      "value": 58017,
+      "aux": 26960
+    },
+    {
+      "cycles": 1250688346,
+      "event": 108,
+      "value": 58017,
+      "aux": 101741
+    },
+    {
+      "cycles": 1250756666,
+      "event": 99,
+      "value": 1973,
+      "aux": 3
+    },
+    {
+      "cycles": 1250757587,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1250770926,
+      "event": 102,
+      "value": 58030,
+      "aux": 19
+    },
+    {
+      "cycles": 1250771049,
+      "event": 103,
+      "value": 58030,
+      "aux": 0
+    },
+    {
+      "cycles": 1250773050,
+      "event": 104,
+      "value": 58030,
+      "aux": 0
+    },
+    {
+      "cycles": 1250773631,
+      "event": 107,
+      "value": 58030,
+      "aux": 101759
+    },
+    {
+      "cycles": 1250774048,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1250928946,
+      "event": 106,
+      "value": 58030,
+      "aux": 26973
+    },
+    {
+      "cycles": 1250929546,
+      "event": 108,
+      "value": 58030,
+      "aux": 101791
+    },
+    {
+      "cycles": 1251005016,
+      "event": 99,
+      "value": 1974,
+      "aux": 3
+    },
+    {
+      "cycles": 1251005848,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1251017551,
+      "event": 102,
+      "value": 58043,
+      "aux": 19
+    },
+    {
+      "cycles": 1251017630,
+      "event": 103,
+      "value": 58043,
+      "aux": 0
+    },
+    {
+      "cycles": 1251018698,
+      "event": 104,
+      "value": 58043,
+      "aux": 0
+    },
+    {
+      "cycles": 1251019251,
+      "event": 107,
+      "value": 58043,
+      "aux": 101810
+    },
+    {
+      "cycles": 1251020612,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1251165947,
+      "event": 106,
+      "value": 58043,
+      "aux": 26986
+    },
+    {
+      "cycles": 1251166217,
+      "event": 108,
+      "value": 58043,
+      "aux": 101842
+    },
+    {
+      "cycles": 1251244370,
+      "event": 99,
+      "value": 1975,
+      "aux": 3
+    },
+    {
+      "cycles": 1251245217,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1251256973,
+      "event": 102,
+      "value": 58056,
+      "aux": 19
+    },
+    {
+      "cycles": 1251257052,
+      "event": 103,
+      "value": 58056,
+      "aux": 0
+    },
+    {
+      "cycles": 1251257821,
+      "event": 104,
+      "value": 58056,
+      "aux": 0
+    },
+    {
+      "cycles": 1251258401,
+      "event": 107,
+      "value": 58056,
+      "aux": 101861
+    },
+    {
+      "cycles": 1251260082,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1251405739,
+      "event": 106,
+      "value": 58056,
+      "aux": 26999
+    },
+    {
+      "cycles": 1251406296,
+      "event": 108,
+      "value": 58056,
+      "aux": 101893
+    },
+    {
+      "cycles": 1251487499,
+      "event": 99,
+      "value": 1976,
+      "aux": 3
+    },
+    {
+      "cycles": 1251488296,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1251500002,
+      "event": 102,
+      "value": 58069,
+      "aux": 19
+    },
+    {
+      "cycles": 1251500080,
+      "event": 103,
+      "value": 58069,
+      "aux": 0
+    },
+    {
+      "cycles": 1251501812,
+      "event": 104,
+      "value": 58069,
+      "aux": 0
+    },
+    {
+      "cycles": 1251502368,
+      "event": 107,
+      "value": 58069,
+      "aux": 101913
+    },
+    {
+      "cycles": 1251503063,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1251644309,
+      "event": 106,
+      "value": 58069,
+      "aux": 27012
+    },
+    {
+      "cycles": 1251644580,
+      "event": 108,
+      "value": 58069,
+      "aux": 101942
+    },
+    {
+      "cycles": 1251731924,
+      "event": 99,
+      "value": 1977,
+      "aux": 3
+    },
+    {
+      "cycles": 1251732716,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1251744409,
+      "event": 102,
+      "value": 58082,
+      "aux": 19
+    },
+    {
+      "cycles": 1251744485,
+      "event": 103,
+      "value": 58082,
+      "aux": 0
+    },
+    {
+      "cycles": 1251745550,
+      "event": 104,
+      "value": 58082,
+      "aux": 0
+    },
+    {
+      "cycles": 1251747316,
+      "event": 107,
+      "value": 58082,
+      "aux": 101963
+    },
+    {
+      "cycles": 1251747486,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1251882664,
+      "event": 106,
+      "value": 58082,
+      "aux": 27025
+    },
+    {
+      "cycles": 1251882938,
+      "event": 108,
+      "value": 58082,
+      "aux": 101992
+    },
+    {
+      "cycles": 1251977082,
+      "event": 99,
+      "value": 1978,
+      "aux": 3
+    },
+    {
+      "cycles": 1251978142,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1251989836,
+      "event": 102,
+      "value": 58096,
+      "aux": 19
+    },
+    {
+      "cycles": 1251989960,
+      "event": 103,
+      "value": 58096,
+      "aux": 0
+    },
+    {
+      "cycles": 1251991132,
+      "event": 104,
+      "value": 58096,
+      "aux": 0
+    },
+    {
+      "cycles": 1251991798,
+      "event": 107,
+      "value": 58096,
+      "aux": 102014
+    },
+    {
+      "cycles": 1251992964,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1252147629,
+      "event": 106,
+      "value": 58096,
+      "aux": 27039
+    },
+    {
+      "cycles": 1252148070,
+      "event": 108,
+      "value": 58096,
+      "aux": 102046
+    },
+    {
+      "cycles": 1252223393,
+      "event": 99,
+      "value": 1979,
+      "aux": 3
+    },
+    {
+      "cycles": 1252224102,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1252236104,
+      "event": 102,
+      "value": 58109,
+      "aux": 19
+    },
+    {
+      "cycles": 1252236226,
+      "event": 103,
+      "value": 58109,
+      "aux": 0
+    },
+    {
+      "cycles": 1252237354,
+      "event": 104,
+      "value": 58109,
+      "aux": 0
+    },
+    {
+      "cycles": 1252238057,
+      "event": 107,
+      "value": 58109,
+      "aux": 102065
+    },
+    {
+      "cycles": 1252238913,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1252385998,
+      "event": 106,
+      "value": 58109,
+      "aux": 27052
+    },
+    {
+      "cycles": 1252386527,
+      "event": 108,
+      "value": 58109,
+      "aux": 102096
+    },
+    {
+      "cycles": 1252461224,
+      "event": 99,
+      "value": 1980,
+      "aux": 3
+    },
+    {
+      "cycles": 1252462889,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1252474589,
+      "event": 102,
+      "value": 58122,
+      "aux": 19
+    },
+    {
+      "cycles": 1252474713,
+      "event": 103,
+      "value": 58122,
+      "aux": 0
+    },
+    {
+      "cycles": 1252475496,
+      "event": 104,
+      "value": 58122,
+      "aux": 0
+    },
+    {
+      "cycles": 1252476076,
+      "event": 107,
+      "value": 58122,
+      "aux": 102115
+    },
+    {
+      "cycles": 1252477715,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1252625199,
+      "event": 106,
+      "value": 58122,
+      "aux": 27065
+    },
+    {
+      "cycles": 1252625654,
+      "event": 108,
+      "value": 58122,
+      "aux": 102147
+    },
+    {
+      "cycles": 1252701377,
+      "event": 99,
+      "value": 1981,
+      "aux": 3
+    },
+    {
+      "cycles": 1252702160,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1252713819,
+      "event": 102,
+      "value": 58135,
+      "aux": 19
+    },
+    {
+      "cycles": 1252713941,
+      "event": 103,
+      "value": 58135,
+      "aux": 0
+    },
+    {
+      "cycles": 1252716069,
+      "event": 104,
+      "value": 58135,
+      "aux": 0
+    },
+    {
+      "cycles": 1252716621,
+      "event": 107,
+      "value": 58135,
+      "aux": 102166
+    },
+    {
+      "cycles": 1252716957,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1252862941,
+      "event": 106,
+      "value": 58135,
+      "aux": 27078
+    },
+    {
+      "cycles": 1252864086,
+      "event": 108,
+      "value": 58135,
+      "aux": 102197
+    },
+    {
+      "cycles": 1252945196,
+      "event": 99,
+      "value": 1982,
+      "aux": 3
+    },
+    {
+      "cycles": 1252946040,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1252957688,
+      "event": 102,
+      "value": 58148,
+      "aux": 19
+    },
+    {
+      "cycles": 1252957811,
+      "event": 103,
+      "value": 58148,
+      "aux": 0
+    },
+    {
+      "cycles": 1252959873,
+      "event": 104,
+      "value": 58148,
+      "aux": 0
+    },
+    {
+      "cycles": 1252960426,
+      "event": 107,
+      "value": 58148,
+      "aux": 102217
+    },
+    {
+      "cycles": 1252960848,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1253103407,
+      "event": 106,
+      "value": 58148,
+      "aux": 27091
+    },
+    {
+      "cycles": 1253103893,
+      "event": 108,
+      "value": 58148,
+      "aux": 102247
+    },
+    {
+      "cycles": 1253189889,
+      "event": 99,
+      "value": 1983,
+      "aux": 3
+    },
+    {
+      "cycles": 1253190685,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1253202412,
+      "event": 102,
+      "value": 58161,
+      "aux": 19
+    },
+    {
+      "cycles": 1253202534,
+      "event": 103,
+      "value": 58161,
+      "aux": 0
+    },
+    {
+      "cycles": 1253203274,
+      "event": 104,
+      "value": 58161,
+      "aux": 0
+    },
+    {
+      "cycles": 1253203855,
+      "event": 107,
+      "value": 58161,
+      "aux": 102268
+    },
+    {
+      "cycles": 1253205577,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1253342250,
+      "event": 106,
+      "value": 58161,
+      "aux": 27104
+    },
+    {
+      "cycles": 1253342711,
+      "event": 108,
+      "value": 58161,
+      "aux": 102298
+    },
+    {
+      "cycles": 1253431169,
+      "event": 99,
+      "value": 1984,
+      "aux": 3
+    },
+    {
+      "cycles": 1253431972,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1253443631,
+      "event": 102,
+      "value": 58174,
+      "aux": 19
+    },
+    {
+      "cycles": 1253443709,
+      "event": 103,
+      "value": 58174,
+      "aux": 0
+    },
+    {
+      "cycles": 1253445608,
+      "event": 104,
+      "value": 58174,
+      "aux": 0
+    },
+    {
+      "cycles": 1253446132,
+      "event": 107,
+      "value": 58174,
+      "aux": 102320
+    },
+    {
+      "cycles": 1253446729,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1253579522,
+      "event": 106,
+      "value": 58174,
+      "aux": 27117
+    },
+    {
+      "cycles": 1253580789,
+      "event": 108,
+      "value": 58174,
+      "aux": 102349
+    },
+    {
+      "cycles": 1253672716,
+      "event": 99,
+      "value": 1985,
+      "aux": 3
+    },
+    {
+      "cycles": 1253673462,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1253685961,
+      "event": 102,
+      "value": 58188,
+      "aux": 19
+    },
+    {
+      "cycles": 1253686086,
+      "event": 103,
+      "value": 58188,
+      "aux": 0
+    },
+    {
+      "cycles": 1253687316,
+      "event": 104,
+      "value": 58188,
+      "aux": 0
+    },
+    {
+      "cycles": 1253689151,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1253689345,
+      "event": 107,
+      "value": 58188,
+      "aux": 102371
+    },
+    {
+      "cycles": 1253841878,
+      "event": 106,
+      "value": 58188,
+      "aux": 27131
+    },
+    {
+      "cycles": 1253842359,
+      "event": 108,
+      "value": 58188,
+      "aux": 102403
+    },
+    {
+      "cycles": 1253918048,
+      "event": 99,
+      "value": 1986,
+      "aux": 3
+    },
+    {
+      "cycles": 1253918793,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1253930450,
+      "event": 102,
+      "value": 58201,
+      "aux": 19
+    },
+    {
+      "cycles": 1253930573,
+      "event": 103,
+      "value": 58201,
+      "aux": 0
+    },
+    {
+      "cycles": 1253932123,
+      "event": 104,
+      "value": 58201,
+      "aux": 0
+    },
+    {
+      "cycles": 1253932652,
+      "event": 107,
+      "value": 58201,
+      "aux": 102422
+    },
+    {
+      "cycles": 1253933622,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1254082855,
+      "event": 106,
+      "value": 58201,
+      "aux": 27144
+    },
+    {
+      "cycles": 1254083359,
+      "event": 108,
+      "value": 58201,
+      "aux": 102453
+    },
+    {
+      "cycles": 1254163154,
+      "event": 99,
+      "value": 1987,
+      "aux": 3
+    },
+    {
+      "cycles": 1254163858,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1254175590,
+      "event": 102,
+      "value": 58214,
+      "aux": 19
+    },
+    {
+      "cycles": 1254175716,
+      "event": 103,
+      "value": 58214,
+      "aux": 0
+    },
+    {
+      "cycles": 1254176345,
+      "event": 104,
+      "value": 58214,
+      "aux": 0
+    },
+    {
+      "cycles": 1254176869,
+      "event": 107,
+      "value": 58214,
+      "aux": 102473
+    },
+    {
+      "cycles": 1254178755,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1254321086,
+      "event": 106,
+      "value": 58214,
+      "aux": 27156
+    },
+    {
+      "cycles": 1254321563,
+      "event": 108,
+      "value": 58214,
+      "aux": 102502
+    },
+    {
+      "cycles": 1254406055,
+      "event": 99,
+      "value": 1988,
+      "aux": 3
+    },
+    {
+      "cycles": 1254406860,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1254418513,
+      "event": 102,
+      "value": 58227,
+      "aux": 19
+    },
+    {
+      "cycles": 1254418636,
+      "event": 103,
+      "value": 58227,
+      "aux": 0
+    },
+    {
+      "cycles": 1254420661,
+      "event": 104,
+      "value": 58227,
+      "aux": 0
+    },
+    {
+      "cycles": 1254421218,
+      "event": 107,
+      "value": 58227,
+      "aux": 102522
+    },
+    {
+      "cycles": 1254421684,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1254559618,
+      "event": 106,
+      "value": 58227,
+      "aux": 27169
+    },
+    {
+      "cycles": 1254560153,
+      "event": 108,
+      "value": 58227,
+      "aux": 102551
+    },
+    {
+      "cycles": 1254646333,
+      "event": 99,
+      "value": 1989,
+      "aux": 3
+    },
+    {
+      "cycles": 1254647118,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1254658769,
+      "event": 102,
+      "value": 58240,
+      "aux": 19
+    },
+    {
+      "cycles": 1254658893,
+      "event": 103,
+      "value": 58240,
+      "aux": 0
+    },
+    {
+      "cycles": 1254659558,
+      "event": 104,
+      "value": 58240,
+      "aux": 0
+    },
+    {
+      "cycles": 1254660104,
+      "event": 107,
+      "value": 58240,
+      "aux": 102572
+    },
+    {
+      "cycles": 1254661944,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1254797856,
+      "event": 106,
+      "value": 58240,
+      "aux": 27182
+    },
+    {
+      "cycles": 1254798876,
+      "event": 108,
+      "value": 58240,
+      "aux": 102601
+    },
+    {
+      "cycles": 1254890676,
+      "event": 99,
+      "value": 1990,
+      "aux": 3
+    },
+    {
+      "cycles": 1254891432,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1254904589,
+      "event": 102,
+      "value": 58254,
+      "aux": 19
+    },
+    {
+      "cycles": 1254904749,
+      "event": 103,
+      "value": 58254,
+      "aux": 0
+    },
+    {
+      "cycles": 1254905393,
+      "event": 104,
+      "value": 58254,
+      "aux": 0
+    },
+    {
+      "cycles": 1254906031,
+      "event": 107,
+      "value": 58254,
+      "aux": 102624
+    },
+    {
+      "cycles": 1254907757,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1255061182,
+      "event": 106,
+      "value": 58254,
+      "aux": 27196
+    },
+    {
+      "cycles": 1255061445,
+      "event": 108,
+      "value": 58254,
+      "aux": 102658
+    },
+    {
+      "cycles": 1255131683,
+      "event": 99,
+      "value": 1991,
+      "aux": 3
+    },
+    {
+      "cycles": 1255132645,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1255144301,
+      "event": 102,
+      "value": 58267,
+      "aux": 19
+    },
+    {
+      "cycles": 1255144426,
+      "event": 103,
+      "value": 58267,
+      "aux": 0
+    },
+    {
+      "cycles": 1255145276,
+      "event": 104,
+      "value": 58267,
+      "aux": 0
+    },
+    {
+      "cycles": 1255145826,
+      "event": 107,
+      "value": 58267,
+      "aux": 102675
+    },
+    {
+      "cycles": 1255147464,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1255300974,
+      "event": 106,
+      "value": 58267,
+      "aux": 27209
+    },
+    {
+      "cycles": 1255301496,
+      "event": 108,
+      "value": 58267,
+      "aux": 102709
+    },
+    {
+      "cycles": 1255375595,
+      "event": 99,
+      "value": 1992,
+      "aux": 3
+    },
+    {
+      "cycles": 1255376341,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1255387992,
+      "event": 102,
+      "value": 58280,
+      "aux": 19
+    },
+    {
+      "cycles": 1255388186,
+      "event": 103,
+      "value": 58280,
+      "aux": 0
+    },
+    {
+      "cycles": 1255389355,
+      "event": 104,
+      "value": 58280,
+      "aux": 0
+    },
+    {
+      "cycles": 1255389934,
+      "event": 107,
+      "value": 58280,
+      "aux": 102728
+    },
+    {
+      "cycles": 1255391161,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1255539200,
+      "event": 106,
+      "value": 58280,
+      "aux": 27222
+    },
+    {
+      "cycles": 1255539754,
+      "event": 108,
+      "value": 58280,
+      "aux": 102758
+    },
+    {
+      "cycles": 1255620731,
+      "event": 99,
+      "value": 1993,
+      "aux": 3
+    },
+    {
+      "cycles": 1255621476,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1255633199,
+      "event": 102,
+      "value": 58293,
+      "aux": 19
+    },
+    {
+      "cycles": 1255633323,
+      "event": 103,
+      "value": 58293,
+      "aux": 0
+    },
+    {
+      "cycles": 1255633936,
+      "event": 104,
+      "value": 58293,
+      "aux": 0
+    },
+    {
+      "cycles": 1255634483,
+      "event": 107,
+      "value": 58293,
+      "aux": 102778
+    },
+    {
+      "cycles": 1255636361,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1255777424,
+      "event": 106,
+      "value": 58293,
+      "aux": 27235
+    },
+    {
+      "cycles": 1255778413,
+      "event": 108,
+      "value": 58293,
+      "aux": 102806
+    },
+    {
+      "cycles": 1255864108,
+      "event": 99,
+      "value": 1994,
+      "aux": 3
+    },
+    {
+      "cycles": 1255864811,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1255876460,
+      "event": 102,
+      "value": 58306,
+      "aux": 19
+    },
+    {
+      "cycles": 1255876583,
+      "event": 103,
+      "value": 58306,
+      "aux": 0
+    },
+    {
+      "cycles": 1255877434,
+      "event": 104,
+      "value": 58306,
+      "aux": 0
+    },
+    {
+      "cycles": 1255878023,
+      "event": 107,
+      "value": 58306,
+      "aux": 102827
+    },
+    {
+      "cycles": 1255879620,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1256016959,
+      "event": 106,
+      "value": 58306,
+      "aux": 27248
+    },
+    {
+      "cycles": 1256018226,
+      "event": 108,
+      "value": 58306,
+      "aux": 102857
+    },
+    {
+      "cycles": 1256102962,
+      "event": 99,
+      "value": 1995,
+      "aux": 3
+    },
+    {
+      "cycles": 1256103766,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1256115493,
+      "event": 102,
+      "value": 58319,
+      "aux": 19
+    },
+    {
+      "cycles": 1256115574,
+      "event": 103,
+      "value": 58319,
+      "aux": 0
+    },
+    {
+      "cycles": 1256116696,
+      "event": 104,
+      "value": 58319,
+      "aux": 0
+    },
+    {
+      "cycles": 1256118160,
+      "event": 107,
+      "value": 58319,
+      "aux": 102876
+    },
+    {
+      "cycles": 1256118619,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1256257386,
+      "event": 106,
+      "value": 58319,
+      "aux": 27261
+    },
+    {
+      "cycles": 1256257858,
+      "event": 108,
+      "value": 58319,
+      "aux": 102905
+    },
+    {
+      "cycles": 1256348867,
+      "event": 99,
+      "value": 1996,
+      "aux": 3
+    },
+    {
+      "cycles": 1256349785,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1256362216,
+      "event": 102,
+      "value": 58333,
+      "aux": 19
+    },
+    {
+      "cycles": 1256362293,
+      "event": 103,
+      "value": 58333,
+      "aux": 0
+    },
+    {
+      "cycles": 1256363311,
+      "event": 104,
+      "value": 58333,
+      "aux": 0
+    },
+    {
+      "cycles": 1256363897,
+      "event": 107,
+      "value": 58333,
+      "aux": 102928
+    },
+    {
+      "cycles": 1256365313,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1256519512,
+      "event": 106,
+      "value": 58333,
+      "aux": 27275
+    },
+    {
+      "cycles": 1256519980,
+      "event": 108,
+      "value": 58333,
+      "aux": 102962
+    },
+    {
+      "cycles": 1256596020,
+      "event": 99,
+      "value": 1997,
+      "aux": 3
+    },
+    {
+      "cycles": 1256596792,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1256608435,
+      "event": 102,
+      "value": 58346,
+      "aux": 19
+    },
+    {
+      "cycles": 1256608558,
+      "event": 103,
+      "value": 58346,
+      "aux": 0
+    },
+    {
+      "cycles": 1256609721,
+      "event": 104,
+      "value": 58346,
+      "aux": 0
+    },
+    {
+      "cycles": 1256611101,
+      "event": 107,
+      "value": 58346,
+      "aux": 102981
+    },
+    {
+      "cycles": 1256611615,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1256757062,
+      "event": 106,
+      "value": 58346,
+      "aux": 27288
+    },
+    {
+      "cycles": 1256758010,
+      "event": 108,
+      "value": 58346,
+      "aux": 103011
+    },
+    {
+      "cycles": 1256835426,
+      "event": 99,
+      "value": 1998,
+      "aux": 3
+    },
+    {
+      "cycles": 1256836220,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1256847955,
+      "event": 102,
+      "value": 58359,
+      "aux": 19
+    },
+    {
+      "cycles": 1256848078,
+      "event": 103,
+      "value": 58359,
+      "aux": 0
+    },
+    {
+      "cycles": 1256849151,
+      "event": 104,
+      "value": 58359,
+      "aux": 0
+    },
+    {
+      "cycles": 1256849753,
+      "event": 107,
+      "value": 58359,
+      "aux": 103030
+    },
+    {
+      "cycles": 1256851115,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1256997988,
+      "event": 106,
+      "value": 58359,
+      "aux": 27301
+    },
+    {
+      "cycles": 1256998435,
+      "event": 108,
+      "value": 58359,
+      "aux": 103061
+    },
+    {
+      "cycles": 1257079523,
+      "event": 99,
+      "value": 1999,
+      "aux": 3
+    },
+    {
+      "cycles": 1257080266,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1257091997,
+      "event": 102,
+      "value": 58372,
+      "aux": 19
+    },
+    {
+      "cycles": 1257092120,
+      "event": 103,
+      "value": 58372,
+      "aux": 0
+    },
+    {
+      "cycles": 1257092360,
+      "event": 104,
+      "value": 58372,
+      "aux": 0
+    },
+    {
+      "cycles": 1257092868,
+      "event": 107,
+      "value": 58372,
+      "aux": 103081
+    },
+    {
+      "cycles": 1257095141,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1257235267,
+      "event": 106,
+      "value": 58372,
+      "aux": 27314
+    },
+    {
+      "cycles": 1257235536,
+      "event": 108,
+      "value": 58372,
+      "aux": 103112
+    },
+    {
+      "cycles": 1257321547,
+      "event": 99,
+      "value": 2000,
+      "aux": 3
+    },
+    {
+      "cycles": 1257322254,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1257333901,
+      "event": 102,
+      "value": 58385,
+      "aux": 19
+    },
+    {
+      "cycles": 1257334024,
+      "event": 103,
+      "value": 58385,
+      "aux": 0
+    },
+    {
+      "cycles": 1257335575,
+      "event": 104,
+      "value": 58385,
+      "aux": 0
+    },
+    {
+      "cycles": 1257336195,
+      "event": 107,
+      "value": 58385,
+      "aux": 103133
+    },
+    {
+      "cycles": 1257337071,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    },
+    {
+      "cycles": 1257350917,
+      "event": 100,
+      "value": 3,
+      "aux": 0
+    },
+    {
+      "cycles": 1257351436,
+      "event": 108,
+      "value": 58385,
+      "aux": 103136
+    },
+    {
+      "cycles": 1257362568,
+      "event": 102,
+      "value": 58389,
+      "aux": 19
+    },
+    {
+      "cycles": 1257362691,
+      "event": 103,
+      "value": 58389,
+      "aux": 0
+    },
+    {
+      "cycles": 1257365783,
+      "event": 101,
+      "value": 0,
+      "aux": 3
+    }
+  ],
+  "can": [
+    {
+      "index": 0,
+      "busy": 0,
+      "fault": 0,
+      "errors": 0,
+      "ready": 1
+    },
+    {
+      "index": 1,
+      "busy": 0,
+      "fault": 0,
+      "errors": 0,
+      "ready": 1
+    },
+    {
+      "index": 2,
+      "busy": 0,
+      "fault": 0,
+      "errors": 0,
+      "ready": 0
+    },
+    {
+      "index": 3,
+      "busy": 0,
+      "fault": 0,
+      "errors": 0,
+      "ready": 1
+    }
+  ],
+  "elf_sha256": "e06c9ef273ca6521fb38a0c6df54786164e36bc3739a429676dd42f8cb60891e",
+  "mapped_window_us": {
+    "pairs": 57,
+    "min": 635.0416666666666,
+    "median": 6122.833333333333,
+    "max": 6555.666666666667
+  }
+}

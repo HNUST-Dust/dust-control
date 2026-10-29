@@ -1,0 +1,32 @@
+{
+  "dm_rtt_freerun": {
+    "AL_EVENT_ENABLED": "1",
+    "DC_SUPPORTED": "0",
+    "ECAT_TIMER_INT": "0",
+    "INTERRUPTS_SUPPORTED": "1",
+    "ESC_32BIT_ACCESS": "0",
+    "ESC_16BIT_ACCESS": "0",
+    "MIN_PD_CYCLE_TIME": "0xf4240U",
+    "MAX_PD_CYCLE_TIME": "0xC3500000",
+    "PD_INPUT_CALC_AND_COPY_TIME": "0x0",
+    "PD_OUTPUT_CALC_AND_COPY_TIME": "0x0",
+    "MAX_PD_INPUT_SIZE": "0x600U",
+    "MAX_PD_OUTPUT_SIZE": "0x400U",
+    "ESC_SM_WD_SUPPORTED": "1"
+  },
+  "dm_rtt_freerun_ssc_al": {
+    "AL_EVENT_ENABLED": "1",
+    "DC_SUPPORTED": "0",
+    "ECAT_TIMER_INT": "0",
+    "INTERRUPTS_SUPPORTED": "1",
+    "ESC_32BIT_ACCESS": "0",
+    "ESC_16BIT_ACCESS": "0",
+    "MIN_PD_CYCLE_TIME": "0xf4240U",
+    "MAX_PD_CYCLE_TIME": "0xC3500000",
+    "PD_INPUT_CALC_AND_COPY_TIME": "0x0",
+    "PD_OUTPUT_CALC_AND_COPY_TIME": "0x0",
+    "MAX_PD_INPUT_SIZE": "0x600U",
+    "MAX_PD_OUTPUT_SIZE": "0x400U",
+    "ESC_SM_WD_SUPPORTED": "1"
+  }
+}

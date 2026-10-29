@@ -1,0 +1,5 @@
+Deferred Sync0 backlog/latency/work/wrap contracts PASS
+Sync0 budget histogram/lifecycle/deadline contracts PASS
+Sync0 budget histogram/lifecycle/deadline contracts PASS
+Sync0 budget histogram/lifecycle/deadline contracts PASS
+Sync0 wait attribution/wake/worker clipping/concurrent notification/lifecycle/wrap/top4 contracts PASS

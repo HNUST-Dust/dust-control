@@ -1,0 +1,13 @@
+compiler_optimized=1
+CPU=7
+scheduler=OTHER (no realtime privilege) wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=208 Tx=688 signature=2616507966 cycle_us=125 command_interval_us=10000 timeout_us=8000
+STARTUP AL=2 OP=0 WC=0 WCstate=0 exchange=1
+STARTUP AL=1 OP=0 WC=0 WCstate=0 exchange=148
+STARTUP AL=2 OP=0 WC=0 WCstate=0 exchange=155
+STARTUP AL=2 OP=0 WC=2 WCstate=1 exchange=1151
+STARTUP AL=2 OP=0 WC=3 WCstate=2 exchange=1170
+STARTUP AL=4 OP=0 WC=3 WCstate=2 exchange=1184
+STARTUP AL=8 OP=1 WC=3 WCstate=2 exchange=1189
+OP_CYCLES 1000 WKC_MISSES 0
+STARTUP PASS OP/WKC/Ready valid1000 cycles; no Arm or motor commands

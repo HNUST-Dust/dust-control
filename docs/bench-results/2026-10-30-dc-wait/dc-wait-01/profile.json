@@ -1,0 +1,159 @@
+{
+  "kind": "budget",
+  "version": 1,
+  "services": 41944,
+  "mean_us": 115.48510812035094,
+  "max_us": 257.4166666666667,
+  "max_lateness_us": 397.0833333333333,
+  "histogram_us": {
+    "lt100": 6547,
+    "100to125": 26711,
+    "125to150": 6244,
+    "150to200": 2365,
+    "200to250": 76,
+    "250to500": 1,
+    "ge500": 0
+  },
+  "limits": "Elapsed Sync0 handler time, excludes PDI/outer loop; no per-phase hooks.",
+  "wait": {
+    "services": 41944,
+    "mean_late_us": 15.902014193527878,
+    "max_late_us": 397.0833333333333,
+    "mean_ack_us": 2.647502225189141,
+    "max_ack_us": 6.083333333333333,
+    "mean_wake_call_us": 4.752752678174073,
+    "max_wake_call_us": 12.833333333333334,
+    "mean_first_checkpoint_us": 9.745580416746138,
+    "max_first_checkpoint_us": 367.25,
+    "mean_worker_overlap_us": 0.009741162820268294,
+    "mean_irq_overlap_us": 6.6849181845635455,
+    "owner_mean_us": {
+      "Other": 0.0,
+      "SemaphoreWait": 7.720492402568504,
+      "PDI": 3.4888025303579373,
+      "Sync0Owner": 0.5645205512111386,
+      "PollBeforeSSC": 0.5465581092249984,
+      "SSCMainLoop": 0.7585987666094476,
+      "PollAfterSSC": 1.02684333079026,
+      "LinkMaintenance": 0.1050934976794456,
+      "InactivePHY": 0.0,
+      "Idle": 0.03423413758026575
+    },
+    "notification_origins": {
+      "Other": 0,
+      "SemaphoreWait": 33165,
+      "PDI": 2892,
+      "Sync0Owner": 252,
+      "PollBeforeSSC": 2703,
+      "SSCMainLoop": 1413,
+      "PollAfterSSC": 1416,
+      "LinkMaintenance": 68,
+      "InactivePHY": 0,
+      "Idle": 35
+    },
+    "histogram_us": {
+      "lt10": 8183,
+      "10to25": 27653,
+      "25to50": 5572,
+      "50to100": 521,
+      "100to200": 10,
+      "200to250": 1,
+      "ge250": 4
+    },
+    "slow_waits": [
+      {
+        "ordinal": 2971,
+        "origin": "LinkMaintenance",
+        "late_us": 397.0833333333333,
+        "irq_ack_us": 2.2916666666666665,
+        "wake_call_us": 0.2916666666666667,
+        "first_checkpoint_us": 367.25,
+        "detach_to_start_us": 1.9166666666666667,
+        "worker_overlap_us": 0.0,
+        "irq_overlap_us": 38.333333333333336,
+        "owner_us": {
+          "Other": 0.0,
+          "SemaphoreWait": 0.4583333333333333,
+          "PDI": 26.875,
+          "Sync0Owner": 0.375,
+          "PollBeforeSSC": 0.0,
+          "SSCMainLoop": 0.0,
+          "PollAfterSSC": 0.0,
+          "LinkMaintenance": 367.25,
+          "InactivePHY": 0.0,
+          "Idle": 0.20833333333333334
+        }
+      },
+      {
+        "ordinal": 6971,
+        "origin": "LinkMaintenance",
+        "late_us": 382.875,
+        "irq_ack_us": 3.625,
+        "wake_call_us": 0.2916666666666667,
+        "first_checkpoint_us": 358.1666666666667,
+        "detach_to_start_us": 2.125,
+        "worker_overlap_us": 0.0,
+        "irq_overlap_us": 8.458333333333334,
+        "owner_us": {
+          "Other": 0.0,
+          "SemaphoreWait": 0.4583333333333333,
+          "PDI": 21.541666666666668,
+          "Sync0Owner": 0.375,
+          "PollBeforeSSC": 0.0,
+          "SSCMainLoop": 0.0,
+          "PollAfterSSC": 0.0,
+          "LinkMaintenance": 358.1666666666667,
+          "InactivePHY": 0.0,
+          "Idle": 0.20833333333333334
+        }
+      },
+      {
+        "ordinal": 34970,
+        "origin": "LinkMaintenance",
+        "late_us": 317.125,
+        "irq_ack_us": 2.2916666666666665,
+        "wake_call_us": 0.2916666666666667,
+        "first_checkpoint_us": 294.4166666666667,
+        "detach_to_start_us": 0.75,
+        "worker_overlap_us": 0.0,
+        "irq_overlap_us": 8.416666666666666,
+        "owner_us": {
+          "Other": 0.0,
+          "SemaphoreWait": 0.4166666666666667,
+          "PDI": 20.958333333333332,
+          "Sync0Owner": 0.375,
+          "PollBeforeSSC": 0.0,
+          "SSCMainLoop": 0.0,
+          "PollAfterSSC": 0.0,
+          "LinkMaintenance": 294.4166666666667,
+          "InactivePHY": 0.0,
+          "Idle": 0.20833333333333334
+        }
+      },
+      {
+        "ordinal": 14971,
+        "origin": "LinkMaintenance",
+        "late_us": 261.2083333333333,
+        "irq_ack_us": 2.2083333333333335,
+        "wake_call_us": 0.3333333333333333,
+        "first_checkpoint_us": 255.625,
+        "detach_to_start_us": 2.75,
+        "worker_overlap_us": 0.0,
+        "irq_overlap_us": 4.708333333333333,
+        "owner_us": {
+          "Other": 0.0,
+          "SemaphoreWait": 0.4583333333333333,
+          "PDI": 1.75,
+          "Sync0Owner": 0.375,
+          "PollBeforeSSC": 0.0,
+          "SSCMainLoop": 0.0,
+          "PollAfterSSC": 0.0,
+          "LinkMaintenance": 255.625,
+          "InactivePHY": 0.0,
+          "Idle": 0.25
+        }
+      }
+    ],
+    "limits": "Owner checkpoints are not kernel ready/switch events; IRQ and worker overlap are not additive. Notification occurs after IRQ acknowledgement."
+  }
+}

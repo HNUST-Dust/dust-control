@@ -1,0 +1,537 @@
+    38d0:	e8 00 00 00 00       	call   38d5 <igc_clean_rx_irq+0x5>
+			38d1: R_X86_64_PLT32	__fentry__-0x4
+    38d5:	55                   	push   %rbp
+    38d6:	31 c9                	xor    %ecx,%ecx
+    38d8:	48 89 e5             	mov    %rsp,%rbp
+    38db:	41 57                	push   %r15
+    38dd:	41 56                	push   %r14
+    38df:	41 55                	push   %r13
+    38e1:	41 54                	push   %r12
+    38e3:	53                   	push   %rbx
+    38e4:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp
+    38e8:	4c 8b 67 18          	mov    0x18(%rdi),%r12
+    38ec:	48 8b 1f             	mov    (%rdi),%rbx
+    38ef:	89 75 84             	mov    %esi,-0x7c(%rbp)
+    38f2:	48 89 bd 78 ff ff ff 	mov    %rdi,-0x88(%rbp)
+    38f9:	41 0f b7 54 24 6a    	movzwl 0x6a(%r12),%edx
+    38ff:	65 48 8b 04 25 28 00 	mov    %gs:0x28,%rax
+    3906:	00 00 
+    3908:	48 89 45 d0          	mov    %rax,-0x30(%rbp)
+    390c:	31 c0                	xor    %eax,%eax
+    390e:	41 0f b7 44 24 68    	movzwl 0x68(%r12),%eax
+    3914:	48 89 5d 88          	mov    %rbx,-0x78(%rbp)
+    3918:	49 8b 9c 24 e0 00 00 	mov    0xe0(%r12),%rbx
+    391f:	00 
+    3920:	66 39 d0             	cmp    %dx,%ax
+    3923:	77 06                	ja     392b <igc_clean_rx_irq+0x5b>
+    3925:	41 0f b7 4c 24 44    	movzwl 0x44(%r12),%ecx
+    392b:	83 e8 01             	sub    $0x1,%eax
+    392e:	44 8b 45 84          	mov    -0x7c(%rbp),%r8d
+    3932:	29 d0                	sub    %edx,%eax
+    3934:	01 c8                	add    %ecx,%eax
+    3936:	66 89 45 96          	mov    %ax,-0x6a(%rbp)
+    393a:	45 85 c0             	test   %r8d,%r8d
+    393d:	0f 84 f0 07 00 00    	je     4133 <igc_clean_rx_irq+0x863>
+    3943:	c7 85 70 ff ff ff 00 	movl   $0x0,-0x90(%rbp)
+    394a:	00 00 00 
+    394d:	49 89 de             	mov    %rbx,%r14
+    3950:	c7 45 90 00 00 00 00 	movl   $0x0,-0x70(%rbp)
+    3957:	c7 85 74 ff ff ff 00 	movl   $0x0,-0x8c(%rbp)
+    395e:	00 00 00 
+    3961:	eb 3e                	jmp    39a1 <igc_clean_rx_irq+0xd1>
+    3963:	83 c2 01             	add    $0x1,%edx
+    3966:	48 c1 e0 04          	shl    $0x4,%rax
+    396a:	49 03 44 24 20       	add    0x20(%r12),%rax
+    396f:	66 41 89 54 24 68    	mov    %dx,0x68(%r12)
+    3975:	0f 18 08             	prefetcht0 (%rax)
+    3978:	41 f6 45 08 02       	testb  $0x2,0x8(%r13)
+    397d:	74 16                	je     3995 <igc_clean_rx_irq+0xc5>
+    397f:	48 8b 45 88          	mov    -0x78(%rbp),%rax
+    3983:	48 83 b8 e8 0c 00 00 	cmpq   $0x0,0xce8(%rax)
+    398a:	00 
+    398b:	0f 84 d7 04 00 00    	je     3e68 <igc_clean_rx_irq+0x598>
+    3991:	83 45 90 01          	addl   $0x1,-0x70(%rbp)
+    3995:	8b 5d 84             	mov    -0x7c(%rbp),%ebx
+    3998:	39 5d 90             	cmp    %ebx,-0x70(%rbp)
+    399b:	0f 83 1b 05 00 00    	jae    3ebc <igc_clean_rx_irq+0x5ec>
+    39a1:	66 83 7d 96 0f       	cmpw   $0xf,-0x6a(%rbp)
+    39a6:	0f 87 76 02 00 00    	ja     3c22 <igc_clean_rx_irq+0x352>
+    39ac:	45 0f b7 6c 24 68    	movzwl 0x68(%r12),%r13d
+    39b2:	49 c1 e5 04          	shl    $0x4,%r13
+    39b6:	4d 03 6c 24 20       	add    0x20(%r12),%r13
+    39bb:	41 0f b7 5d 0c       	movzwl 0xc(%r13),%ebx
+    39c0:	48 89 da             	mov    %rbx,%rdx
+    39c3:	85 db                	test   %ebx,%ebx
+    39c5:	0f 84 f1 04 00 00    	je     3ebc <igc_clean_rx_irq+0x5ec>
+    39cb:	41 0f b7 44 24 68    	movzwl 0x68(%r12),%eax
+    39d1:	48 8d 0c 40          	lea    (%rax,%rax,2),%rcx
+    39d5:	49 8b 44 24 18       	mov    0x18(%r12),%rax
+    39da:	4c 8d 3c c8          	lea    (%rax,%rcx,8),%r15
+    39de:	49 8b 47 08          	mov    0x8(%r15),%rax
+    39e2:	48 8b 70 08          	mov    0x8(%rax),%rsi
+    39e6:	48 8d 4e ff          	lea    -0x1(%rsi),%rcx
+    39ea:	83 e6 01             	and    $0x1,%esi
+    39ed:	48 0f 44 c8          	cmove  %rax,%rcx
+    39f1:	8b 79 34             	mov    0x34(%rcx),%edi
+    39f4:	89 7d 80             	mov    %edi,-0x80(%rbp)
+    39f7:	0f 18 08             	prefetcht0 (%rax)
+    39fa:	49 8b 7c 24 10       	mov    0x10(%r12),%rdi
+    39ff:	41 8b 77 10          	mov    0x10(%r15),%esi
+    3a03:	b9 02 00 00 00       	mov    $0x2,%ecx
+    3a08:	49 03 37             	add    (%r15),%rsi
+    3a0b:	e8 00 00 00 00       	call   3a10 <igc_clean_rx_irq+0x140>
+			3a0c: R_X86_64_PLT32	dma_sync_single_for_cpu-0x4
+    3a10:	66 41 83 6f 14 01    	subw   $0x1,0x14(%r15)
+    3a16:	31 f6                	xor    %esi,%esi
+    3a18:	45 31 c0             	xor    %r8d,%r8d
+    3a1b:	49 8b 4c 24 28       	mov    0x28(%r12),%rcx
+    3a20:	b8 00 10 00 00       	mov    $0x1000,%eax
+    3a25:	49 8b 57 08          	mov    0x8(%r15),%rdx
+    3a29:	48 2b 15 00 00 00 00 	sub    0x0(%rip),%rdx        # 3a30 <igc_clean_rx_irq+0x160>
+			3a2c: R_X86_64_PC32	vmemmap_base-0x4
+    3a30:	83 e1 01             	and    $0x1,%ecx
+    3a33:	48 c1 fa 06          	sar    $0x6,%rdx
+    3a37:	48 d3 e0             	shl    %cl,%rax
+    3a3a:	48 c1 e2 0c          	shl    $0xc,%rdx
+    3a3e:	48 03 15 00 00 00 00 	add    0x0(%rip),%rdx        # 3a45 <igc_clean_rx_irq+0x175>
+			3a41: R_X86_64_PC32	page_offset_base-0x4
+    3a45:	48 89 c1             	mov    %rax,%rcx
+    3a48:	41 8b 47 10          	mov    0x10(%r15),%eax
+    3a4c:	48 d1 e9             	shr    %rcx
+    3a4f:	48 01 c2             	add    %rax,%rdx
+    3a52:	41 f6 45 09 80       	testb  $0x80,0x9(%r13)
+    3a57:	0f 85 dc 01 00 00    	jne    3c39 <igc_clean_rx_irq+0x369>
+    3a5d:	4d 85 f6             	test   %r14,%r14
+    3a60:	0f 84 15 02 00 00    	je     3c7b <igc_clean_rx_irq+0x3ab>
+    3a66:	49 81 fe 00 f0 ff ff 	cmp    $0xfffffffffffff000,%r14
+    3a6d:	0f 87 d9 02 00 00    	ja     3d4c <igc_clean_rx_irq+0x47c>
+    3a73:	48 8b 45 88          	mov    -0x78(%rbp),%rax
+    3a77:	48 8b b8 e8 0c 00 00 	mov    0xce8(%rax),%rdi
+    3a7e:	48 85 ff             	test   %rdi,%rdi
+    3a81:	0f 84 ac 00 00 00    	je     3b33 <igc_clean_rx_irq+0x263>
+    3a87:	49 8b 77 08          	mov    0x8(%r15),%rsi
+    3a8b:	48 2b 35 00 00 00 00 	sub    0x0(%rip),%rsi        # 3a92 <igc_clean_rx_irq+0x1c2>
+			3a8e: R_X86_64_PC32	vmemmap_base-0x4
+    3a92:	41 8b 47 10          	mov    0x10(%r15),%eax
+    3a96:	48 c1 fe 06          	sar    $0x6,%rsi
+    3a9a:	41 0f b7 55 0c       	movzwl 0xc(%r13),%edx
+    3a9f:	48 c1 e6 0c          	shl    $0xc,%rsi
+    3aa3:	48 03 35 00 00 00 00 	add    0x0(%rip),%rsi        # 3aaa <igc_clean_rx_irq+0x1da>
+			3aa6: R_X86_64_PC32	page_offset_base-0x4
+    3aaa:	48 01 c6             	add    %rax,%rsi
+    3aad:	e8 00 00 00 00       	call   3ab2 <igc_clean_rx_irq+0x1e2>
+			3aae: R_X86_64_PLT32	ecdev_receive-0x4
+    3ab2:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 3ab9 <igc_clean_rx_irq+0x1e9>
+			3ab5: R_X86_64_PC32	jiffies-0x4
+    3ab9:	48 8b 5d 88          	mov    -0x78(%rbp),%rbx
+    3abd:	48 89 83 f0 0c 00 00 	mov    %rax,0xcf0(%rbx)
+    3ac4:	41 0f b7 54 24 6c    	movzwl 0x6c(%r12),%edx
+    3aca:	48 8d 0c 52          	lea    (%rdx,%rdx,2),%rcx
+    3ace:	48 89 d0             	mov    %rdx,%rax
+    3ad1:	49 8b 54 24 18       	mov    0x18(%r12),%rdx
+    3ad6:	83 c0 01             	add    $0x1,%eax
+    3ad9:	48 8d 14 ca          	lea    (%rdx,%rcx,8),%rdx
+    3add:	31 c9                	xor    %ecx,%ecx
+    3adf:	66 41 3b 44 24 44    	cmp    0x44(%r12),%ax
+    3ae5:	0f 43 c1             	cmovae %ecx,%eax
+    3ae8:	66 41 89 44 24 6c    	mov    %ax,0x6c(%r12)
+    3aee:	49 8b 07             	mov    (%r15),%rax
+    3af1:	48 89 02             	mov    %rax,(%rdx)
+    3af4:	49 8b 47 08          	mov    0x8(%r15),%rax
+    3af8:	48 89 42 08          	mov    %rax,0x8(%rdx)
+    3afc:	41 8b 47 10          	mov    0x10(%r15),%eax
+    3b00:	89 42 10             	mov    %eax,0x10(%rdx)
+    3b03:	41 0f b7 47 14       	movzwl 0x14(%r15),%eax
+    3b08:	66 89 42 14          	mov    %ax,0x14(%rdx)
+    3b0c:	41 0f b7 44 24 68    	movzwl 0x68(%r12),%eax
+    3b12:	41 0f b7 4c 24 44    	movzwl 0x44(%r12),%ecx
+    3b18:	66 83 45 96 01       	addw   $0x1,-0x6a(%rbp)
+    3b1d:	89 c2                	mov    %eax,%edx
+    3b1f:	83 c0 01             	add    $0x1,%eax
+    3b22:	39 c8                	cmp    %ecx,%eax
+    3b24:	0f 82 39 fe ff ff    	jb     3963 <igc_clean_rx_irq+0x93>
+    3b2a:	31 c0                	xor    %eax,%eax
+    3b2c:	31 d2                	xor    %edx,%edx
+    3b2e:	e9 37 fe ff ff       	jmp    396a <igc_clean_rx_irq+0x9a>
+    3b33:	4d 85 f6             	test   %r14,%r14
+    3b36:	0f 84 87 02 00 00    	je     3dc3 <igc_clean_rx_irq+0x4f3>
+    3b3c:	49 8b 4c 24 28       	mov    0x28(%r12),%rcx
+    3b41:	49 8b be c0 00 00 00 	mov    0xc0(%r14),%rdi
+    3b48:	b8 00 10 00 00       	mov    $0x1000,%eax
+    3b4d:	41 89 d8             	mov    %ebx,%r8d
+    3b50:	41 8b b6 bc 00 00 00 	mov    0xbc(%r14),%esi
+    3b57:	49 8b 57 08          	mov    0x8(%r15),%rdx
+    3b5b:	83 e1 01             	and    $0x1,%ecx
+    3b5e:	48 d3 e0             	shl    %cl,%rax
+    3b61:	0f b6 74 37 02       	movzbl 0x2(%rdi,%rsi,1),%esi
+    3b66:	41 8b 4f 10          	mov    0x10(%r15),%ecx
+    3b6a:	4c 89 f7             	mov    %r14,%rdi
+    3b6d:	48 d1 e8             	shr    %rax
+    3b70:	41 89 c1             	mov    %eax,%r9d
+    3b73:	48 89 85 68 ff ff ff 	mov    %rax,-0x98(%rbp)
+    3b7a:	e8 00 00 00 00       	call   3b7f <igc_clean_rx_irq+0x2af>
+			3b7b: R_X86_64_PLT32	skb_add_rx_frag-0x4
+    3b7f:	48 8b 85 68 ff ff ff 	mov    -0x98(%rbp),%rax
+    3b86:	41 31 47 10          	xor    %eax,0x10(%r15)
+    3b8a:	41 0f b7 57 14       	movzwl 0x14(%r15),%edx
+    3b8f:	49 8b 4f 08          	mov    0x8(%r15),%rcx
+    3b93:	65 8b 35 00 00 00 00 	mov    %gs:0x0(%rip),%esi        # 3b9a <igc_clean_rx_irq+0x2ca>
+			3b96: R_X86_64_PC32	numa_node-0x4
+    3b9a:	48 8b 01             	mov    (%rcx),%rax
+    3b9d:	48 c1 e8 36          	shr    $0x36,%rax
+    3ba1:	39 c6                	cmp    %eax,%esi
+    3ba3:	0f 85 cf 01 00 00    	jne    3d78 <igc_clean_rx_irq+0x4a8>
+    3ba9:	f6 41 08 02          	testb  $0x2,0x8(%rcx)
+    3bad:	0f 85 c5 01 00 00    	jne    3d78 <igc_clean_rx_irq+0x4a8>
+    3bb3:	0f b7 c2             	movzwl %dx,%eax
+    3bb6:	8b 55 80             	mov    -0x80(%rbp),%edx
+    3bb9:	29 c2                	sub    %eax,%edx
+    3bbb:	83 fa 01             	cmp    $0x1,%edx
+    3bbe:	0f 87 b4 01 00 00    	ja     3d78 <igc_clean_rx_irq+0x4a8>
+    3bc4:	83 f8 01             	cmp    $0x1,%eax
+    3bc7:	0f 84 4f 05 00 00    	je     411c <igc_clean_rx_irq+0x84c>
+    3bcd:	41 0f b7 54 24 6c    	movzwl 0x6c(%r12),%edx
+    3bd3:	48 8d 0c 52          	lea    (%rdx,%rdx,2),%rcx
+    3bd7:	48 89 d0             	mov    %rdx,%rax
+    3bda:	49 8b 54 24 18       	mov    0x18(%r12),%rdx
+    3bdf:	83 c0 01             	add    $0x1,%eax
+    3be2:	48 8d 14 ca          	lea    (%rdx,%rcx,8),%rdx
+    3be6:	31 c9                	xor    %ecx,%ecx
+    3be8:	66 41 3b 44 24 44    	cmp    0x44(%r12),%ax
+    3bee:	0f 43 c1             	cmovae %ecx,%eax
+    3bf1:	66 41 89 44 24 6c    	mov    %ax,0x6c(%r12)
+    3bf7:	49 8b 07             	mov    (%r15),%rax
+    3bfa:	48 89 02             	mov    %rax,(%rdx)
+    3bfd:	49 8b 47 08          	mov    0x8(%r15),%rax
+    3c01:	48 89 42 08          	mov    %rax,0x8(%rdx)
+    3c05:	41 8b 47 10          	mov    0x10(%r15),%eax
+    3c09:	89 42 10             	mov    %eax,0x10(%rdx)
+    3c0c:	41 0f b7 47 14       	movzwl 0x14(%r15),%eax
+    3c11:	66 89 42 14          	mov    %ax,0x14(%rdx)
+    3c15:	49 c7 47 08 00 00 00 	movq   $0x0,0x8(%r15)
+    3c1c:	00 
+    3c1d:	e9 ea fe ff ff       	jmp    3b0c <igc_clean_rx_irq+0x23c>
+    3c22:	0f b7 75 96          	movzwl -0x6a(%rbp),%esi
+    3c26:	4c 89 e7             	mov    %r12,%rdi
+    3c29:	e8 82 e4 ff ff       	call   20b0 <igc_alloc_rx_buffers>
+    3c2e:	31 ff                	xor    %edi,%edi
+    3c30:	66 89 7d 96          	mov    %di,-0x6a(%rbp)
+    3c34:	e9 73 fd ff ff       	jmp    39ac <igc_clean_rx_irq+0xdc>
+    3c39:	48 8b 85 78 ff ff ff 	mov    -0x88(%rbp),%rax
+    3c40:	48 89 d6             	mov    %rdx,%rsi
+    3c43:	83 eb 10             	sub    $0x10,%ebx
+    3c46:	48 89 8d 60 ff ff ff 	mov    %rcx,-0xa0(%rbp)
+    3c4d:	48 89 95 68 ff ff ff 	mov    %rdx,-0x98(%rbp)
+    3c54:	48 8b 38             	mov    (%rax),%rdi
+    3c57:	e8 00 00 00 00       	call   3c5c <igc_clean_rx_irq+0x38c>
+			3c58: R_X86_64_PLT32	igc_ptp_rx_pktstamp-0x4
+    3c5c:	48 8b 8d 60 ff ff ff 	mov    -0xa0(%rbp),%rcx
+    3c63:	be 10 00 00 00       	mov    $0x10,%esi
+    3c68:	48 8b 95 68 ff ff ff 	mov    -0x98(%rbp),%rdx
+    3c6f:	49 89 c0             	mov    %rax,%r8
+    3c72:	4d 85 f6             	test   %r14,%r14
+    3c75:	0f 85 eb fd ff ff    	jne    3a66 <igc_clean_rx_irq+0x196>
+    3c7b:	89 4d c8             	mov    %ecx,-0x38(%rbp)
+    3c7e:	49 8d 84 24 00 01 00 	lea    0x100(%r12),%rax
+    3c85:	00 
+    3c86:	4d 8b 4c 24 28       	mov    0x28(%r12),%r9
+    3c8b:	48 89 45 b8          	mov    %rax,-0x48(%rbp)
+    3c8f:	49 8b 04 24          	mov    (%r12),%rax
+    3c93:	41 83 e1 02          	and    $0x2,%r9d
+    3c97:	48 8b 38             	mov    (%rax),%rdi
+    3c9a:	b8 40 00 00 00       	mov    $0x40,%eax
+    3c9f:	75 10                	jne    3cb1 <igc_clean_rx_irq+0x3e1>
+    3ca1:	31 c0                	xor    %eax,%eax
+    3ca3:	48 83 bf 18 0b 00 00 	cmpq   $0x0,0xb18(%rdi)
+    3caa:	00 
+    3cab:	0f 95 c0             	setne  %al
+    3cae:	c1 e0 08             	shl    $0x8,%eax
+    3cb1:	4d 8b 4c 24 28       	mov    0x28(%r12),%r9
+    3cb6:	01 f0                	add    %esi,%eax
+    3cb8:	48 c7 c6 c0 ff ff ff 	mov    $0xffffffffffffffc0,%rsi
+    3cbf:	41 83 e1 02          	and    $0x2,%r9d
+    3cc3:	75 15                	jne    3cda <igc_clean_rx_irq+0x40a>
+    3cc5:	31 f6                	xor    %esi,%esi
+    3cc7:	48 83 bf 18 0b 00 00 	cmpq   $0x0,0xb18(%rdi)
+    3cce:	00 
+    3ccf:	40 0f 95 c6          	setne  %sil
+    3cd3:	48 c1 e6 08          	shl    $0x8,%rsi
+    3cd7:	48 f7 de             	neg    %rsi
+    3cda:	48 01 f2             	add    %rsi,%rdx
+    3cdd:	48 01 d0             	add    %rdx,%rax
+    3ce0:	48 89 55 b0          	mov    %rdx,-0x50(%rbp)
+    3ce4:	48 63 d3             	movslq %ebx,%rdx
+    3ce7:	48 01 c2             	add    %rax,%rdx
+    3cea:	48 89 45 98          	mov    %rax,-0x68(%rbp)
+    3cee:	48 83 c0 01          	add    $0x1,%rax
+    3cf2:	48 89 45 a8          	mov    %rax,-0x58(%rbp)
+    3cf6:	48 8b 45 88          	mov    -0x78(%rbp),%rax
+    3cfa:	48 89 55 a0          	mov    %rdx,-0x60(%rbp)
+    3cfe:	4c 8b b0 18 0b 00 00 	mov    0xb18(%rax),%r14
+    3d05:	4d 85 f6             	test   %r14,%r14
+    3d08:	0f 84 a5 00 00 00    	je     3db3 <igc_clean_rx_irq+0x4e3>
+    3d0e:	48 8b 7d 88          	mov    -0x78(%rbp),%rdi
+    3d12:	4c 89 f6             	mov    %r14,%rsi
+    3d15:	48 8d 55 98          	lea    -0x68(%rbp),%rdx
+    3d19:	48 89 8d 60 ff ff ff 	mov    %rcx,-0xa0(%rbp)
+    3d20:	4c 89 85 68 ff ff ff 	mov    %r8,-0x98(%rbp)
+    3d27:	e8 44 f8 ff ff       	call   3570 <__igc_xdp_run_prog>
+    3d2c:	48 8b 8d 60 ff ff ff 	mov    -0xa0(%rbp),%rcx
+    3d33:	4c 8b 85 68 ff ff ff 	mov    -0x98(%rbp),%r8
+    3d3a:	f7 d8                	neg    %eax
+    3d3c:	4c 63 f0             	movslq %eax,%r14
+    3d3f:	49 81 fe 00 f0 ff ff 	cmp    $0xfffffffffffff000,%r14
+    3d46:	0f 86 27 fd ff ff    	jbe    3a73 <igc_clean_rx_irq+0x1a3>
+    3d4c:	44 89 f2             	mov    %r14d,%edx
+    3d4f:	44 89 f0             	mov    %r14d,%eax
+    3d52:	83 e2 fd             	and    $0xfffffffd,%edx
+    3d55:	f7 d8                	neg    %eax
+    3d57:	83 fa fc             	cmp    $0xfffffffc,%edx
+    3d5a:	0f 84 0d 03 00 00    	je     406d <igc_clean_rx_irq+0x79d>
+    3d60:	83 f8 01             	cmp    $0x1,%eax
+    3d63:	0f 84 ef 02 00 00    	je     4058 <igc_clean_rx_irq+0x788>
+    3d69:	83 45 90 01          	addl   $0x1,-0x70(%rbp)
+    3d6d:	01 9d 74 ff ff ff    	add    %ebx,-0x8c(%rbp)
+    3d73:	e9 94 fd ff ff       	jmp    3b0c <igc_clean_rx_irq+0x23c>
+    3d78:	49 8b 4c 24 28       	mov    0x28(%r12),%rcx
+    3d7d:	49 8b 7c 24 10       	mov    0x10(%r12),%rdi
+    3d82:	ba 00 10 00 00       	mov    $0x1000,%edx
+    3d87:	41 b8 22 00 00 00    	mov    $0x22,%r8d
+    3d8d:	49 8b 37             	mov    (%r15),%rsi
+    3d90:	83 e1 01             	and    $0x1,%ecx
+    3d93:	48 d3 e2             	shl    %cl,%rdx
+    3d96:	b9 02 00 00 00       	mov    $0x2,%ecx
+    3d9b:	e8 00 00 00 00       	call   3da0 <igc_clean_rx_irq+0x4d0>
+			3d9c: R_X86_64_PLT32	dma_unmap_page_attrs-0x4
+    3da0:	41 0f b7 77 14       	movzwl 0x14(%r15),%esi
+    3da5:	49 8b 7f 08          	mov    0x8(%r15),%rdi
+    3da9:	e8 00 00 00 00       	call   3dae <igc_clean_rx_irq+0x4de>
+			3daa: R_X86_64_PLT32	__page_frag_cache_drain-0x4
+    3dae:	e9 62 fe ff ff       	jmp    3c15 <igc_clean_rx_irq+0x345>
+    3db3:	48 8b b8 e8 0c 00 00 	mov    0xce8(%rax),%rdi
+    3dba:	48 85 ff             	test   %rdi,%rdi
+    3dbd:	0f 85 c4 fc ff ff    	jne    3a87 <igc_clean_rx_irq+0x1b7>
+    3dc3:	49 8b 44 24 28       	mov    0x28(%r12),%rax
+    3dc8:	a8 02                	test   $0x2,%al
+    3dca:	0f 84 77 01 00 00    	je     3f47 <igc_clean_rx_irq+0x677>
+    3dd0:	49 8b 4c 24 28       	mov    0x28(%r12),%rcx
+    3dd5:	49 8b 7f 08          	mov    0x8(%r15),%rdi
+    3dd9:	ba 00 10 00 00       	mov    $0x1000,%edx
+    3dde:	48 2b 3d 00 00 00 00 	sub    0x0(%rip),%rdi        # 3de5 <igc_clean_rx_irq+0x515>
+			3de1: R_X86_64_PC32	vmemmap_base-0x4
+    3de5:	41 8b 47 10          	mov    0x10(%r15),%eax
+    3de9:	83 e1 01             	and    $0x1,%ecx
+    3dec:	48 c1 ff 06          	sar    $0x6,%rdi
+    3df0:	48 d3 e2             	shl    %cl,%rdx
+    3df3:	48 c1 e7 0c          	shl    $0xc,%rdi
+    3df7:	48 03 3d 00 00 00 00 	add    0x0(%rip),%rdi        # 3dfe <igc_clean_rx_irq+0x52e>
+			3dfa: R_X86_64_PC32	page_offset_base-0x4
+    3dfe:	48 01 c7             	add    %rax,%rdi
+    3e01:	48 d1 ea             	shr    %rdx
+    3e04:	0f 18 0f             	prefetcht0 (%rdi)
+    3e07:	0f 18 4f 40          	prefetcht0 0x40(%rdi)
+    3e0b:	89 d6                	mov    %edx,%esi
+    3e0d:	48 83 ef 40          	sub    $0x40,%rdi
+    3e11:	48 89 95 68 ff ff ff 	mov    %rdx,-0x98(%rbp)
+    3e18:	e8 00 00 00 00       	call   3e1d <igc_clean_rx_irq+0x54d>
+			3e19: R_X86_64_PLT32	build_skb-0x4
+    3e1d:	49 89 c6             	mov    %rax,%r14
+    3e20:	48 85 c0             	test   %rax,%rax
+    3e23:	0f 84 5d 02 00 00    	je     4086 <igc_clean_rx_irq+0x7b6>
+    3e29:	48 83 80 c8 00 00 00 	addq   $0x40,0xc8(%rax)
+    3e30:	40 
+    3e31:	41 8b 76 74          	mov    0x74(%r14),%esi
+    3e35:	8b 88 b8 00 00 00    	mov    0xb8(%rax),%ecx
+    3e3b:	48 8b 95 68 ff ff ff 	mov    -0x98(%rbp),%rdx
+    3e42:	8d 43 40             	lea    0x40(%rbx),%eax
+    3e45:	85 f6                	test   %esi,%esi
+    3e47:	0f 85 07 03 00 00    	jne    4154 <igc_clean_rx_irq+0x884>
+    3e4d:	01 c8                	add    %ecx,%eax
+    3e4f:	41 01 5e 70          	add    %ebx,0x70(%r14)
+    3e53:	41 89 86 b8 00 00 00 	mov    %eax,0xb8(%r14)
+    3e5a:	41 31 57 10          	xor    %edx,0x10(%r15)
+    3e5e:	41 0f b7 57 14       	movzwl 0x14(%r15),%edx
+    3e63:	e9 27 fd ff ff       	jmp    3b8f <igc_clean_rx_irq+0x2bf>
+    3e68:	4c 89 f2             	mov    %r14,%rdx
+    3e6b:	4c 89 ee             	mov    %r13,%rsi
+    3e6e:	4c 89 e7             	mov    %r12,%rdi
+    3e71:	e8 aa e5 ff ff       	call   2420 <igc_cleanup_headers>
+    3e76:	84 c0                	test   %al,%al
+    3e78:	0f 85 c1 01 00 00    	jne    403f <igc_clean_rx_irq+0x76f>
+    3e7e:	4c 89 f2             	mov    %r14,%rdx
+    3e81:	4c 89 ee             	mov    %r13,%rsi
+    3e84:	4c 89 e7             	mov    %r12,%rdi
+    3e87:	41 8b 5e 70          	mov    0x70(%r14),%ebx
+    3e8b:	01 9d 74 ff ff ff    	add    %ebx,-0x8c(%rbp)
+    3e91:	e8 fa d8 ff ff       	call   1790 <igc_process_skb_fields>
+    3e96:	48 8b 85 78 ff ff ff 	mov    -0x88(%rbp),%rax
+    3e9d:	4c 89 f6             	mov    %r14,%rsi
+    3ea0:	45 31 f6             	xor    %r14d,%r14d
+    3ea3:	48 8d 78 48          	lea    0x48(%rax),%rdi
+    3ea7:	e8 00 00 00 00       	call   3eac <igc_clean_rx_irq+0x5dc>
+			3ea8: R_X86_64_PLT32	napi_gro_receive-0x4
+    3eac:	83 45 90 01          	addl   $0x1,-0x70(%rbp)
+    3eb0:	8b 5d 84             	mov    -0x7c(%rbp),%ebx
+    3eb3:	39 5d 90             	cmp    %ebx,-0x70(%rbp)
+    3eb6:	0f 82 e5 fa ff ff    	jb     39a1 <igc_clean_rx_irq+0xd1>
+    3ebc:	4c 89 f3             	mov    %r14,%rbx
+    3ebf:	44 8b 75 90          	mov    -0x70(%rbp),%r14d
+    3ec3:	8b 85 70 ff ff ff    	mov    -0x90(%rbp),%eax
+    3ec9:	44 8b bd 74 ff ff ff 	mov    -0x8c(%rbp),%r15d
+    3ed0:	4d 89 f5             	mov    %r14,%r13
+    3ed3:	85 c0                	test   %eax,%eax
+    3ed5:	74 0f                	je     3ee6 <igc_clean_rx_irq+0x616>
+    3ed7:	8b b5 70 ff ff ff    	mov    -0x90(%rbp),%esi
+    3edd:	48 8b 7d 88          	mov    -0x78(%rbp),%rdi
+    3ee1:	e8 fa d9 ff ff       	call   18e0 <igc_finalize_xdp>
+    3ee6:	49 89 9c 24 e0 00 00 	mov    %rbx,0xe0(%r12)
+    3eed:	00 
+    3eee:	48 8b 9d 78 ff ff ff 	mov    -0x88(%rbp),%rbx
+    3ef5:	48 8b 43 18          	mov    0x18(%rbx),%rax
+    3ef9:	4c 01 70 70          	add    %r14,0x70(%rax)
+    3efd:	4c 01 78 78          	add    %r15,0x78(%rax)
+    3f01:	48 89 d8             	mov    %rbx,%rax
+    3f04:	8b 5d 90             	mov    -0x70(%rbp),%ebx
+    3f07:	01 58 24             	add    %ebx,0x24(%rax)
+    3f0a:	8b 9d 74 ff ff ff    	mov    -0x8c(%rbp),%ebx
+    3f10:	01 58 20             	add    %ebx,0x20(%rax)
+    3f13:	66 83 7d 96 00       	cmpw   $0x0,-0x6a(%rbp)
+    3f18:	0f 85 29 01 00 00    	jne    4047 <igc_clean_rx_irq+0x777>
+    3f1e:	48 8b 45 d0          	mov    -0x30(%rbp),%rax
+    3f22:	65 48 2b 04 25 28 00 	sub    %gs:0x28,%rax
+    3f29:	00 00 
+    3f2b:	0f 85 25 02 00 00    	jne    4156 <igc_clean_rx_irq+0x886>
+    3f31:	48 83 ec 80          	sub    $0xffffffffffffff80,%rsp
+    3f35:	44 89 e8             	mov    %r13d,%eax
+    3f38:	5b                   	pop    %rbx
+    3f39:	41 5c                	pop    %r12
+    3f3b:	41 5d                	pop    %r13
+    3f3d:	41 5e                	pop    %r14
+    3f3f:	41 5f                	pop    %r15
+    3f41:	5d                   	pop    %rbp
+    3f42:	e9 00 00 00 00       	jmp    3f47 <igc_clean_rx_irq+0x677>
+			3f43: R_X86_64_PLT32	__x86_return_thunk-0x4
+    3f47:	49 8b 44 24 28       	mov    0x28(%r12),%rax
+    3f4c:	4c 8b 4d 98          	mov    -0x68(%rbp),%r9
+    3f50:	ba 20 0a 00 00       	mov    $0xa20,%edx
+    3f55:	be 00 01 00 00       	mov    $0x100,%esi
+    3f5a:	48 8b 5d a0          	mov    -0x60(%rbp),%rbx
+    3f5e:	4c 89 85 60 ff ff ff 	mov    %r8,-0xa0(%rbp)
+    3f65:	48 89 85 58 ff ff ff 	mov    %rax,-0xa8(%rbp)
+    3f6c:	49 8b 04 24          	mov    (%r12),%rax
+    3f70:	41 0f 18 09          	prefetcht0 (%r9)
+    3f74:	41 0f 18 49 40       	prefetcht0 0x40(%r9)
+    3f79:	4c 29 cb             	sub    %r9,%rbx
+    3f7c:	4c 89 8d 68 ff ff ff 	mov    %r9,-0x98(%rbp)
+    3f83:	48 8d 78 48          	lea    0x48(%rax),%rdi
+    3f87:	e8 00 00 00 00       	call   3f8c <igc_clean_rx_irq+0x6bc>
+			3f88: R_X86_64_PLT32	__napi_alloc_skb-0x4
+    3f8c:	49 89 c6             	mov    %rax,%r14
+    3f8f:	48 85 c0             	test   %rax,%rax
+    3f92:	0f 84 ee 00 00 00    	je     4086 <igc_clean_rx_irq+0x7b6>
+    3f98:	4c 8b 85 60 ff ff ff 	mov    -0xa0(%rbp),%r8
+    3f9f:	4c 8b 8d 68 ff ff ff 	mov    -0x98(%rbp),%r9
+    3fa6:	4d 85 c0             	test   %r8,%r8
+    3fa9:	74 12                	je     3fbd <igc_clean_rx_irq+0x6ed>
+    3fab:	8b 80 bc 00 00 00    	mov    0xbc(%rax),%eax
+    3fb1:	49 8b 96 c0 00 00 00 	mov    0xc0(%r14),%rdx
+    3fb8:	4c 89 44 02 10       	mov    %r8,0x10(%rdx,%rax,1)
+    3fbd:	41 89 d8             	mov    %ebx,%r8d
+    3fc0:	81 fb 00 01 00 00    	cmp    $0x100,%ebx
+    3fc6:	0f 87 d0 00 00 00    	ja     409c <igc_clean_rx_irq+0x7cc>
+    3fcc:	41 8b be b8 00 00 00 	mov    0xb8(%r14),%edi
+    3fd3:	41 8b 4e 74          	mov    0x74(%r14),%ecx
+    3fd7:	41 8d 50 07          	lea    0x7(%r8),%edx
+    3fdb:	83 e2 f8             	and    $0xfffffff8,%edx
+    3fde:	48 89 f8             	mov    %rdi,%rax
+    3fe1:	49 03 be c0 00 00 00 	add    0xc0(%r14),%rdi
+    3fe8:	85 c9                	test   %ecx,%ecx
+    3fea:	0f 85 62 01 00 00    	jne    4152 <igc_clean_rx_irq+0x882>
+    3ff0:	44 01 c0             	add    %r8d,%eax
+    3ff3:	45 01 46 70          	add    %r8d,0x70(%r14)
+    3ff7:	4c 89 ce             	mov    %r9,%rsi
+    3ffa:	41 89 86 b8 00 00 00 	mov    %eax,0xb8(%r14)
+    4001:	44 89 85 60 ff ff ff 	mov    %r8d,-0xa0(%rbp)
+    4008:	4c 89 8d 68 ff ff ff 	mov    %r9,-0x98(%rbp)
+    400f:	e8 00 00 00 00       	call   4014 <igc_clean_rx_irq+0x744>
+			4010: R_X86_64_PLT32	memcpy-0x4
+    4014:	44 8b 85 60 ff ff ff 	mov    -0xa0(%rbp),%r8d
+    401b:	89 da                	mov    %ebx,%edx
+    401d:	4c 8b 8d 68 ff ff ff 	mov    -0x98(%rbp),%r9
+    4024:	44 29 c2             	sub    %r8d,%edx
+    4027:	0f 85 96 00 00 00    	jne    40c3 <igc_clean_rx_irq+0x7f3>
+    402d:	41 0f b7 47 14       	movzwl 0x14(%r15),%eax
+    4032:	8d 50 01             	lea    0x1(%rax),%edx
+    4035:	66 41 89 57 14       	mov    %dx,0x14(%r15)
+    403a:	e9 50 fb ff ff       	jmp    3b8f <igc_clean_rx_irq+0x2bf>
+    403f:	45 31 f6             	xor    %r14d,%r14d
+    4042:	e9 4e f9 ff ff       	jmp    3995 <igc_clean_rx_irq+0xc5>
+    4047:	0f b7 75 96          	movzwl -0x6a(%rbp),%esi
+    404b:	4c 89 e7             	mov    %r12,%rdi
+    404e:	e8 5d e0 ff ff       	call   20b0 <igc_alloc_rx_buffers>
+    4053:	e9 c6 fe ff ff       	jmp    3f1e <igc_clean_rx_irq+0x64e>
+    4058:	66 41 83 47 14 01    	addw   $0x1,0x14(%r15)
+    405e:	83 45 90 01          	addl   $0x1,-0x70(%rbp)
+    4062:	01 9d 74 ff ff ff    	add    %ebx,-0x8c(%rbp)
+    4068:	e9 9f fa ff ff       	jmp    3b0c <igc_clean_rx_irq+0x23c>
+    406d:	41 31 4f 10          	xor    %ecx,0x10(%r15)
+    4071:	09 85 70 ff ff ff    	or     %eax,-0x90(%rbp)
+    4077:	83 45 90 01          	addl   $0x1,-0x70(%rbp)
+    407b:	01 9d 74 ff ff ff    	add    %ebx,-0x8c(%rbp)
+    4081:	e9 86 fa ff ff       	jmp    3b0c <igc_clean_rx_irq+0x23c>
+    4086:	49 83 84 24 90 00 00 	addq   $0x1,0x90(%r12)
+    408d:	00 01 
+    408f:	31 db                	xor    %ebx,%ebx
+    4091:	66 41 83 47 14 01    	addw   $0x1,0x14(%r15)
+    4097:	e9 23 fe ff ff       	jmp    3ebf <igc_clean_rx_irq+0x5ef>
+    409c:	49 8b 7e 10          	mov    0x10(%r14),%rdi
+    40a0:	4c 89 ce             	mov    %r9,%rsi
+    40a3:	ba 00 01 00 00       	mov    $0x100,%edx
+    40a8:	4c 89 8d 68 ff ff ff 	mov    %r9,-0x98(%rbp)
+    40af:	e8 00 00 00 00       	call   40b4 <igc_clean_rx_irq+0x7e4>
+			40b0: R_X86_64_PLT32	eth_get_headlen-0x4
+    40b4:	4c 8b 8d 68 ff ff ff 	mov    -0x98(%rbp),%r9
+    40bb:	41 89 c0             	mov    %eax,%r8d
+    40be:	e9 09 ff ff ff       	jmp    3fcc <igc_clean_rx_irq+0x6fc>
+    40c3:	4d 8b 57 08          	mov    0x8(%r15),%r10
+    40c7:	0f b6 8d 58 ff ff ff 	movzbl -0xa8(%rbp),%ecx
+    40ce:	31 f6                	xor    %esi,%esi
+    40d0:	4c 89 f7             	mov    %r14,%rdi
+    40d3:	bb 00 10 00 00       	mov    $0x1000,%ebx
+    40d8:	83 e1 01             	and    $0x1,%ecx
+    40db:	4c 89 d0             	mov    %r10,%rax
+    40de:	48 2b 05 00 00 00 00 	sub    0x0(%rip),%rax        # 40e5 <igc_clean_rx_irq+0x815>
+			40e1: R_X86_64_PC32	vmemmap_base-0x4
+    40e5:	48 d3 e3             	shl    %cl,%rbx
+    40e8:	48 c1 f8 06          	sar    $0x6,%rax
+    40ec:	43 8d 0c 08          	lea    (%r8,%r9,1),%ecx
+    40f0:	41 89 d0             	mov    %edx,%r8d
+    40f3:	48 d1 eb             	shr    %rbx
+    40f6:	48 c1 e0 0c          	shl    $0xc,%rax
+    40fa:	48 03 05 00 00 00 00 	add    0x0(%rip),%rax        # 4101 <igc_clean_rx_irq+0x831>
+			40fd: R_X86_64_PC32	page_offset_base-0x4
+    4101:	4c 89 d2             	mov    %r10,%rdx
+    4104:	41 89 d9             	mov    %ebx,%r9d
+    4107:	29 c1                	sub    %eax,%ecx
+    4109:	e8 00 00 00 00       	call   410e <igc_clean_rx_irq+0x83e>
+			410a: R_X86_64_PLT32	skb_add_rx_frag-0x4
+    410e:	41 31 5f 10          	xor    %ebx,0x10(%r15)
+    4112:	41 0f b7 57 14       	movzwl 0x14(%r15),%edx
+    4117:	e9 73 fa ff ff       	jmp    3b8f <igc_clean_rx_irq+0x2bf>
+    411c:	f0 81 41 34 fe ff 00 	lock addl $0xfffe,0x34(%rcx)
+    4123:	00 
+    4124:	ba ff ff ff ff       	mov    $0xffffffff,%edx
+    4129:	66 41 89 57 14       	mov    %dx,0x14(%r15)
+    412e:	e9 9a fa ff ff       	jmp    3bcd <igc_clean_rx_irq+0x2fd>
+    4133:	c7 45 90 00 00 00 00 	movl   $0x0,-0x70(%rbp)
+    413a:	45 31 ff             	xor    %r15d,%r15d
+    413d:	45 31 f6             	xor    %r14d,%r14d
+    4140:	45 31 ed             	xor    %r13d,%r13d
+    4143:	c7 85 74 ff ff ff 00 	movl   $0x0,-0x8c(%rbp)
+    414a:	00 00 00 
+    414d:	e9 94 fd ff ff       	jmp    3ee6 <igc_clean_rx_irq+0x616>
+    4152:	0f 0b                	ud2    
+    4154:	0f 0b                	ud2    
+    4156:	e8 00 00 00 00       	call   415b <igc_clean_rx_irq+0x88b>
+			4157: R_X86_64_PLT32	__stack_chk_fail-0x4
+    415b:	0f                   	.byte 0xf

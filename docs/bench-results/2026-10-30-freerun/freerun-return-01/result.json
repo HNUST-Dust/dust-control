@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "samples": 2000,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "cycle_us": 125,
+  "rtt_us": {
+    "min": 622.64,
+    "mean": 755.877,
+    "p50": 748.66,
+    "p95": 873.797,
+    "p99": 874.498,
+    "max": 999.005
+  },
+  "bDcSyncActive": 0,
+  "bEscIntEnabled": 0,
+  "limits": "125us FreeRun bus cadence, not same-period comparison to500us DC; current optimized build differs from historical firmware. No causal single-factor performance claim."
+}

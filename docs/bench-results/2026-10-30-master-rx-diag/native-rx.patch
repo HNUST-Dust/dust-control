@@ -1,0 +1,125 @@
+diff --git a/devices/igc/igc-5.15-ethercat.h b/devices/igc/igc-5.15-ethercat.h
+index 3d9d490..2dfaa74 100644
+--- a/devices/igc/igc-5.15-ethercat.h
++++ b/devices/igc/igc-5.15-ethercat.h
+@@ -667,4 +667,6 @@ void igc_ptp_read(struct igc_adapter *adapter, struct timespec64 *ts);
+ #define IGC_TX_CTXTDESC(R, i)   \
+ 	(&(((struct igc_adv_tx_context_desc *)((R)->desc))[i]))
+ 
++int igc_ecat_diag_timestamp(struct igc_adapter *adapter);
++
+ #endif /* _IGC_H_ */
+diff --git a/devices/igc/igc_main-5.15-ethercat.c b/devices/igc/igc_main-5.15-ethercat.c
+index 54f7244..b5fe21d 100644
+--- a/devices/igc/igc_main-5.15-ethercat.c
++++ b/devices/igc/igc_main-5.15-ethercat.c
+@@ -21,6 +21,8 @@
+ #include "igc_tsn-5.15-ethercat.h"
+ #include "igc_xdp-5.15-ethercat.h"
+ 
++#include "dust_rx_diag.h"
++
+ #define DRV_SUMMARY	"Intel(R) 2.5G Ethernet Linux Driver (EtherCAT enabled)"
+ 
+ #define DEFAULT_MSG_ENABLE (NETIF_MSG_DRV | NETIF_MSG_PROBE | NETIF_MSG_LINK)
+@@ -2349,6 +2351,14 @@ static int igc_clean_rx_irq(struct igc_q_vector *q_vector, const int budget)
+ 		size = le16_to_cpu(rx_desc->wb.upper.length);
+ 		if (!size)
+ 			break;
++		if (get_ecdev(adapter) &&
++		    unlikely(igc_test_staterr(rx_desc, IGC_RXDADV_STAT_TSIP) &&
++			     size < IGC_TS_HDR_LEN)) {
++			/* Corrupt descriptor: stop this poll, never underflow a length. */
++			if (rx_diag_target(adapter))
++				rx_diag_record(NULL, 0, false, 0);
++			break;
++		}
+ 
+ 		/* This memory barrier is needed to keep us from reading
+ 		 * any other fields out of the rx_desc until we know the
+@@ -2394,8 +2404,12 @@ static int igc_clean_rx_irq(struct igc_q_vector *q_vector, const int budget)
+ 			total_bytes += size;
+ 		}
+ 		else if (get_ecdev(adapter)) {
+-			unsigned char *va = page_address(rx_buffer->page) + rx_buffer->page_offset;
+-			unsigned int size = le16_to_cpu(rx_desc->wb.upper.length);
++			/* Timestamp prefix has already been parsed above. Use the same
++			 * offset/length as the normal netdev path, not the raw descriptor. */
++			unsigned char *va = (unsigned char *)pktbuf + pkt_offset;
++			if (rx_diag_target(adapter))
++				rx_diag_record(va, size, pkt_offset == IGC_TS_HDR_LEN,
++					       ktime_to_ns(timestamp));
+ 			ecdev_receive(get_ecdev(adapter), va, size);
+ 			adapter->ec_watchdog_jiffies = jiffies;
+ 			igc_reuse_rx_page(rx_ring, rx_buffer);
+@@ -5714,6 +5728,12 @@ static int __igc_open(struct net_device *netdev, bool resuming)
+ 
+ 	igc_configure(adapter);
+ 
++	if (ecat_rx_diag == 2 && get_ecdev(adapter) && rx_diag_target(adapter)) {
++		err = igc_ecat_diag_timestamp(adapter);
++		if (err)
++			goto err_req_irq;
++	}
++
+ 	err = igc_request_irq(adapter);
+ 	if (err)
+ 		goto err_req_irq;
+@@ -6215,6 +6235,9 @@ void ec_poll(struct net_device *netdev)
+ 	int i;
+ 	int budget = 64;
+ 
++	if (rx_diag_target(adapter))
++		rx_diag_poll_ns = ktime_get_ns();
++
+ 	if (jiffies - adapter->ec_watchdog_jiffies >= 2 * HZ) {
+ 		adapter->ec_watchdog_jiffies = jiffies;
+ 		irq_work_queue(&adapter->ec_watchdog_kicker);
+@@ -7090,7 +7113,12 @@ static int __init igc_init_module(void)
+ 	pr_info("%s\n", igc_driver_string);
+ 	pr_info("%s\n", igc_copyright);
+ 
++	ret = rx_diag_init();
++	if (ret)
++		return ret;
+ 	ret = pci_register_driver(&igc_driver);
++	if (ret)
++		rx_diag_exit();
+ 	return ret;
+ }
+ 
+@@ -7105,6 +7133,7 @@ module_init(igc_init_module);
+ static void __exit igc_exit_module(void)
+ {
+ 	pci_unregister_driver(&igc_driver);
++	rx_diag_exit();
+ }
+ 
+ module_exit(igc_exit_module);
+diff --git a/devices/igc/igc_ptp-5.15-ethercat.c b/devices/igc/igc_ptp-5.15-ethercat.c
+index c5a1f0b..c2b6cad 100644
+--- a/devices/igc/igc_ptp-5.15-ethercat.c
++++ b/devices/igc/igc_ptp-5.15-ethercat.c
+@@ -603,6 +603,22 @@ static int igc_ptp_set_timestamp_mode(struct igc_adapter *adapter,
+ 	return 0;
+ }
+ 
++/* Isolated lab helper: RX only; no TX timestamp requests. */
++int igc_ecat_diag_timestamp(struct igc_adapter *adapter)
++{
++	struct hwtstamp_config config = {
++		.flags = 0, .tx_type = HWTSTAMP_TX_OFF,
++		.rx_filter = HWTSTAMP_FILTER_ALL,
++	};
++	int ret;
++	if (!adapter->ptp_clock)
++		return -ENODEV;
++	ret = igc_ptp_set_timestamp_mode(adapter, &config);
++	if (!ret)
++		adapter->tstamp_config = config;
++	return ret;
++}
++
+ static void igc_ptp_tx_timeout(struct igc_adapter *adapter)
+ {
+ 	struct igc_hw *hw = &adapter->hw;

@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "samples": 2000,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "cycle_us": 125,
+  "rtt_us": {
+    "min": 610.391,
+    "mean": 718.904,
+    "p50": 748.514,
+    "p95": 873.319,
+    "p99": 874.037,
+    "max": 883.71
+  },
+  "bDcSyncActive": 0,
+  "bEscIntEnabled": 0,
+  "interpretation": "Single B run vs previous A: mean -36.973us, p50 -0.146us, p95 -0.478us. Mean difference reflects changed RTT-band populations; cannot infer one removed register read saves37us. Max drops999.005->883.710us in this pair, not established bound. Current B remains experimental/defaultn. No host scheduling change."
+}

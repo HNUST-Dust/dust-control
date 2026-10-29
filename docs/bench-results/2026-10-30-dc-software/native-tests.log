@@ -1,0 +1,47 @@
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 0.049s
+
+OK
+CRC known/random/all-length/unaligned/mutation equivalence PASS
+EtherCAT core contracts PASS; sizeof(Core)=25880 bytes
+EtherCAT core contracts PASS; sizeof(Core)=25880 bytes
+Reference/optimized complete PDO byte equivalence PASS
+Generic protocol bounds, flags, session gating and lease wrap contracts passed
+Firmware CAN allowlist, default selection, signature and anti-override contracts passed
+EtherCAT core contracts PASS; sizeof(Core)=25880 bytes
+PDO staging / SM allocation contracts PASS
+Host/slave crosscheck PASS: 414 layouts, 90 rejected, 412 multi-PDO
+Real SSC SDO / mapping / cycle integration contracts PASS
+Real SSC SDO / mapping / cycle integration contracts PASS
+Real SSC SDO / mapping / cycle integration contracts PASS
+Real SSC SDO / mapping / cycle integration contracts PASS
+Real SSC SDO / mapping / cycle integration contracts PASS
+ESI / SII / SSC identity, SM partitions and dynamic CoE contracts PASS
+Explicit Sync0-only ESI variant, default/SII unchanged PASS
+EtherCAT real IO backend contracts passed (mock peripheral boundaries).
+EtherCAT real IO backend contracts passed (mock peripheral boundaries).
+EtherCAT real IO backend contracts passed (mock peripheral boundaries).
+Boot identity persistence/readback/exhaustion contracts passed.
+Boot identity failure remains closed.
+Boot identity failure remains closed.
+Boot identity failure remains closed.
+Boot identity failure remains closed.
+Boot identity failure remains closed.
+Boot identity failure remains closed.
+Boot identity failure remains closed.
+RTT trace contracts passed
+Deferred PDI contracts PASS
+Deferred Sync0 backlog/latency/work/wrap contracts PASS
+Sync0 budget histogram/lifecycle/deadline contracts PASS
+Sync0 budget histogram/lifecycle/deadline contracts PASS
+MCAN batch completion / cancellation contracts PASS
+Real MCAN submission deadline / TXBAR rejection / token recovery contracts PASS
+UART native idle timing / partial publication contracts PASS
+Real UART driver idle ISR / DMA partial flush / callback restart contracts PASS
+Real HPM5E clock startup: safe source / voltage / PLL / LMM ROM clocks contracts PASS
+Real ESC transfer width/order/bounds/unaligned-buffer contracts PASS
+Real ESC transfer width/order/bounds/unaligned-buffer contracts PASS
+Actual ESC DMA staging/completion/timeout/fail-closed contracts PASS
+Actual MCAN RX timing config/counter sampling/callback contracts PASS
+Actual MCAN masks/matching/FIFO drain/arrival-after-ack/read-failure contracts PASS

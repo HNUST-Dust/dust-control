@@ -1,0 +1,11 @@
+{
+  "source": "https://gitlab.com/etherlab.org/ethercat",
+  "commit": "e38a8787c3b0e842f566a2fe0485a5d0dd16ba0d",
+  "kernel": "5.15.0-1114-realtime",
+  "candidate": "cb0a32589d2ff18288d903278474169af1da558e23dbc0538651200da41da503",
+  "original": "c20c57c959512a154c06cd2ba39e7528685250fc3834044d8119c9848b395945",
+  "master": "8de75d30018d05eab1612bd298cd7433e9b7d8a69c1504c6fe542385b1b59b7d",
+  "baseline_text": "82f6513fce2601da281d2af9dd613c9bff2cec41275d04fb1715f60ed2bf9702",
+  "capacity": 262144,
+  "record_bytes": 64
+}

@@ -1,0 +1,294 @@
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter
+-- CMake version: 4.3.1
+-- Found Python3: /Users/panpoming/Documents/zephyr_projects/.venv/bin/python (found suitable version "3.13.12", minimum required is "3.8") found components: Interpreter
+-- Cache files will be written to: /Users/panpoming/Library/Caches/zephyr
+-- Zephyr version: 3.7.0 (/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr)
+-- Found west (found suitable version "1.5.0", minimum required is "0.14.0")
+-- Board: dust-hpm5e31, qualifiers: hpm5e31
+-- ZEPHYR_TOOLCHAIN_VARIANT not set, trying to locate Zephyr SDK
+-- Found host-tools: zephyr 0.16.5 (/Users/panpoming/Documents/zephyr_projects/zephyr-sdk-0.16.5)
+-- Found toolchain: zephyr 0.16.5 (/Users/panpoming/Documents/zephyr_projects/zephyr-sdk-0.16.5)
+-- Found Dtc: /opt/homebrew/bin/dtc (found suitable version "1.8.1", minimum required is "1.4.6")
+-- Found BOARD.dts: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/boards/hpmicro/dust-hpm5e31/dust-hpm5e31.dts
+-- Found devicetree overlay: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/boards/dust-hpm5e31.overlay
+-- Generated zephyr.dts: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/zephyr.dts
+-- Generated devicetree_generated.h: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/include/generated/zephyr/devicetree_generated.h
+-- Including generated dts.cmake file: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/dts.cmake
+Parsing /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/Kconfig
+Loaded configuration '/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/boards/hpmicro/dust-hpm5e31/dust-hpm5e31_defconfig'
+Merged configuration '/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/prj.conf'
+Merged configuration '/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/misc/generated/extra_kconfig_options.conf'
+Configuration saved to '/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/.config'
+Kconfig header saved to '/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /Users/panpoming/Documents/zephyr_projects/zephyr-sdk-0.16.5/riscv64-zephyr-elf/riscv64-zephyr-elf/bin/ld.bfd (found version "2.38")
+-- The C compiler identification is GNU 12.2.0
+-- The CXX compiler identification is GNU 12.2.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /Users/panpoming/Documents/zephyr_projects/zephyr-sdk-0.16.5/riscv64-zephyr-elf/bin/riscv64-zephyr-elf-gcc
+-- sdk_glue: 0.7.0 (/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support)
+CMake Warning at /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/CMakeLists.txt:915 (message):
+  No SOURCES given to Zephyr library:
+  ..__hpm_support__drivers__interrupt_controller
+
+  Excluding target from build.
+
+
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a
+-- west build: building application
+[0/2] Re-checking globbed directories...
+[1/188] Preparing syscall dependency handling
+
+[2/188] Generating misc/generated/syscalls_subdirs.trigger
+[3/188] Generating include/generated/zephyr/version.h
+-- Zephyr version: 3.7.0 (/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr), build: zsg_v0.7.0
+[4/188] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/188] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_list.h
+[6/188] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[7/188] Generating include/generated/zephyr/driver-validation.h
+[8/188] Building C object zephyr/CMakeFiles/offsets.dir/arch/riscv/core/offsets/offsets.c.obj
+[9/188] Building CXX object CMakeFiles/dust_ecat_protocol.dir/src/ethercat/pdo_dictionary.cpp.obj
+[10/188] Generating include/generated/zephyr/offsets.h
+[11/188] Building CXX object CMakeFiles/dust_ecat_protocol.dir/src/ethercat/layout.cpp.obj
+[12/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/cpp/abi/cpp_dtors.c.obj
+[13/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc8_sw.c.obj
+[14/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc32_sw.c.obj
+[15/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc32c_sw.c.obj
+[16/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc24_sw.c.obj
+[17/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc16_sw.c.obj
+[18/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc4_sw.c.obj
+[19/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/crc/crc7_sw.c.obj
+[20/188] Building C object zephyr/arch/common/CMakeFiles/isr_tables.dir/isr_tables.c.obj
+[21/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/dec.c.obj
+[22/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/hex.c.obj
+[23/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[24/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[25/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
+[26/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[27/188] Building CXX object CMakeFiles/dust_ecat_protocol.dir/src/ethercat/core.cpp.obj
+[28/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/timeutil.c.obj
+[29/188] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
+[30/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[31/188] Building ASM object zephyr/CMakeFiles/zephyr.dir/soc/common/riscv-privileged/vector.S.obj
+[32/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[33/188] Building ASM object zephyr/CMakeFiles/zephyr.dir/soc/common/riscv-privileged/soc_irq.S.obj
+[34/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[35/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[36/188] Building ASM object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/soc/hpmicro/HPM5E00/start.S.obj
+[37/188] Linking CXX static library libdust_ecat_protocol.a
+[38/188] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[39/188] Building C object zephyr/CMakeFiles/zephyr.dir/soc/common/riscv-privileged/soc_common_irq.c.obj
+[40/188] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[41/188] Generating generated/can_profile_generated.hpp
+[42/188] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/storage/flash_map/flash_map_default.c.obj
+[43/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/arch/riscv/l1c/hpm_l1c_drv.c.obj
+[44/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/toolchains/trap.c.obj
+[45/188] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/storage/flash_map/flash_map_layout.c.obj
+[46/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/system.c.obj
+[47/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/soc/hpmicro/HPM5E00/soc.c.obj
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/init.h:13,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/soc/hpmicro/HPM5E00/soc.c:10:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/sys/util.h:127: warning: "ARRAY_SIZE" redefined
+  127 | #define ARRAY_SIZE(array) \
+      | 
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_clock_drv.h:10,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/soc/hpmicro/HPM5E00/soc.c:5:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/inc/hpm_common.h:42: note: this is the location of the previous definition
+   42 | #define ARRAY_SIZE(a)   (sizeof(a) / sizeof((a)[0]))
+      | 
+[48/188] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/storage/flash_map/flash_map.c.obj
+[49/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/toolchains/reset.c.obj
+[50/188] Building C object CMakeFiles/app.dir/src/ethercat/slave/esc_dma.c.obj
+[51/188] Building CXX object CMakeFiles/app.dir/src/ethercat/slave/rtt_trace.cpp.obj
+[52/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_sysctl_drv.c.obj
+[53/188] Building C object zephyr/CMakeFiles/zephyr.dir/drivers/flash/flash_util.c.obj
+[54/188] Building C object CMakeFiles/app.dir/src/ethercat/slave/pdi_deferred.c.obj
+[55/188] Building C object CMakeFiles/app.dir/src/ethercat/slave/sync0_deferred.c.obj
+[56/188] Building CXX object CMakeFiles/app.dir/src/drivers/uart_receive.cpp.obj
+[57/188] Building C object CMakeFiles/app.dir/src/ethercat/slave/hpm5e_esc_hw.c.obj
+[58/188] Building C object CMakeFiles/app.dir/ssc_gateway/ecatcoe.c.obj
+[59/188] Building C object CMakeFiles/app.dir/ssc_gateway/coeappl.c.obj
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/coeappl.c: In function 'COE_ObjDictionaryInit':
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/coeappl.c:877:26: warning: the comparison will always evaluate as 'true' for the address of 'ApplicationObjDic' will never be NULL [-Waddress]
+  877 |     if(ApplicationObjDic != NULL)
+      |                          ^~
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/coeappl.c:134:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sampleappl.h:20:9: note: 'ApplicationObjDic' declared here
+   20 | TOBJECT ApplicationObjDic[] = {
+      |         ^~~~~~~~~~~~~~~~~
+[60/188] Building C object CMakeFiles/app.dir/ssc_gateway/mailbox.c.obj
+[61/188] Building C object CMakeFiles/app.dir/ssc_gateway/ecatappl.c.obj
+[62/188] Building C object CMakeFiles/app.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/samples/ecat/Middleware/ESC/hpm5e31_phy.c.obj
+[63/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_clock_drv.c.obj
+[64/188] Building C object CMakeFiles/app.dir/src/main.c.obj
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/devicetree.h:26,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/device.h:12,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/src/main.c:9:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/sys/util.h:127: warning: "ARRAY_SIZE" redefined
+  127 | #define ARRAY_SIZE(array) \
+      | 
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/inc/hpm_esc_drv.h:12,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/src/main.c:4:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/inc/hpm_common.h:42: note: this is the location of the previous definition
+   42 | #define ARRAY_SIZE(a)   (sizeof(a) / sizeof((a)[0]))
+      | 
+[65/188] Building C object CMakeFiles/app.dir/ssc_gateway/sdoserv.c.obj
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sdoserv.c: In function 'SdoUploadSegmentInd':
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sdoserv.c:410:52: warning: overflow in conversion from 'int' to 'unsigned char' changes value from '(int)pSdoSegRes->SdoHeader.SegHeader & -256' to '0' [-Woverflow]
+  410 |                 pSdoSegRes->SdoHeader.SegHeader &= ~SEGHEADER_MASK;
+      |                                                    ^
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sdoserv.c: In function 'SDOS_SdoInd':
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sdoserv.c:632:83: warning: taking address of packed member of 'struct <anonymous>' may result in an unaligned pointer value [-Waddress-of-packed-member]
+  632 |                                                         pData = (UINT16 MBXMEM *) ((TINITSDOUPLOADEXPRESMBX MBXMEM *) pSdoInd)->Data;
+      |                                                                                   ^
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sdoserv.c:654:91: warning: taking address of packed member of 'struct <anonymous>' may result in an unaligned pointer value [-Waddress-of-packed-member]
+  654 |                                                                 pData = (UINT16 MBXMEM *) ((TINITSDOUPLOADNORMRESMBX MBXMEM *) pSdoInd)->Data;
+      |                                                                                           ^
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/ssc_gateway/sdoserv.c:708:67: warning: taking address of packed member of 'struct <anonymous>' may result in an unaligned pointer value [-Waddress-of-packed-member]
+  708 |                                         pData = (UINT16 MBXMEM *) ((TINITSDODOWNLOADNORMREQMBX MBXMEM *) pSdoInd)->Data;
+      |                                                                   ^
+[66/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/boot/hpm_bootheader.c.obj
+[67/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_qeiv2_soc_drv.c.obj
+[68/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_pdgo_drv.c.obj
+[69/188] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/fs/nvs/nvs.c.obj
+[70/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_otp_drv.c.obj
+[71/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_trgm_soc_drv.c.obj
+[72/188] Building CXX object CMakeFiles/app.dir/src/ethercat/slave/boot_identity.cpp.obj
+[73/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_gpio_drv.c.obj
+[74/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_uart_drv.c.obj
+[75/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_pllctlv2_drv.c.obj
+[76/188] Building C object CMakeFiles/app.dir/ssc_gateway/objdef.c.obj
+[77/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_pmp_drv.c.obj
+[78/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_gptmr_drv.c.obj
+[79/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_pcfg_drv.c.obj
+[80/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_pwmv2_drv.c.obj
+[81/188] Generating linker_zephyr_pre0.cmd
+[82/188] Linking C static library zephyr/arch/common/libisr_tables.a
+[83/188] Building C object CMakeFiles/app.dir/ssc_gateway/ecatslv.c.obj
+[84/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_dmav2_drv.c.obj
+[85/188] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/dynamic_isr.c.obj
+[86/188] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/sw_isr_common.c.obj
+[87/188] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/multilevel_irq.c.obj
+[88/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/cpu_idle.c.obj
+[89/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/irq_manage.c.obj
+[90/188] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/reset.S.obj
+[91/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/prep_c.c.obj
+[92/188] Building CXX object CMakeFiles/app.dir/src/ethercat/slave/gateway.cpp.obj
+[93/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/fatal.c.obj
+[94/188] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/switch.S.obj
+[95/188] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/isr.S.obj
+[96/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/reboot.c.obj
+[97/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/thread.c.obj
+[98/188] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/pmp.S.obj
+[99/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/pmp.c.obj
+[100/188] Building C object zephyr/boards/boards/riscv/dust-hpm5e31/CMakeFiles/..__hpm_support__boards__hpmicro__dust-hpm5e31.dir/board.c.obj
+[101/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/stacktrace.c.obj
+[102/188] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/tls.c.obj
+[103/188] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/abort.c.obj
+[104/188] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/malloc.c.obj
+[105/188] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/libc-hooks.c.obj
+[106/188] Building C object zephyr/drivers/interrupt_controller/CMakeFiles/drivers__interrupt_controller.dir/intc_plic.c.obj
+[107/188] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/clock_control/clock_control_hpmicro.c.obj
+[108/188] Building C object zephyr/drivers/flash/CMakeFiles/drivers__flash.dir/flash_page_layout.c.obj
+[109/188] Building C object zephyr/drivers/console/CMakeFiles/drivers__console.dir/rtt_console.c.obj
+[110/188] Building C object zephyr/drivers/can/CMakeFiles/drivers__can.dir/can_common.c.obj
+[111/188] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/common.c.obj
+[112/188] Building C object zephyr/drivers/flash/CMakeFiles/drivers__flash.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/flash/flash_hpmicro.c.obj
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/sys/atomic.h:18,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/kernel_includes.h:25,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/kernel.h:17,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/flash/flash_hpmicro.c:21:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/zephyr/include/zephyr/sys/util.h:127: warning: "ARRAY_SIZE" redefined
+  127 | #define ARRAY_SIZE(array) \
+      | 
+In file included from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/soc/HPM5E00/HPM5E31/hpm_romapi.h:17,
+                 from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/flash/flash_hpmicro.c:20:
+/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/inc/hpm_common.h:42: note: this is the location of the previous definition
+   42 | #define ARRAY_SIZE(a)   (sizeof(a) / sizeof((a)[0]))
+      | 
+[113/188] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/pinctrl/pinctrl_hpmicro.c.obj
+[114/188] Building C object zephyr/CMakeFiles/zephyr.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_mcan_drv.c.obj
+[115/188] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/sys_clock_init.c.obj
+[116/188] Building C object zephyr/drivers/serial/CMakeFiles/drivers__serial.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/serial/uart_hpmicro_line_idle.c.obj
+[117/188] Building C object modules/sdk_glue/drivers/ethercat/CMakeFiles/..__hpm_support__drivers__ethercat.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/sdk_env/hpm_sdk/drivers/src/hpm_esc_drv.c.obj
+[118/188] Building C object zephyr/drivers/pwm/CMakeFiles/drivers__pwm.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/pwm/pwm_hpmicro.c.obj
+[119/188] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/riscv_machine_timer.c.obj
+[120/188] Building C object zephyr/drivers/dma/CMakeFiles/drivers__dma.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/dma/dmav2_hpmicro.c.obj
+[121/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/banner.c.obj
+[122/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/main_weak.c.obj
+[123/188] Building C object modules/segger/CMakeFiles/modules__segger.dir/SEGGER_RTT_zephyr.c.obj
+[124/188] Building C object modules/segger/CMakeFiles/modules__segger.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/segger/SEGGER/SEGGER_RTT.c.obj
+[125/188] Building C object modules/sdk_glue/drivers/ethercat/CMakeFiles/..__hpm_support__drivers__ethercat.dir/esc_hpmicro.c.obj
+[126/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
+[127/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[128/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init_static.c.obj
+[129/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/errno.c.obj
+[130/188] Building C object zephyr/drivers/gpio/CMakeFiles/drivers__gpio.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/gpio/gpio_hpmicro.c.obj
+[131/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/version.c.obj
+[132/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/float.c.obj
+[133/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
+[134/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
+[135/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mem_slab.c.obj
+[136/188] Building CXX object CMakeFiles/app.dir/src/ethercat/slave/io_backend.cpp.obj
+[137/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
+[138/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/idle.c.obj
+[139/188] Building C object zephyr/drivers/can/CMakeFiles/drivers__can.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/can/mcan_hpmicro.c.obj
+[140/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/msg_q.c.obj
+[141/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mailbox.c.obj
+[142/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[143/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
+[144/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
+[145/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
+[146/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/priority_queues.c.obj
+[147/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
+[148/188] Building C object zephyr/drivers/serial/CMakeFiles/drivers__serial.dir/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/hpm_support/drivers/serial/uart_hpmicro.c.obj
+[149/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[150/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/xip.c.obj
+[151/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
+[152/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[153/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/atomic_c.c.obj
+[154/188] Linking CXX static library app/libapp.a
+[155/188] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[156/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[157/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[158/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[159/188] Linking C static library zephyr/arch/common/libarch__common.a
+[160/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[161/188] Linking C static library zephyr/lib/libc/picolibc/liblib__libc__picolibc.a
+[162/188] Linking C static library zephyr/arch/arch/riscv/core/libarch__riscv__core.a
+[163/188] Linking C static library zephyr/lib/libc/common/liblib__libc__common.a
+[164/188] Linking C static library zephyr/boards/boards/riscv/dust-hpm5e31/lib..__hpm_support__boards__hpmicro__dust-hpm5e31.a
+[165/188] Linking C static library zephyr/libzephyr.a
+[166/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[167/188] Linking C static library zephyr/drivers/clock_control/libdrivers__clock_control.a
+[168/188] Linking C static library zephyr/drivers/console/libdrivers__console.a
+[169/188] Linking C static library zephyr/drivers/interrupt_controller/libdrivers__interrupt_controller.a
+[170/188] Linking C static library zephyr/drivers/can/libdrivers__can.a
+[171/188] Linking C static library zephyr/drivers/dma/libdrivers__dma.a
+[172/188] Linking C static library zephyr/drivers/flash/libdrivers__flash.a
+[173/188] Linking C static library zephyr/drivers/gpio/libdrivers__gpio.a
+[174/188] Linking C static library zephyr/drivers/pinctrl/libdrivers__pinctrl.a
+[175/188] Linking C static library zephyr/drivers/pwm/libdrivers__pwm.a
+[176/188] Linking C static library zephyr/drivers/serial/libdrivers__serial.a
+[177/188] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
+[178/188] Linking C static library modules/segger/libmodules__segger.a
+[179/188] Linking C static library modules/sdk_glue/drivers/ethercat/lib..__hpm_support__drivers__ethercat.a
+[180/188] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[181/188] Linking C static library zephyr/kernel/libkernel.a
+[182/188] Linking CXX executable zephyr/zephyr_pre0.elf; Logical command for additional byproducts on target: zephyr_pre0
+[183/188] Generating linker.cmd
+[184/188] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[185/188] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[186/188] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[187/188] Linking CXX executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+             ROM:      178212 B       832 KB     20.92%
+             RAM:      211372 B       256 KB     80.63%
+            ITCM:        1478 B       128 KB      1.13%
+            DTCM:          1 KB       128 KB      0.78%
+        AHB_SRAM:         10 KB        32 KB     31.25%
+        IDT_LIST:          0 GB         2 KB      0.00%
+Generating files from /Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/dust-adapter/build/dm_rtt_dc_sw_a/zephyr/zephyr.elf for board: dust-hpm5e31

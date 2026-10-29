@@ -1,0 +1,69 @@
+{
+  "freerun-return-01": {
+    "send_call_us": {
+      "mean": 0.529502,
+      "p95": 0.856,
+      "max": 3.878
+    },
+    "receive_to_process_us": {
+      "mean": 1.208505,
+      "p95": 1.841,
+      "max": 5.341
+    },
+    "receive_to_consume_us": {
+      "mean": 2.0891145,
+      "p95": 2.718,
+      "max": 6.217
+    },
+    "send_to_accept_observed_us": {
+      "mean": 441.6954185,
+      "p95": 500.032,
+      "max": 624.67
+    },
+    "accept_observed_to_feedback_us": {
+      "mean": 314.181574,
+      "p95": 374.412,
+      "max": 624.169
+    },
+    "rtt_bands_nearest_125us": {
+      "625": 255,
+      "750": 1388,
+      "875": 343,
+      "1000": 14
+    },
+    "sample_count": 2000
+  },
+  "freerun-ssc-al-01": {
+    "send_call_us": {
+      "mean": 0.5473265,
+      "p95": 0.675,
+      "max": 13.195
+    },
+    "receive_to_process_us": {
+      "mean": 1.2863275,
+      "p95": 1.838,
+      "max": 14.801
+    },
+    "receive_to_consume_us": {
+      "mean": 2.1666305,
+      "p95": 2.713,
+      "max": 15.939
+    },
+    "send_to_accept_observed_us": {
+      "mean": 415.091496,
+      "p95": 499.899,
+      "max": 624.776
+    },
+    "accept_observed_to_feedback_us": {
+      "mean": 303.8122875,
+      "p95": 374.483,
+      "max": 509.003
+    },
+    "rtt_bands_nearest_125us": {
+      "625": 607,
+      "750": 1260,
+      "875": 133
+    },
+    "sample_count": 2000
+  }
+}

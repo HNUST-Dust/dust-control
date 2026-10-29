@@ -1,0 +1,30 @@
+diff --git a/samples/ecat/Middleware/ESC/hpm5e31_phy.c b/samples/ecat/Middleware/ESC/hpm5e31_phy.c
+index 374e62f..3ad2a5a 100644
+--- a/samples/ecat/Middleware/ESC/hpm5e31_phy.c
++++ b/samples/ecat/Middleware/ESC/hpm5e31_phy.c
+@@ -227,7 +227,9 @@ hpm_stat_t ecat_phy_config(const struct device *esc_dev)
+ void ecat_phy_update_link(const struct device *esc_dev)
+ {
+ 	static int prev0 = -1, prev1 = -1;
++#if !defined(CONFIG_DUST_ECAT_DC_SYNC) || defined(CONFIG_DUST_ECAT_PHY_RAW_DIAGNOSTICS)
+ 	static unsigned int dbg_cnt;
++#endif
+ 	uint16_t status = 0U, control = 0U;
+ 	int up;
+ 
+@@ -269,7 +271,8 @@ void ecat_phy_update_link(const struct device *esc_dev)
+ 		prev1 = up;
+ 	}
+ 
+-	/* Debug: periodic raw dump (every ~2s at the 100ms poll rate). */
++#if !defined(CONFIG_DUST_ECAT_DC_SYNC) || defined(CONFIG_DUST_ECAT_PHY_RAW_DIAGNOSTICS)
++	/* Optional raw diagnostics; actual link detection above remains unconditional. */
+ 	if (++dbg_cnt >= 20U) {
+ 		dbg_cnt = 0U;
+ 		uint16_t b0, b1;
+@@ -278,4 +281,5 @@ void ecat_phy_update_link(const struct device *esc_dev)
+ 		printk("ESC phy dump: Port0 BMSR=0x%04x(%d) Port1 BMSR=0x%04x(%d)\n",
+ 		       b0, r0, b1, r1);
+ 	}
++#endif
+ }

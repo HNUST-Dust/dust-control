@@ -1,0 +1,13 @@
+{
+  "result": "FAIL startup deadline",
+  "samples": 0,
+  "third_run": "not executed; loop broke on02",
+  "master_after": {
+    "active": false,
+    "phase": "Idle",
+    "slave": "PREOP",
+    "link": "UP"
+  },
+  "cause": "Previous successful Stop leaves Core Protected. Configuration SDO callback requires Unconfigured; normal AL error acknowledgment does not clear protection. Continuous-run command omitted required gateway reset. Do not weaken protection to repeat benchmarks.",
+  "performance_interpretation": "No RTT samples; no performance conclusion."
+}

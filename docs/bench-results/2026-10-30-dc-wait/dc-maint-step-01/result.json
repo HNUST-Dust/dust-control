@@ -1,0 +1,64 @@
+{
+  "result": "PASS",
+  "samples": 2000,
+  "timeouts": 0,
+  "wkc_misses": 0,
+  "rtt_us": {
+    "mean": 1690.065,
+    "p50": 1495.518,
+    "p95": 1995.577,
+    "p99": 1995.883,
+    "max": 1998.494
+  },
+  "snapshots": {
+    "dust_sync0_active_stats": [
+      1,
+      41975,
+      0,
+      0,
+      2740,
+      5027
+    ],
+    "dust_sync0_stats": [
+      1,
+      44426,
+      44426,
+      0,
+      0,
+      12000,
+      7959,
+      5646
+    ],
+    "dust_plic_claim_stats": [
+      1,
+      258502,
+      1,
+      258501,
+      0,
+      40,
+      40,
+      0
+    ],
+    "dust_first_protection": [
+      1,
+      1,
+      6,
+      2,
+      2147590860,
+      210,
+      63805700,
+      0,
+      63805200,
+      0,
+      1,
+      20000,
+      2147590860,
+      192
+    ]
+  },
+  "handler_mean_us": 104.1736092912448,
+  "handler_max_us": 209.45833333333334,
+  "wait_mean_us": 16.862056779829263,
+  "wait_max_us": 114.16666666666667,
+  "interpretation": "No demonstrated overall latency gain. Compared with checkpoint run: wait max108.958->114.167us, wait mean15.758->16.862us, handler mean97.822->104.174us, RTT mean1638.662->1690.065us; P95 unchanged. Maintenance-attributed wait mean0.08657->0.03336us; none of top4 waits includes LinkMaintenance. Remaining tails involve semaphore/PDI/SSCMainLoop and IRQ overlap. Different event phase/overlap distribution prevents attributing handler mean or rare-max changes solely to split. Zero Active fault/coalescing; no >=250us handler samples this run, insufficient evidence to shorten cycle."
+}

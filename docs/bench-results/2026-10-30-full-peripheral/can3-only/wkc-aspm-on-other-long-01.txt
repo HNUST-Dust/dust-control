@@ -1,0 +1,25 @@
+compiler_optimized=1
+CPU=7
+scheduler=OTHER (no realtime privilege) wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=208 Tx=688 signature=2616507966 cycle_us=125 command_interval_us=10000 timeout_us=8000
+STARTUP AL=2 OP=0 WC=0 WCstate=0 exchange=1
+STARTUP AL=1 OP=0 WC=0 WCstate=0 exchange=221
+STARTUP AL=2 OP=0 WC=0 WCstate=0 exchange=235
+STARTUP AL=4 OP=0 WC=0 WCstate=0 exchange=2183
+STARTUP AL=8 OP=1 WC=0 WCstate=0 exchange=2189
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=8192
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=16384
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=24576
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=32768
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=40960
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=49152
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=57344
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=65536
+DIAG al_state=8 operational=1 wc=0 wc_state=0 exchange=73728
+FAIL: Benchmark deadline exceeded
+No RTT samples.
+Master0
+  Phase: Idle
+  Active: no
+  Slaves: 1
+  SII caching: disabled

@@ -1,0 +1,222 @@
+SII reload: config=0000 response=00000000
+ESC MDIO 0: PHY ID=0x0180dd02
+ESC MDIO 1: PHY ID=0x001cc816
+ESC Port0: PHY ID=0x001cc816 at MDIO 1
+ESC Port0: RTL8201F MII, advertise 100/full only, auto-negotiation enabled
+ESC Port1: PHY ID=0x0180dd02 at MDIO 0
+ESC Port1: unexpected PHY ID1 0x0180 (expected 0x001b)
+ESC Port1 (TJA1101B) configuration failed; continuing with Port0 only
+ESC Port0 link down
+ESC Port1 link down
+HPM5E31: external RTL8201F/TJA1101B MII; PHY reset handled by board DTS
+ESC PDI: type=80 info=0000 cfg=81 ext=0000 DL=5503 EEPROM=0030 active=0 invalid=0
+ESC cfg: GPR0=c0043000 GPR1=00000000 GPR2=11100000 PHY0=c0000000 PHY1=c0000008
+IOC PA09 FUNC=0001000b PAD=00010000
+IOC PA16 FUNC=0001000b PAD=00010000
+IOC PA21 FUNC=0001000b PAD=00010000
+IOC PA28 FUNC=0001000b PAD=00010000
+IOC PA30 FUNC=0001000b PAD=00010000
+IOC PA31 FUNC=0001000b PAD=00010000
+IOC PF09 FUNC=0001000b PAD=00010000
+IOC PF13 FUNC=0001000b PAD=00010000
+IOC PF26 FUNC=00010000 PAD=00010000
+IOC PF28 FUNC=00010000 PAD=00010000
+PHY diagnostic: offset=0; scanning MDIO 0..31
+PHY addr=0 ID=0180:dd02 rc=0/0
+PHY addr=0 BMCR=2100 BMSR=01e1 rc=0/0
+PHY addr=0 reg=0 value=2100 rc=0
+PHY addr=0 reg=1 value=01e1 rc=0
+PHY addr=0 reg=2 value=0180 rc=0
+PHY addr=0 reg=3 value=dd02 rc=0
+PHY addr=0 reg=4 value=0000 rc=0
+PHY addr=0 reg=5 value=0000 rc=0
+PHY addr=0 reg=6 value=0000 rc=0
+PHY addr=1 ID=001c:c816 rc=0/0
+PHY addr=1 BMCR=1000 BMSR=7849 rc=0/0
+PHY addr=1 reg=0 value=1000 rc=0
+PHY addr=1 reg=1 value=7849 rc=0
+PHY addr=1 reg=2 value=001c rc=0
+PHY addr=1 reg=3 value=c816 rc=0
+PHY addr=1 reg=4 value=0101 rc=0
+PHY addr=1 reg=5 value=0001 rc=0
+PHY addr=1 reg=6 value=0000 rc=0
+PHY addr=2 ID=ffff:ffff rc=-5/-5
+PHY addr=2 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=3 ID=ffff:ffff rc=-5/-5
+PHY addr=3 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=4 ID=ffff:ffff rc=-5/-5
+PHY addr=4 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=5 ID=ffff:ffff rc=-5/-5
+PHY addr=5 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=6 ID=ffff:ffff rc=-5/-5
+PHY addr=6 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=7 ID=ffff:ffff rc=-5/-5
+PHY addr=7 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=8 ID=ffff:ffff rc=-5/-5
+PHY addr=8 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=9 ID=ffff:ffff rc=-5/-5
+PHY addr=9 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=10 ID=ffff:ffff rc=-5/-5
+PHY addr=10 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=11 ID=ffff:ffff rc=-5/-5
+PHY addr=11 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=12 ID=ffff:ffff rc=-5/-5
+PHY addr=12 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=13 ID=ffff:ffff rc=-5/-5
+PHY addr=13 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=14 ID=ffff:ffff rc=-5/-5
+PHY addr=14 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=15 ID=ffff:ffff rc=-5/-5
+PHY addr=15 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=16 ID=ffff:ffff rc=-5/-5
+PHY addr=16 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=17 ID=ffff:ffff rc=-5/-5
+PHY addr=17 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=18 ID=ffff:ffff rc=-5/-5
+PHY addr=18 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=19 ID=ffff:ffff rc=-5/-5
+PHY addr=19 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=20 ID=ffff:ffff rc=-5/-5
+PHY addr=20 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=21 ID=ffff:ffff rc=-5/-5
+PHY addr=21 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=22 ID=ffff:ffff rc=-5/-5
+PHY addr=22 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=23 ID=ffff:ffff rc=-5/-5
+PHY addr=23 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=24 ID=ffff:ffff rc=-5/-5
+PHY addr=24 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=25 ID=ffff:ffff rc=-5/-5
+PHY addr=25 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=26 ID=ffff:ffff rc=-5/-5
+PHY addr=26 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=27 ID=ffff:ffff rc=-5/-5
+PHY addr=27 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=28 ID=ffff:ffff rc=-5/-5
+PHY addr=28 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=29 ID=ffff:ffff rc=-5/-5
+PHY addr=29 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=30 ID=ffff:ffff rc=-5/-5
+PHY addr=30 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY addr=31 ID=ffff:ffff rc=-5/-5
+PHY addr=31 BMCR=ffff BMSR=ffff rc=-5/-5
+PHY scan complete mask=00000003 (multiple addresses may be aliases)
+PHY t=222 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=222 addr=1 BMCR=1000 BMSR=7849 link=0 reset=0 powerdown=0 isolate=0 AN=1 ANdone=0 speed_bit100=0 duplex_bit=0
+SSC stage: entering MainInit (ESC IRQs masked)
+SSC stage: MainInit entered
+SSC stage: EEPROM checked; SM count=8
+SSC experiment: SM0 length=0 activate=00; skip startup disable wait
+SSC experiment: SM1 length=0 activate=00; skip startup disable wait
+SSC experiment: SM2 length=0 activate=00; skip startup disable wait
+SSC experiment: SM3 length=0 activate=00; skip startup disable wait
+SSC experiment: SM4 length=0 activate=00; skip startup disable wait
+SSC experiment: SM5 length=0 activate=00; skip startup disable wait
+SSC experiment: SM6 length=0 activate=00; skip startup disable wait
+SSC experiment: SM7 length=0 activate=00; skip startup disable wait
+SSC stage: ECAT_Init returned
+SSC stage: COE_ObjInit returned
+Boot NVS: mounting
+Boot NVS: mount=0
+Boot NVS: record read=16
+Boot NVS: committing counter
+Boot NVS: commit=16
+DTC1 LAB dictionary ready; RAM=60 KiB, Rx<=1024 Tx<=1536; IO protection installed
+DUST HPM5E31 DTC1 LAB ready: VID=0 PID=0x44544331; CAN/UART IO installed
+ESC Port0 link up
+MCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=230 addr=1 BMCR=1000 BMSR=7849 link=0 reset=0 powerdown=0 isolate=0 AN=1 ANdone=0 speed_bit100=0 duplex_bit=0
+ESC Port0 link up
+PHY t=2230 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=10230 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=10230 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=20230 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=20230 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=30230 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=30230 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=40230 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=40230 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+Ndone=1 speed_bit100=1 duplex_bit=1
+PHY t=101831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=101831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=111831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=111831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=121831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=121831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=131831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=131831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=141831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=141831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=151831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=151831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=161831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=161831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=171831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=171831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=181831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=181831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=191831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=191831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=201831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=201831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=211831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=211831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=221831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=221831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=231831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=231831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=241831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=241831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=251831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=251831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=261831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=261831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=271831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=271831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=281831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=281831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=291831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=291831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=301831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=301831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=311831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=311831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=321831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=321831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=331831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=331831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=341831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=341831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=351831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=351831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=361831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=361831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=371831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=371831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=381831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=381831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=391831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=391831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=401831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=401831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=411831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=411831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=421831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=421831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=431831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=431831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=441831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=441831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=451831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=451831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=461831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=461831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=471831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=471831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=481831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=481831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=491831 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=491831 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=501909 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=501909 addr=1 BMCR=3100 BMSR=786d link=1 reset=0 powerdown=0 isolate=0 AN=1 ANdone=1 speed_bit100=1 duplex_bit=1
+PHY t=511909 addr=0 BMCR=2100 BMSR=01e1 link=0 reset=0 powerdown=0 isolate=0 AN=0 ANdone=1 speed_bití

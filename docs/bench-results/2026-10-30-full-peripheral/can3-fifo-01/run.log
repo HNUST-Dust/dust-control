@@ -1,0 +1,20 @@
+Requires fresh gateway reset since previous Stop.
+CAN3 only: 0x200 zero torque, 0x000 and 0x003 disable; CAN2/IMU excluded; UART RX only.
+e4d82c31a77031eeec973ed10d656735a0fe893cb24d11c698b3bff6cbbb77fb  /home/wbr-infantry/dust-ecat-bench/dust_ethercat_peripheral_can3_rtt
+2592bc03610ab26e98f77297b82f61f33870824b97222157964f9975878249a5  /home/wbr-infantry/dust-ecat-bench/ethercat_peripheral_can3.yaml
+compiler_optimized=1
+CPU=7
+scheduler=FIFO40 wait=adaptive (RT:40us tail; OTHER:150us tail/full-spin<=250us) mlock=1
+PDO Rx=208 Tx=688 signature=2616507966 cycle_us=125 command_interval_us=10000 timeout_us=8000
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=8192
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=16384
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=24576
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=32768
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=40960
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=49152
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=57344
+DIAG al_state=8 operational=1 wc=3 wc_state=2 exchange=65536
+FAIL: DM feedback timeout (no retry to avoid late-response pairing)
+samples=709 RTT_us min=990.276 mean=1171.291 p50=1123.570 p95=1373.345 p99=1374.024 max=1498.806 stddev=101.085 peak_to_peak=508.530 max_adjacent_change=382.681
+UART2 blocks=4602 bytes=589056 discontinuities=0
+UART5 blocks=598 bytes=12600 discontinuities=0

@@ -1,0 +1,182 @@
+[
+  {
+    "ms": 223,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 223,
+    "event": 1,
+    "value": 1,
+    "aux": 0
+  },
+  {
+    "ms": 3798,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 3798,
+    "event": 1,
+    "value": 1,
+    "aux": 0
+  },
+  {
+    "ms": 3798,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 3798,
+    "event": 1,
+    "value": 2,
+    "aux": 0
+  },
+  {
+    "ms": 3815,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 3815,
+    "event": 1,
+    "value": 1,
+    "aux": 0
+  },
+  {
+    "ms": 3815,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 3815,
+    "event": 1,
+    "value": 2,
+    "aux": 0
+  },
+  {
+    "ms": 9380,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 9380,
+    "event": 1,
+    "value": 1,
+    "aux": 0
+  },
+  {
+    "ms": 9382,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 9382,
+    "event": 1,
+    "value": 2,
+    "aux": 0
+  },
+  {
+    "ms": 9732,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 9732,
+    "event": 1,
+    "value": 2,
+    "aux": 0
+  },
+  {
+    "ms": 9732,
+    "event": 3,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 9735,
+    "event": 4,
+    "value": 896,
+    "aux": 208
+  },
+  {
+    "ms": 9735,
+    "event": 5,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 9738,
+    "event": 6,
+    "value": 1,
+    "aux": 0
+  },
+  {
+    "ms": 9738,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 9738,
+    "event": 1,
+    "value": 4,
+    "aux": 0
+  },
+  {
+    "ms": 9739,
+    "event": 7,
+    "value": 3,
+    "aux": 0
+  },
+  {
+    "ms": 9739,
+    "event": 8,
+    "value": 37,
+    "aux": 0
+  },
+  {
+    "ms": 9739,
+    "event": 10,
+    "value": 3,
+    "aux": 0
+  },
+  {
+    "ms": 17839,
+    "event": 10,
+    "value": 3,
+    "aux": 0
+  },
+  {
+    "ms": 17839,
+    "event": 2,
+    "value": 27,
+    "aux": 0
+  },
+  {
+    "ms": 17839,
+    "event": 1,
+    "value": 20,
+    "aux": 0
+  },
+  {
+    "ms": 17839,
+    "event": 2,
+    "value": 0,
+    "aux": 0
+  },
+  {
+    "ms": 17839,
+    "event": 1,
+    "value": 4,
+    "aux": 0
+  }
+]
