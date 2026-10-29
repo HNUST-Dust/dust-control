@@ -15,6 +15,6 @@ Mean improves 98.874 µs (11.65%). Active empty worker wakes fall from 49953/498
 
 Raw CSV/logs, scheduling-counter RAM, actual configs and premeasurement build hashes are archived here. The original trace-enabled 64-sample rounds have a newly discovered instrumentation race: worker capture alone incorrectly allowed publication of an older SSC snapshot to be stamped as containing the feedback. The new snapshot→publication interval is nonmonotonic in 23 poll and 2 event records. Preserve these raw records, but do not use either trace round for precise publication-stage analysis; even monotonic records may select an old publication. This also limits earlier capture→publication trace conclusions. Whole RTT in host CSV and the four trace-disabled performance rounds are unaffected.
 
-Fix: require the sequence-matched SSC snapshot before marking publication eligible. Add a regression simulating a worker capture before publication of an old snapshot. Two corrected trace rounds are pending.
+Fix: require the sequence-matched SSC snapshot before marking publication eligible. Add a regression simulating a worker capture before publication of an old snapshot. Two corrected trace rounds completed with 64/64 valid records each; see corrected-trace/README.md for the stage breakdown.
 
 Firmware event-wakeup implementation: afcaed5; original performance images include this implementation. Host decoder/harness: 0404ef3. Firmware default is promoted to event-only after these results; corrected trace instrumentation is built separately.
