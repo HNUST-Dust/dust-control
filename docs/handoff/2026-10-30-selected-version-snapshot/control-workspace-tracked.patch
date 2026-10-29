@@ -1,0 +1,296 @@
+diff --git a/tests/tools/test_ethercat_rtt_decode.py b/tests/tools/test_ethercat_rtt_decode.py
+index 968572e..25c6ec3 100644
+--- a/tests/tools/test_ethercat_rtt_decode.py
++++ b/tests/tools/test_ethercat_rtt_decode.py
+@@ -54,6 +54,92 @@ class TraceContracts(unittest.TestCase):
+         self.assertEqual(out['mcu_capture_to_can_snapshot_us'],'5.000')
+         self.assertEqual(out['mcu_can_snapshot_to_publish_us'],'5.000')
+ 
++    def test_v4_worker_markers_optional_and_ordered(self):
++        old,row=self.fixture()
++        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
++        cycles=values[9:]
++        values[0]=42
++        values[1]=(1<<21)-1
++        values += [cycles[10]+40, cycles[11]-40, cycles[11]+120,
++                   cycles[10]+80, cycles[10]+120]
++        header=d.HEADER.pack(0x31525444,4,208,128,1,0,24000000,40,7)
++        def decode():
++            return d.join(header+d.RECORD_V4.pack(*values)+bytes(127*208),[row])[0]
++        self.assertEqual(decode()['trace_status'],'ok')
++        self.assertEqual(decode()['mcu_worker_wake_to_worker_locked_us'],'1.667')
++        values[1]=(1<<19)-1
++        self.assertEqual(decode()['trace_status'],'ok')
++        values[1]=(1<<21)-1
++        values[-1]=values[-2]-1
++        self.assertIn('nonmonotonic_worker_wake_worker_locked',decode()['trace_status'])
++
++    def test_v5_can3_scan_boundary(self):
++        old,row=self.fixture()
++        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
++        cycles=values[9:]
++        values[0]=44
++        values[1]=(1<<22)-1
++        values += [cycles[10]+40, cycles[11]-40, cycles[11]+120,
++                   cycles[10]+80, cycles[10]+120, cycles[10]+160]
++        header=d.HEADER.pack(0x31525444,5,216,128,1,0,24000000,40,7)
++        def decode():
++            return d.join(header+d.RECORD_V5.pack(*values)+bytes(127*216),[row])[0]
++        self.assertEqual(decode()['trace_status'],'ok')
++        self.assertEqual(decode()['mcu_worker_locked_to_can3_scan_us'],'1.667')
++        values[1]=(1<<19)-1
++        self.assertEqual(decode()['trace_status'],'ok')
++        values[1]=(1<<22)-1
++        values[-1]=cycles[11]+40
++        self.assertIn('nonmonotonic_can3_scan_can_dequeued',decode()['trace_status'])
++
++    def test_v6_snapshot_phases_and_optional_boundaries(self):
++        old,row=self.fixture()
++        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
++        cycles=values[9:]
++        values[0]=52
++        values[1]=(1<<26)-1
++        values += [cycles[10]+40, cycles[11]-40, cycles[11]+120,
++                   cycles[10]+80, cycles[10]+120, cycles[10]+160,
++                   cycles[11]+20, cycles[11]+40, cycles[11]+60, cycles[11]+80,
++                   d.PHASES.index('esc_write'), d.PHASES.index('poll_publish')]
++        header=d.HEADER.pack(0x31525444,6,256,128,1,0,24000000,40,7)
++        def decode():
++            return d.join(header+d.RECORD_V6.pack(*values)+bytes(127*256),[row])[0]
++        out=decode()
++        self.assertEqual(out['trace_status'],'ok')
++        self.assertEqual(out['mcu_capture_phase'],'esc_write')
++        self.assertEqual(out['mcu_snapshot_phase'],'poll_publish')
++        self.assertEqual(out['mcu_snapshot_begin_to_snapshot_locked_us'],'0.833')
++        values[1]=(1<<19)-1
++        self.assertEqual(decode()['trace_status'],'ok')
++        values[1]=(1<<26)-1
++        values[-3]=cycles[11]+140
++        self.assertIn('nonmonotonic_snapshot_locked_can_snapshot',decode()['trace_status'])
++        values[-1]=99
++        with self.assertRaises(ValueError): decode()
++
++    def test_v7_pending_write_and_loop_checkpoints(self):
++        old,row=self.fixture()
++        values=list(d.RECORD.unpack_from(old,d.HEADER.size))
++        cycles=values[9:]
++        values[0]=58
++        values[1]=(1<<29)-1
++        values += [cycles[10]+40, cycles[11]-40, cycles[11]+180,
++                   cycles[10]+80, cycles[10]+120, cycles[10]+160,
++                   cycles[11]+10, cycles[11]+100, cycles[11]+120, cycles[11]+140,
++                   cycles[11]+30, cycles[11]+50, cycles[11]+70,
++                   d.PHASES.index('esc_write'), d.PHASES.index('poll_publish')]
++        header=d.HEADER.pack(0x31525444,7,280,128,1,0,24000000,40,7)
++        def decode():
++            return d.join(header+d.RECORD_V7.pack(*values)+bytes(127*280),[row])[0]
++        self.assertEqual(decode()['trace_status'],'ok')
++        self.assertEqual(decode()['mcu_pending_write_end_to_ssc_return_us'],'0.833')
++        values[1]=(1<<19)-1
++        self.assertEqual(decode()['trace_status'],'ok')
++        values[1]=(1<<29)-1
++        values[-3]=cycles[11]+200
++        self.assertIn('nonmonotonic_poll_entry_ssc_service',decode()['trace_status'])
++
+     def test_missing_mismatched_and_incomplete(self):
+         data,row = self.fixture(valid=2047, seq=10)
+         flags = d.join(data,[row])[0]['trace_status']
+diff --git a/tools/ethercat_dm_rtt.cpp b/tools/ethercat_dm_rtt.cpp
+index 5e42558..ed41459 100644
+--- a/tools/ethercat_dm_rtt.cpp
++++ b/tools/ethercat_dm_rtt.cpp
+@@ -10,6 +10,7 @@
+ #include <chrono>
+ #include <cmath>
+ #include <cstring>
++#include <cstdlib>
+ #include <fstream>
+ #include <iomanip>
+ #include <iostream>
+@@ -191,6 +192,30 @@ int main(int argc, char** argv) {
+         for (const auto& uart : c.uart) {
+             Check(!uart.tx_bytes && !uart.rx_bytes, "No UART traffic allowed");
+         }
++        const char* sync_env = std::getenv("DUST_RTT_SM_SYNC");
++        Check(!sync_env || std::string(sync_env) == "0" ||
++                  std::string(sync_env) == "1", "SM sync must be0 or1");
++        const bool sm_sync = sync_env && std::string(sync_env) == "1";
++        const char* dc_env = std::getenv("DUST_RTT_DC_SYNC");
++        Check(!dc_env || std::string(dc_env) == "0" || std::string(dc_env) == "1",
++              "DC sync must be0 or1");
++        const bool dc_sync = dc_env && std::string(dc_env) == "1";
++        Check(!dc_sync || (!sm_sync && (config.cycle_time_us == 1000 || config.cycle_time_us == 500)),
++              "DC lab requires500us or1ms cycle and no forced SM mode");
++        uint32_t dc_shift = 0;
++        if (dc_sync) {
++            const char* shift_env = std::getenv("DUST_RTT_DC_SHIFT_NS");
++            const std::string shift = shift_env ? shift_env : std::to_string(config.cycle_time_us * 500);
++            Check(!shift.empty() && shift.find_first_not_of("0123456789") ==
++                      std::string::npos, "DC shift must be unsigned nanoseconds");
++            const auto parsed = std::stoull(shift);
++            Check(parsed <= config.cycle_time_us * 1000 - 100000, "DC shift must leave100us before cycle end");
++            dc_shift = static_cast<uint32_t>(parsed);
++        }
++        Check(!std::getenv("DUST_RTT_RECEIVE_OFFSET_US"),
++              "Receive phase experiment is separate from SM synchronization");
++        std::cout << "ssc_sync=" << (dc_sync ? "DC-Sync0" : sm_sync ? "SM2" : "FreeRun")
++                  << " dc_shift_ns=" << dc_shift << std::endl;
+         const auto all = BuildPdoLayout(config);
+         const auto& layout = all.adapters.begin()->second;
+         Master master{ecrt_request_master(config.master_index)};
+@@ -212,6 +237,14 @@ int main(int argc, char** argv) {
+         auto* sc = ecrt_master_slave_config(master.ptr, c.alias, c.position,
+                                             c.vendor_id, c.product_code);
+         Check(sc, "Cannot configure slave");
++        if (dc_sync) {
++            Check(ecrt_master_select_reference_clock(master.ptr, sc) == 0,
++                  "Cannot select DC reference slave");
++            Check(ecrt_slave_config_dc(sc, 0x0300, config.cycle_time_us * 1000,
++                                      dc_shift, 0, 0) == 0,
++                  "Cannot configure DC Sync0");
++            ecrt_master_application_time(master.ptr, uint64_t(Ns()));
++        }
+         const uint32_t values[] = {layout.layout_signature,
+                                    config.cycle_time_us,
+                                    20000,
+@@ -238,9 +271,15 @@ int main(int argc, char** argv) {
+             Check(ecrt_slave_config_sdo32(sc, 0x2100, i + 1, values[i]) == 0,
+                   "Cannot queue configuration SDO");
+         }
+-        Check(ecrt_slave_config_sdo16(sc, 0x1c32, 1, 0) == 0 &&
+-                  ecrt_slave_config_sdo16(sc, 0x1c33, 1, 0) == 0,
+-              "Cannot queue FreeRun synchronization selection");
++        // SSC validates explicit SM sync writes against nPdOutputSize, which
++        // is not known until PREOP->SAFEOP mapping. Leave sync unforced in the
++        // SM lab mode so SSC selects SM2/SM2-input after mapping; verify counters
++        // after the run. The default path still explicitly selects FreeRun.
++        if (!sm_sync && !dc_sync) {
++            Check(ecrt_slave_config_sdo16(sc, 0x1c32, 1, 0) == 0 &&
++                      ecrt_slave_config_sdo16(sc, 0x1c33, 1, 0) == 0,
++                  "Cannot queue FreeRun synchronization selection");
++        }
+         std::vector<Copy> output, input;
+         Map(sc, domain, layout.rx, true, output);
+         Map(sc, domain, layout.tx, false, input);
+@@ -288,6 +327,7 @@ int main(int argc, char** argv) {
+             const auto wake =
+                 std::chrono::duration<double, std::micro>(woke - next).count();
+             next += std::chrono::microseconds(config.cycle_time_us);
++            if (dc_sync) ecrt_master_application_time(master.ptr, uint64_t(Ns()));
+             const int64_t receive_enter = Ns();
+             ecrt_master_receive(master.ptr);
+             const int64_t received = Ns();
+@@ -425,6 +465,10 @@ int main(int argc, char** argv) {
+                     std::memcpy(data + e.domain, rx.data() + e.image, e.bytes);
+                 }
+                 ecrt_domain_queue(domain);
++                if (dc_sync) {
++                    ecrt_master_sync_reference_clock(master.ptr);
++                    ecrt_master_sync_slave_clocks(master.ptr);
++                }
+                 ecrt_master_send(master.ptr);
+                 Report(argv[2], samples);
+                 std::cout << "PASS commands=" << commands
+@@ -461,6 +505,10 @@ int main(int argc, char** argv) {
+             if (new_command) {
+                 trace.output_copied = Ns();
+             }
++            if (dc_sync) {
++                if (exchange % 10 == 1) ecrt_master_sync_reference_clock(master.ptr);
++                ecrt_master_sync_slave_clocks(master.ptr);
++            }
+             ecrt_domain_queue(domain);
+             if (new_command) {
+                 trace.queued = Ns();
+diff --git a/tools/ethercat_rtt_decode.py b/tools/ethercat_rtt_decode.py
+index 3ac8941..003525a 100644
+--- a/tools/ethercat_rtt_decode.py
++++ b/tools/ethercat_rtt_decode.py
+@@ -7,11 +7,21 @@ from pathlib import Path
+ 
+ STAGES = ('esc_read_begin', 'esc_read_end', 'rx_map', 'process', 'process_done',
+           'accept', 'enqueue', 'submit', 'submitted',
+-          'tx_done', 'can_rx', 'capture', 'publish', 'input_map', 'esc_begin', 'esc_end', 'can_enqueued', 'can_dequeued', 'can_snapshot')
++          'tx_done', 'can_rx', 'capture', 'publish', 'input_map', 'esc_begin', 'esc_end', 'can_enqueued', 'can_dequeued', 'can_snapshot', 'worker_wake', 'worker_locked', 'can3_scan',
++          'worker_wait', 'ssc_service', 'snapshot_begin', 'snapshot_locked',
++          'pending_write_end', 'ssc_return', 'poll_entry')
+ HEADER = struct.Struct('<8IQ')
+ RECORD = struct.Struct('<IIQIIIIii16Q')
+ RECORD_V2 = struct.Struct('<IIQIIIIii18Q')
+ RECORD_V3 = struct.Struct('<IIQIIIIii19Q')
++RECORD_V4 = struct.Struct('<IIQIIIIii21Q')
++RECORD_V5 = struct.Struct('<IIQIIIIii22Q')
++RECORD_V6 = struct.Struct('<IIQIIIIii26QII')
++RECORD_V7 = struct.Struct('<IIQIIIIii29QII')
++PHASES = ('unknown', 'outer', 'ssc', 'maintenance', 'wait',
++          'poll_tick', 'poll_io', 'poll_can', 'poll_publish',
++          'app_tick', 'app_can', 'app_process', 'app_io', 'app_publish',
++          'esc_read', 'esc_write')
+ # TX completion callback and RX callback may run in either order after IRQ latency.
+ PAIRS = [('esc_read_begin', 'esc_read_end'), ('esc_read_end', 'rx_map'),
+          ('rx_map', 'process'), ('process', 'process_done'),
+@@ -21,7 +31,16 @@ PAIRS = [('esc_read_begin', 'esc_read_end'), ('esc_read_end', 'rx_map'),
+          ('can_rx', 'can_enqueued'), ('can_enqueued', 'can_dequeued'),
+          ('can_dequeued', 'capture'), ('capture', 'can_snapshot'),
+          ('can_snapshot', 'publish'),
++         ('can_enqueued', 'worker_wake'), ('worker_wake', 'worker_locked'),
++         ('worker_locked', 'can_dequeued'),
++         ('worker_locked', 'can3_scan'), ('can3_scan', 'can_dequeued'),
+          ('publish', 'input_map'), ('input_map', 'esc_begin'), ('esc_begin', 'esc_end'),
++         ('capture', 'worker_wait'), ('capture', 'ssc_service'),
++         ('capture', 'snapshot_begin'), ('snapshot_begin', 'snapshot_locked'),
++         ('snapshot_locked', 'can_snapshot'), ('ssc_service', 'can_snapshot'),
++         ('capture', 'pending_write_end'), ('pending_write_end', 'ssc_return'),
++         ('ssc_return', 'poll_entry'), ('poll_entry', 'ssc_service'),
++         ('capture', 'poll_entry'), ('pending_write_end', 'can_snapshot'),
+          ('rx_map', 'esc_end')]
+ HOST_PAIRS = [('built', 'encoded'), ('encoded', 'output_copied'),
+               ('output_copied', 'queued'), ('queued', 'tx'), ('tx', 'send_enter'),
+@@ -35,7 +54,9 @@ def read_trace(data):
+         raise ValueError('truncated trace header')
+     magic, version, size, capacity, count, overflow, hz, header, boot = HEADER.unpack_from(data)
+     formats = {1: (RECORD, STAGES[:16]), 2: (RECORD_V2, STAGES[:18]),
+-               3: (RECORD_V3, STAGES)}
++               3: (RECORD_V3, STAGES[:19]), 4: (RECORD_V4, STAGES[:21]),
++               5: (RECORD_V5, STAGES[:22]), 6: (RECORD_V6, STAGES[:26]),
++               7: (RECORD_V7, STAGES)}
+     if version not in formats:
+         raise ValueError('unsupported trace ABI')
+     record_format, stages = formats[version]
+@@ -48,6 +69,14 @@ def read_trace(data):
+     records = {}
+     for i in range(count):
+         rev, valid, session, batch, exchange, publication, seq, submit, done, *cycles = record_format.unpack_from(data, header+i*size)
++        phases = {}
++        if version >= 6:
++            capture_phase, snapshot_phase = cycles[-2:]
++            cycles = cycles[:-2]
++            for name, phase in [('capture_phase', capture_phase), ('snapshot_phase', snapshot_phase)]:
++                if phase >= len(PHASES):
++                    raise ValueError(f'invalid {name} in record {i}')
++                phases[name] = PHASES[phase]
+         if rev & 1 or valid & ~((1 << len(stages))-1):
+             raise ValueError(f'inconsistent record {i}; dump after halting the CPU')
+         key = (boot, session, batch)
+@@ -55,7 +84,7 @@ def read_trace(data):
+             raise ValueError(f'duplicate command key {key}')
+         records[key] = dict(valid=valid, exchange=exchange, publication=publication,
+                             can_sequence=seq, submit_result=submit, done_result=done,
+-                            stage_count=len(stages), cycles=dict(zip(stages, cycles)))
++                            stage_count=len(stages), phases=phases, cycles=dict(zip(stages, cycles)))
+     return hz, overflow, records
+ 
+ def join(data, host):
+@@ -76,8 +105,11 @@ def join(data, host):
+         else:
+             out.update({f'mcu_{k}': record[k] for k in ('valid', 'exchange', 'publication', 'can_sequence', 'submit_result', 'done_result')})
+             out.update({f'mcu_{k}_cycles': v for k, v in record['cycles'].items()})
++            out.update({f'mcu_{k}': v for k, v in record['phases'].items()})
+             valid = record['valid']
+-            if valid != (1 << record['stage_count'])-1:
++            # Worker markers are optional: a pass can already be running when IRQ queues.
++            required = (1 << min(record['stage_count'], 19))-1
++            if valid & required != required:
+                 flags.append('incomplete_firmware_record')
+             if record['submit_result'] or record['done_result']:
+                 flags.append('can_driver_error')

@@ -1,0 +1,13 @@
+{
+  "bundle": "/home/wbr-infantry/dust-ecat-bench/handoff-selected-2026-10-30.tar.gz",
+  "bundle_sha256": "80a75f0af87332769e84c025b8d18e2e609c41f2f36ed943d7992807e7049ff5",
+  "files": {
+    "dust_ethercat_peripheral_can3_rtt": "613485080b4e8ea5c2649112fe6737137d05d9d95f4237781c31862a5a692f93",
+    "ethercat_peripheral_can3_rtt.cpp": "5e2c989c388f546ee2c35352a4ecda84a44290a8834c30798d7230cfde0bedaa",
+    "ethercat_peripheral_can3.yaml": "2592bc03610ab26e98f77297b82f61f33870824b97222157964f9975878249a5",
+    "ethercat_peripheral_can3_probe.sh": "7cb0ff0e0cee063d284b4e446ee900327653652050a7cebdb9b1f29897385ea4",
+    "pdo_config.cpp": "4e112bf2290a6174f04d7b876bd59aa13113f8ede1219b94546b5fa8dd1525e0"
+  },
+  "kernel": "5.15.0-1114-realtime",
+  "libraries": "\tlinux-vdso.so.1 (0x00007ffffc3d8000)\n\tlibethercat.so.1 => /usr/local/lib/libethercat.so.1 (0x00007f04ced2c000)\n\tlibyaml-cpp.so.0.7 => /lib/x86_64-linux-gnu/libyaml-cpp.so.0.7 (0x00007f04ceced000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f04ceac1000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f04ce9da000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f04ce9ba000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f04ce78f000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007f04ced77000)\n"
+}

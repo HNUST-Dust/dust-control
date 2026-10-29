@@ -1,0 +1,501 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 118fcce..48ca9a3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -96,7 +96,9 @@ target_sources(app PRIVATE
+  ${DUST_ADAPTER_ROOT}/src/ethercat/slave/io_backend.cpp
+  ${DUST_ADAPTER_ROOT}/src/ethercat/slave/boot_identity.cpp
+  ${DUST_ADAPTER_ROOT}/src/drivers/uart_receive.cpp
++ ${DUST_ADAPTER_ROOT}/src/drivers/imu_sensor.cpp
+  ${generated}/can_profile_generated.hpp
++ ${DUST_ADAPTER_ROOT}/src/ethercat/slave/esm_diag.c
+  ${DUST_ADAPTER_ROOT}/src/ethercat/slave/hpm5e_esc_hw.c
+  ${hpm_phy_dir}/hpm5e31_phy.c
+  ${ssc_sources})
+diff --git a/Kconfig b/Kconfig
+index be8c8fe..f79c174 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -176,3 +176,17 @@ config DUST_ECAT_SSC_SKIP_UNUSED_AL_READ
+       Adjust only the build copy of the recognized PDO_InputMapping function.
+       Keep automatic timing measurement and reported timing values unchanged.
+       Refuse the adjustment if the event value has any remaining use.
++
++config DUST_ECAT_ESM_DIAG
++    bool "Lab: bounded application/AL state transition records"
++    default n
++
++
++config DUST_ECAT_CAN_FEEDBACK_WINDOW
++    bool "Experimental rolling CAN feedback window (paired host required)"
++    default n
++    depends on !DUST_ECAT_CAN_RX_THREAD
++    help
++      Retain recent CAN events across batches within configured slot capacity.
++      A paired host must discard already consumed frame sequences. Legacy hosts
++      reject overlapping batches; do not enable for production deployments.
+diff --git a/boards/dust-hpm5e31.overlay b/boards/dust-hpm5e31.overlay
+index afe44ac..a770c12 100644
+--- a/boards/dust-hpm5e31.overlay
++++ b/boards/dust-hpm5e31.overlay
+@@ -12,6 +12,11 @@
+     current-speed = <921600>;
+ };
+ 
++/* 板载 HXY IMU 使用 SPI3；CS=PC21、DRDY=PC18 由板级 DTS 别名提供。 */
++&spi3 {
++    status = "okay";
++};
++
+ /* XDMA 0..5 belong to UART4..6; channel 6 is reserved for optional ESC DMA. */
+ / { zephyr,user {
+     dmas = <&xdma 6 0>;
+diff --git a/prj.conf b/prj.conf
+index 6062df0..d64213e 100644
+--- a/prj.conf
++++ b/prj.conf
+@@ -24,8 +24,10 @@ CONFIG_ISR_STACK_SIZE=4096
+ # Adapter firmware has no local filesystem or FatFs dependency.
+ CONFIG_FILE_SYSTEM=n
+ 
+-# HPM5E31 首版暂时不初始化 SPI IMU（板级默认同时关闭加热输出）。
+-CONFIG_SPI=n
++# HPM5E31 板载 IMU 使用 SPI3 采集原始突发（加热输出仍关闭）。
++CONFIG_SPI=y
++CONFIG_SPI_ASYNC=y
++CONFIG_WBR_CONTROL_ONBOARD_IMU_RAW=y
+ 
+ # DTC1 协议核心与 SSC 应用适配使用 C++17。
+ CONFIG_CPP=y
+diff --git a/src/ethercat/core.cpp b/src/ethercat/core.cpp
+index 841a964..cd5605a 100644
+--- a/src/ethercat/core.cpp
++++ b/src/ethercat/core.cpp
+@@ -5,6 +5,7 @@
+ 
+ #include "protocol.hpp"
+ #include "digest.hpp"
++#include "ethercat/slave/esm_diag.h"
+ 
+ #if defined(CONFIG_DUST_ECAT_DC_SYNC)
+ // RAM-only first protection snapshot. File points into the matching ELF rodata.
+@@ -94,6 +95,8 @@ void Core::Protect(Error reason, const char* file, unsigned line) {
+ #else
+     (void)file; (void)line;
+ #endif
++    dust_esm_event(11, uint32_t(reason), line);
++    dust_esm_event(12, uint32_t(state_), uint32_t(reinterpret_cast<uintptr_t>(file)));
+     fault_ = reason == Error::None ? Error::Protection : reason;
+     state_ = BusinessState::Protected;
+     have_uart_offer_.fill(false);
+diff --git a/src/ethercat/slave/gateway.cpp b/src/ethercat/slave/gateway.cpp
+index beafbf0..d45ee04 100644
+--- a/src/ethercat/slave/gateway.cpp
++++ b/src/ethercat/slave/gateway.cpp
+@@ -1,5 +1,7 @@
+ /* SPDX-License-Identifier: Apache-2.0 */
+ #include "gateway.h"
++#include "esm_diag.h"
++extern "C" volatile uint32_t dust_config_diag[6];
+ #include "rtt_trace.h"
+ #include "sync0_deferred.h"
+ #include "esc_dma.h"
+@@ -255,7 +257,14 @@ UINT8 Write(UINT16 index, UINT8 subindex, UINT32 size, UINT16* data,
+     if (error == Error::None) {
+         mapping_ready = false;
+     }
+-    return Abort(error);
++    UINT8 abort = Abort(error);
++    if (abort != 0 && dust_config_diag[0] == 0) {
++        dust_config_diag[0] = 4;
++        dust_config_diag[1] = index;
++        dust_config_diag[2] = subindex;
++        dust_config_diag[3] = abort;
++    }
++    return abort;
+ }
+ bool Add(uint16_t index, unsigned maximum, unsigned bits, bool writable,
+          bool array = false) {
+@@ -478,14 +487,27 @@ extern "C" UINT16 APPL_StartMailboxHandler(void) {
+ extern "C" UINT16 APPL_StopMailboxHandler(void) {
+     return ALSTATUSCODE_NOERROR;
+ }
++extern "C" { volatile uint32_t dust_config_diag[6] = {0, 0, 0, 0, 0, 0}; }
+ extern "C" UINT16 APPL_GenerateMapping(UINT16* input, UINT16* output) {
++    dust_config_diag[5] |= 1;
++    dust_esm_event(3, 0, 0);
+     InvalidateInputWrite();
+     *input = 0;
+     *output = 0;
+     mapping_ready = false;
+-    if (dictionary.Snapshot(mapped_rx, mapped_tx) != Error::None ||
+-        transaction.Commit(limits, mapped_rx, mapped_tx, prepared) !=
+-            Error::None) {
++    const Error snap_err = dictionary.Snapshot(mapped_rx, mapped_tx);
++    const Error commit_err =
++        snap_err == Error::None
++            ? transaction.Commit(limits, mapped_rx, mapped_tx, prepared)
++            : snap_err;
++    if (commit_err != Error::None) {
++        dust_config_diag[0] = 1;
++        dust_config_diag[1] = (uint32_t)snap_err;
++        dust_config_diag[2] = (uint32_t)commit_err;
++        dust_config_diag[3] = mapped_rx.bytes;
++        dust_config_diag[4] = mapped_tx.bytes;
++        printk("Gateway: genmap reject snap=%d commit=%d rx=%u tx=%u\n",
++               (int)snap_err, (int)commit_err, mapped_rx.bytes, mapped_tx.bytes);
+         return ALSTATUSCODE_INVALIDOUTPUTMAPPING;
+     }
+     data_entry_count = 0;
+@@ -504,9 +526,12 @@ extern "C" UINT16 APPL_GenerateMapping(UINT16* input, UINT16* output) {
+     *input = prepared.tx.bytes;
+     *output = prepared.rx.bytes;
+     mapping_ready = true;
++    dust_esm_event(4, *input, *output);
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_StartInputHandler(UINT16*) {
++    dust_config_diag[5] |= 2;
++    dust_esm_event(5, 0, 0);
+     InvalidateInputWrite();
+     const bool freerun = sSyncManOutPar.u16SyncType == SYNCTYPE_FREERUN &&
+                          sSyncManInPar.u16SyncType == SYNCTYPE_FREERUN;
+@@ -522,9 +547,34 @@ extern "C" UINT16 APPL_StartInputHandler(UINT16*) {
+ #else
+     const bool dc0 = false;
+ #endif
+-    if (!mapping_ready || !CheckSm() || (!freerun && !sm2 && !dc0) ||
+-        core->Configure(transaction, limits, mapped_rx, mapped_tx) !=
+-            Error::None) {
++    if (!mapping_ready) {
++        dust_config_diag[0] = 2;
++        dust_config_diag[1] = 1;
++        printk("Gateway: startinput reject: not mapping_ready\n");
++        return ALSTATUSCODE_INVALIDOUTPUTMAPPING;
++    }
++    if (!CheckSm()) {
++        dust_config_diag[0] = 2;
++        dust_config_diag[1] = 2;
++        dust_config_diag[3] = prepared.rx.bytes;
++        dust_config_diag[4] = prepared.tx.bytes;
++        printk("Gateway: startinput reject: CheckSm rx=%u tx=%u\n",
++               prepared.rx.bytes, prepared.tx.bytes);
++        return ALSTATUSCODE_INVALIDOUTPUTMAPPING;
++    }
++    if (!freerun && !sm2 && !dc0) {
++        dust_config_diag[0] = 2;
++        dust_config_diag[1] = 3;
++        printk("Gateway: startinput reject: sync type\n");
++        return ALSTATUSCODE_INVALIDOUTPUTMAPPING;
++    }
++    const Error cfg_err =
++        core->Configure(transaction, limits, mapped_rx, mapped_tx);
++    if (cfg_err != Error::None) {
++        dust_config_diag[0] = 2;
++        dust_config_diag[1] = 4;
++        dust_config_diag[2] = (uint32_t)cfg_err;
++        printk("Gateway: startinput configure reject %d\n", (int)cfg_err);
+         return ALSTATUSCODE_INVALIDOUTPUTMAPPING;
+     }
+ #if defined(CONFIG_DUST_ECAT_DC_SYNC)
+@@ -533,9 +583,11 @@ extern "C" UINT16 APPL_StartInputHandler(UINT16*) {
+ #endif
+     ConfigureIo(transaction.candidate());
+     dictionary.Freeze();
++    dust_esm_event(6, (uint32_t)core->state(), 0);
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_StopInputHandler(void) {
++    dust_esm_event(9, core ? (uint32_t)core->state() : 99U, 0);
+     InvalidateInputWrite();
+     if (core && core->state() != BusinessState::Unconfigured) {
+         core->Protect(Error::Transport);
+@@ -547,12 +599,21 @@ extern "C" UINT16 APPL_StopInputHandler(void) {
+     return ALSTATUSCODE_NOERROR;
+ }
+ extern "C" UINT16 APPL_StartOutputHandler(void) {
++    dust_config_diag[5] |= 4;
++    dust_esm_event(7, core ? (uint32_t)core->state() : 99U, 0);
+     InvalidateInputWrite();
+-    return mapping_ready && core->state() == BusinessState::Ready
+-               ? ALSTATUSCODE_NOERROR
+-               : ALSTATUSCODE_INVALIDOUTPUTMAPPING;
++    const bool ok =
++        mapping_ready && core && core->state() == BusinessState::Ready;
++    if (!ok) {
++        dust_config_diag[0] = 3;
++        dust_config_diag[1] = (uint32_t)mapping_ready;
++        dust_config_diag[2] = core ? (uint32_t)core->state() : 99U;
++    }
++    dust_esm_event(8, ok ? 0 : ALSTATUSCODE_INVALIDOUTPUTMAPPING, 0);
++    return ok ? ALSTATUSCODE_NOERROR : ALSTATUSCODE_INVALIDOUTPUTMAPPING;
+ }
+ extern "C" UINT16 APPL_StopOutputHandler(void) {
++    dust_esm_event(10, core ? (uint32_t)core->state() : 99U, 0);
+     InvalidateInputWrite();
+     if (core && core->state() == BusinessState::Active) {
+         core->Protect(Error::Transport);
+@@ -576,6 +637,7 @@ extern "C" void APPL_InputMapping(UINT16* data) {
+ #if defined(CONFIG_DUST_ECAT_INPUT_LATE_REFRESH)
+         RefreshCanBeforeMapping();
+ #endif
++        if(prepared.feedback[3]!=kAbsent) dust_can_flow_image(tx_image.data(),prepared.tx.bytes,prepared.feedback[3]);
+         std::memcpy(data, tx_image.data(), prepared.tx.bytes);
+         dust_trace_input(U32(tx_image.data()+24), prepared.tx.bytes);
+ #if defined(CONFIG_DUST_ECAT_INPUT_WRITE_COALESCE)
+diff --git a/src/ethercat/slave/hpm5e_esc_hw.c b/src/ethercat/slave/hpm5e_esc_hw.c
+index 411c554..00cb75f 100644
+--- a/src/ethercat/slave/hpm5e_esc_hw.c
++++ b/src/ethercat/slave/hpm5e_esc_hw.c
+@@ -2,6 +2,7 @@
+ 
+ #include "hpm5e_esc_hw.h"
+ #include "rtt_trace.h"
++#include "esm_diag.h"
+ #include "esc_dma.h"
+ #include "pdi_deferred.h"
+ #include <string.h>
+@@ -49,6 +50,12 @@ void hpm5e_ssc_esc_write(const volatile void *data, uint16_t address, uint16_t l
+ {
+ #if defined(CONFIG_DUST_ECAT_RTT_TRACE)
+ 	const unsigned previous_phase = length >= 64 ? dust_trace_phase(DUST_PHASE_ESC_WRITE) : 0;
++#endif
++#if defined(CONFIG_DUST_ECAT_ESM_DIAG)
++    if ((address == 0x0130 || address == 0x0134) && length >= 2) {
++        const volatile uint8_t *p = data;
++        dust_esm_event(address == 0x0130 ? 1 : 2, p[0] | ((uint32_t)p[1] << 8), 0);
++    }
+ #endif
+ 	dust_trace_esc(DUST_TR_ESC_BEGIN, address, length);
+ 	if (dust_esc_dma_write((const void *)data, address, length) == 1) {
+diff --git a/src/ethercat/slave/io_backend.cpp b/src/ethercat/slave/io_backend.cpp
+index 8bfc2ac..82b437a 100644
+--- a/src/ethercat/slave/io_backend.cpp
++++ b/src/ethercat/slave/io_backend.cpp
+@@ -1,5 +1,6 @@
+ /* SPDX-License-Identifier: Apache-2.0 */
+ #include "io_backend.hpp"
++#include "esm_diag.h"
+ #include "rtt_trace.h"
+ #include "sync0_deferred.h"
+ #include "wait_profile.h"
+@@ -18,6 +19,9 @@
+ #include <cstring>
+ 
+ #include "drivers/firmware_can_profile.hpp"
++#if defined(CONFIG_WBR_CONTROL_ONBOARD_IMU_RAW)
++#include "drivers/imu_sensor.hpp"
++#endif
+ #include "drivers/uart_receive.hpp"
+ #include "ethercat/io_policy.hpp"
+ 
+@@ -90,6 +94,11 @@ bool initialized = false, ready = false, capturing = false;
+ uint32_t protection_errors = 0;
+ uint64_t source_deadlines[2]{};
+ Configuration configuration;
++#if defined(CONFIG_WBR_CONTROL_ONBOARD_IMU_RAW)
++modules::ImuSensor onboard_imu;
++bool imu_ready = false;
++uint32_t imu_sequence = 0;
++#endif
+ std::array<can_frame, 16> hardware_frames;
+ std::array<PendingCan, 16> admitted;
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+@@ -246,6 +255,7 @@ void CanDone(const device*, int error, void* user) {
+     if (bus.trace_submission) {
+         dust_trace_stamp(DUST_TR_TX_DONE, uint32_t(error));
+     }
++    if (bus.index==3 && bus.trace_submission) dust_can_flow_event(101,(uint32_t)error,bus.index);
+     bus.trace_submission = false;
+     if (error && error != -ECANCELED && error != -ENETDOWN) {
+         atomic_inc(&bus.errors);
+@@ -260,6 +270,7 @@ void CanReceive(const device*, can_frame* frame, void* user) {
+     const uint32_t sequence = bus.rx_sequence++;
+     if (bus.index == 3 && frame->id == 0x13 && frame->dlc == 8 &&
+         !frame->flags && (frame->data[0] & 15) == 3) {
++        dust_can_flow_event(102,sequence,frame->id);
+         dust_trace_stamp(DUST_TR_CAN_RX, sequence);
+ #if defined(CONFIG_DUST_ECAT_RTT_TRACE) && defined(CONFIG_HPM_MCAN_RX_TIMING)
+         dust_trace_can_timing(sequence, hpm_mcan_last_rx_timing(bus.dev));
+@@ -286,6 +297,7 @@ void CanReceive(const device*, can_frame* frame, void* user) {
+             atomic_inc(&bus.drops);
+         }
+     }
++    if (bus.index==3 && value.id==0x13) dust_can_flow_event(103,value.sequence,(uint32_t)queued);
+     if (!queued && bus.index == 3 && value.id == 0x13)
+         dust_trace_can_queue(DUST_TR_CAN_ENQUEUED, sequence);
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+@@ -519,9 +531,10 @@ void PumpCan(Core* core, uint64_t now) {
+         }
+         bus.deadline = deadline;
+         atomic_set(&bus.busy, 1);
+-        bus.trace_submission = bus.index == 3 && count == 1 &&
+-            hardware_frames[0].id == 3 && hardware_frames[0].dlc == 8 &&
+-            hardware_frames[0].data[7] == 0xfd;
++        bus.trace_submission = false;
++        for(unsigned i=0;i<count;++i) bus.trace_submission |=
++            bus.index==3 && hardware_frames[i].id==3 &&
++            hardware_frames[i].dlc==8 && hardware_frames[i].data[7]==0xfd;
+         if (bus.trace_submission) {
+             dust_trace_stamp(DUST_TR_SUBMIT, 0);
+         }
+@@ -531,6 +544,7 @@ void PumpCan(Core* core, uint64_t now) {
+                            deadline, CanDone, &bus)
+                      : hpm_mcan_send_batch(bus.dev, hardware_frames.data(),
+                                            count, K_NO_WAIT, CanDone, &bus);
++        if(bus.trace_submission) dust_can_flow_event(100,count,(uint32_t)result);
+         if (bus.index == 3 && count == 1 && hardware_frames[0].id == 3) {
+             dust_trace_stamp(DUST_TR_SUBMITTED, uint32_t(result));
+         }
+@@ -655,6 +669,9 @@ int InitializeIo(uint64_t& boot) {
+             }
+             port.ready = true;
+         }
++#if defined(CONFIG_WBR_CONTROL_ONBOARD_IMU_RAW)
++        imu_ready = onboard_imu.Init() == 0;
++#endif
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+         k_thread_create(&can_rx_thread, can_rx_stack,
+                         K_THREAD_STACK_SIZEOF(can_rx_stack), CanRxLoop,
+@@ -697,6 +714,9 @@ void ApplyIoLimits(Limits& limits) {
+             }
+         }
+     }
++#if defined(CONFIG_WBR_CONTROL_ONBOARD_IMU_RAW)
++    limits.imu = imu_ready;
++#endif
+ }
+ void ConfigureIo(const Configuration& value) {
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+@@ -814,6 +834,9 @@ void DispatchIo(Core& core, const Actions& actions, uint64_t now) {
+         if (!batch.valid) {
+             continue;
+         }
++        for(unsigned i=0;i<batch.count;++i)
++            if(batch.frames[i].bus==3 && batch.frames[i].id==3)
++                dust_can_flow_event(99,batch.sequence,batch.count);
+         bool trace = source == 0 && batch.count == 1 && batch.frames[0].bus == 3 &&
+             batch.frames[0].id == 3 && batch.frames[0].length == 8 &&
+             batch.frames[0].data[7] == 0xfd;
+@@ -954,6 +977,11 @@ bool DrainCanReceive() {
+                 changed = true;
+             }
+         }
++#endif
++#if defined(CONFIG_DUST_ECAT_ESM_DIAG)
++        uint32_t previous_dm=0; bool had_dm=false;
++        if(bus.index==3) for(unsigned i=0;i<bus.feedback_count;++i)
++            if(bus.feedback[i].id==0x13) {had_dm=true; previous_dm=bus.feedback[i].sequence;}
+ #endif
+         bool added = false;
+         Core::CanEvent value;
+@@ -963,6 +991,7 @@ bool DrainCanReceive() {
+                 break;
+             }
+             if (bus.index == 3 && value.id == 0x13) {
++                dust_can_flow_event(104,value.sequence,0);
+                 dust_trace_can_queue(DUST_TR_CAN_DEQUEUED, value.sequence);
+             }
+             // 启动失能反馈可能早于 PDO
+@@ -974,6 +1003,17 @@ bool DrainCanReceive() {
+             if (!capacity) {
+                 continue;
+             }
++#if defined(CONFIG_DUST_ECAT_CAN_FEEDBACK_WINDOW)
++            if (!added) {
++                // Keep a bounded history, in receive-sequence order. A paired
++                // host deduplicates the retained prefix across new batches.
++                const auto current = uint32_t(Now());
++                for (unsigned i=0;i<bus.feedback_count;++i) {
++                    if (uint32_t(current-bus.feedback[i].capture_us)<kTimeoutUs)
++                        bus.feedback[count++]=bus.feedback[i];
++                }
++            }
++#endif
+             if (count == capacity) {
+                 std::move(bus.feedback.begin() + 1,
+                           bus.feedback.begin() + count, bus.feedback.begin());
+@@ -986,6 +1026,14 @@ bool DrainCanReceive() {
+         if (added) {
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+             bus.snapshot_consumed = false;
++#endif
++#if defined(CONFIG_DUST_ECAT_ESM_DIAG)
++            if(bus.index==3 && had_dm) {
++                bool retained=false;
++                for(unsigned i=0;i<count;++i) retained |=
++                    bus.feedback[i].id==0x13 && bus.feedback[i].sequence==previous_dm;
++                if(!retained) dust_can_flow_event(106,previous_dm,bus.batch+1);
++            }
+ #endif
+             bus.feedback_count = count;
+             ++bus.batch;
+@@ -1156,6 +1204,20 @@ void CaptureIo(Core& core, Core::Feedback& feedback, uint64_t now) {
+             port.discontinuity = false;
+         }
+     }
++#if defined(CONFIG_WBR_CONTROL_ONBOARD_IMU_RAW)
++    if (imu_ready && configuration.imu) {
++        modules::ImuSensor::Burst burst{};
++        if (onboard_imu.TryTakeCompleted(burst)) {
++            feedback.imu_valid = true;
++            feedback.imu_sequence = ++imu_sequence;
++            feedback.imu_capture_us = k_cyc_to_us_floor32(burst.data_ready_cycle);
++            feedback.temperature = burst.temperature_c;
++            std::copy(burst.rx, burst.rx + sizeof(burst.rx),
++                      feedback.imu_raw.begin());
++        }
++        (void)onboard_imu.TryStartAsync();
++    }
++#endif
+     Put32(feedback.diagnostics.data() + 16, protection_errors);
+ }
+ }  // namespace dust::ecat
+diff --git a/tests/ethercat_io_contracts.cpp b/tests/ethercat_io_contracts.cpp
+index 6ab2d60..5bd6bbe 100644
+--- a/tests/ethercat_io_contracts.cpp
++++ b/tests/ethercat_io_contracts.cpp
+@@ -498,6 +498,43 @@ int main() {
+         assert(f.core->state() == BusinessState::Protected &&
+                cans[2].batches == before);
+     }
++#if defined(CONFIG_DUST_ECAT_CAN_FEEDBACK_WINDOW) && !defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
++    {
++        Fixture f;
++        Core::Feedback feedback;
++        // Other native cases may leave mock IRQ records queued. Expire those
++        // before starting this independent window observation.
++        native_now+=20001;
++        FlushCan(); ServiceCanReceive(); CaptureCanFeedback(feedback);
++        assert(feedback.can[2].count==0);
++        can_frame frame{}; frame.id=0x201; frame.dlc=8;
++        frame.data[0]=41;
++        cans[2].rx(&devices[2],&frame,cans[2].rx_user);
++        FlushCan(); ServiceCanReceive(); CaptureCanFeedback(feedback);
++        assert(feedback.can[2].count==1);
++        const auto first_sequence=feedback.can[2].frames[0].sequence;
++        // A later IRQ must not replace the previous reply before the master
++        // gets a chance to observe it. The window keeps receive order.
++        frame.data[0]=42;
++        cans[2].rx(&devices[2],&frame,cans[2].rx_user);
++        FlushCan(); ServiceCanReceive(); CaptureCanFeedback(feedback);
++        assert(feedback.can[2].count==2 &&
++               feedback.can[2].frames[0].sequence==first_sequence &&
++               feedback.can[2].frames[0].data[0]==41 &&
++               feedback.can[2].frames[1].data[0]==42);
++        frame.data[0]=43;
++        cans[2].rx(&devices[2],&frame,cans[2].rx_user);
++        FlushCan(); ServiceCanReceive(); CaptureCanFeedback(feedback);
++        assert(feedback.can[2].count==2 &&
++               feedback.can[2].frames[0].data[0]==42 &&
++               feedback.can[2].frames[1].data[0]==43);
++        const auto saved_now=native_now;
++        native_now+=20000;
++        FlushCan(); ServiceCanReceive(); CaptureCanFeedback(feedback);
++        assert(feedback.can[2].count==0);
++        native_now=saved_now;
++    }
++#endif
+ #if defined(CONFIG_DUST_ECAT_CAN_RX_THREAD)
+     NativeStopCanWorker();
+ #endif

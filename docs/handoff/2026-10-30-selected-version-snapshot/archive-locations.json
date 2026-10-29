@@ -1,0 +1,12 @@
+{
+  "firmware_archive": {
+    "host": "Mac",
+    "path": "/Users/panpoming/Documents/zephyr_projects/dust-adapter-ws/handoff-archives/selected-version-2026-10-30.tar.gz",
+    "sha256": "a024ee4d2087ead402afdf1818701a99b6667fa65f74d9c63172bb87565346d0"
+  },
+  "bench_archive": {
+    "host": "wbr-nuc",
+    "path": "/home/wbr-infantry/dust-ecat-bench/handoff-selected-2026-10-30.tar.gz",
+    "sha256": "80a75f0af87332769e84c025b8d18e2e609c41f2f36ed943d7992807e7049ff5"
+  }
+}

@@ -1,0 +1,196 @@
+diff --git a/drivers/can/mcan_hpmicro.c b/drivers/can/mcan_hpmicro.c
+index 272eb14..d03ed4e 100644
+--- a/drivers/can/mcan_hpmicro.c
++++ b/drivers/can/mcan_hpmicro.c
+@@ -621,8 +621,20 @@ static int hpm_mcan_validate_frame(struct hpm_mcan_data *data, const struct can_
+     return 0;
+ }
+ 
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++/* Lab-only owner phase hook; absent from normal builds. */
++extern unsigned dust_sync0_phase(unsigned phase);
++static void hpm_mcan_diag_restore(unsigned *previous) {
++    (void)dust_sync0_phase(*previous);
++}
++#endif
++
+ static int hpm_mcan_submit(const struct device *dev, const struct can_frame *frames, size_t count,
+                            k_timeout_t timeout, uint64_t deadline_us, can_tx_callback_t callback, void *user_data) {
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++    unsigned diagnostic_previous __attribute__((cleanup(hpm_mcan_diag_restore))) =
++        dust_sync0_phase(16); /* validation */
++#endif
+     const struct hpm_mcan_config *cfg = dev->config;
+     struct hpm_mcan_data *data = dev->data;
+     MCAN_Type *can = cfg->base;
+@@ -636,6 +648,10 @@ static int hpm_mcan_submit(const struct device *dev, const struct can_frame *fra
+             return result;
+         }
+     }
++
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++    (void)dust_sync0_phase(17); /* admission */
++#endif
+     int result = k_sem_take(&data->tx_sem, timeout);
+     if (result) {
+         return -EAGAIN;
+@@ -645,12 +661,20 @@ static int hpm_mcan_submit(const struct device *dev, const struct can_frame *fra
+         k_sem_give(&data->tx_sem);
+         return result;
+     }
++
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++    (void)dust_sync0_phase(18); /* state check */
++#endif
+     enum can_state state;
+     (void)hpm_mcan_get_state(dev, &state, NULL);
+     if (!data->started || state == CAN_STATE_BUS_OFF) {
+         result = data->started ? -ENETUNREACH : -ENETDOWN;
+         goto rejected;
+     }
++
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++    (void)dust_sync0_phase(19); /* message RAM preparation and write */
++#endif
+     for (size_t i = 0; i < count; ++i) {
+         mcan_tx_frame_t buffer;
+         memset(&buffer, 0, sizeof(buffer));
+@@ -669,6 +693,10 @@ static int hpm_mcan_submit(const struct device *dev, const struct can_frame *fra
+         }
+     }
+ #endif
++
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++    (void)dust_sync0_phase(20); /* bookkeeping and TX request */
++#endif
+     k_sem_reset(&data->tx_fin_sem[0]);
+     k_spinlock_key_t key = k_spin_lock(&data->tx_lock);
+     mcan_clear_interrupt_flags(can, MCAN_EVENT_TRANSMIT | MCAN_INT_TX_CANCEL_FINISHED);
+@@ -693,6 +721,10 @@ static int hpm_mcan_submit(const struct device *dev, const struct can_frame *fra
+     }
+     mcan_send_add_multiple_requests(can, data->tx_batch.active);
+     k_spin_unlock(&data->tx_lock, key);
++#if defined(CONFIG_DUST_ECAT_DC_PROFILE)
++    (void)dust_sync0_phase(21); /* release */
++#endif
++
+     k_mutex_unlock(&data->tx_mutex);
+     if (callback) {
+         return 0;
+diff --git a/samples/ecat/Middleware/ESC/hpm5e31_phy.c b/samples/ecat/Middleware/ESC/hpm5e31_phy.c
+index 374e62f..f312ed0 100644
+--- a/samples/ecat/Middleware/ESC/hpm5e31_phy.c
++++ b/samples/ecat/Middleware/ESC/hpm5e31_phy.c
+@@ -224,10 +224,13 @@ hpm_stat_t ecat_phy_config(const struct device *esc_dev)
+ 	return status_success;
+ }
+ 
++static int prev0 = -1, prev1 = -1;
++
+ void ecat_phy_update_link(const struct device *esc_dev)
+ {
+-	static int prev0 = -1, prev1 = -1;
++#if defined(CONFIG_DUST_ECAT_PHY_RAW_DIAGNOSTICS)
+ 	static unsigned int dbg_cnt;
++#endif
+ 	uint16_t status = 0U, control = 0U;
+ 	int up;
+ 
+@@ -269,7 +272,8 @@ void ecat_phy_update_link(const struct device *esc_dev)
+ 		prev1 = up;
+ 	}
+ 
+-	/* Debug: periodic raw dump (every ~2s at the 100ms poll rate). */
++#if defined(CONFIG_DUST_ECAT_PHY_RAW_DIAGNOSTICS)
++	/* Optional raw diagnostics; actual link detection above remains unconditional. */
+ 	if (++dbg_cnt >= 20U) {
+ 		dbg_cnt = 0U;
+ 		uint16_t b0, b1;
+@@ -278,4 +282,73 @@ void ecat_phy_update_link(const struct device *esc_dev)
+ 		printk("ESC phy dump: Port0 BMSR=0x%04x(%d) Port1 BMSR=0x%04x(%d)\n",
+ 		       b0, r0, b1, r1);
+ 	}
++#endif
++}
++
++#if defined(CONFIG_DUST_ECAT_DC_SYNC)
++/* Owner-thread only. At most one normal MDIO read per call; false keeps the
++ * existing poll due so the owner checks PDI/Sync0 before the next read.
++ * Preserve latch-low double reads and fail closed on any read error. */
++bool ecat_phy_update_link_step(const struct device *esc_dev)
++{
++#if defined(CONFIG_DUST_ECAT_PHY_RAW_DIAGNOSTICS)
++	/* Explicit raw diagnostic builds retain the original complete dump. */
++	ecat_phy_update_link(esc_dev);
++	return true;
++#else
++	static unsigned phase;
++	static uint16_t status;
++	uint16_t value = 0U;
++	int ret;
++	bool up;
++	if (phase < 3U) {
++		if (!port0_configured) {
++			up = false;
++		} else {
++			ret = phy_read(esc_dev, BOARD_ECAT_PORT0_PHY_ADDR,
++				       phase == 2U ? PHY_BMCR_REG : PHY_BMSR_REG, &value);
++			/* First BMSR read only clears the latch; second is validated. */
++			if (ret == 0 && (phase == 0U || value != 0xffffU)) {
++				if (phase < 2U) {
++					status = value;
++					++phase;
++					return false;
++				}
++				up = (status & PHY_LINK_STATUS) &&
++				     (value & (BIT(13) | BIT(8))) == (BIT(13) | BIT(8));
++			} else {
++				up = false;
++			}
++		}
++		hpm_esc_set_link_state(esc_dev, 0, up);
++		if ((int)up != prev0) {
++			printk("ESC Port0 link %s\n", up ? "up" : "down");
++			prev0 = up;
++		}
++		phase = 3U;
++		return false;
++	}
++	if (port1_configured) {
++		ret = phy_read(esc_dev, BOARD_ECAT_PORT1_PHY_ADDR, PHY_BMSR_REG, &value);
++		if (ret == 0 && (phase == 3U || value != 0xffffU)) {
++			if (phase == 3U) {
++				phase = 4U;
++				return false;
++			}
++			up = (value & PHY_LINK_STATUS) != 0;
++		} else {
++			up = false;
++		}
++	} else {
++		up = false;
++	}
++	hpm_esc_set_link_state(esc_dev, 1, up);
++	if ((int)up != prev1) {
++		printk("ESC Port1 link %s\n", up ? "up" : "down");
++		prev1 = up;
++	}
++	phase = 0U;
++	return true;
++#endif
+ }
++#endif
+diff --git a/samples/ecat/Middleware/ESC/hpm5e31_phy.h b/samples/ecat/Middleware/ESC/hpm5e31_phy.h
+index d1e9f3c..2101ddd 100644
+--- a/samples/ecat/Middleware/ESC/hpm5e31_phy.h
++++ b/samples/ecat/Middleware/ESC/hpm5e31_phy.h
+@@ -10,4 +10,9 @@ void ecat_phy_keep_reset(const struct device *esc_dev);
+ hpm_stat_t ecat_phy_config(const struct device *esc_dev);
+ void ecat_phy_update_link(const struct device *esc_dev);
+ 
++#if defined(CONFIG_DUST_ECAT_DC_SYNC)
++/* Owner-only incremental link poll; true means this poll is complete. */
++bool ecat_phy_update_link_step(const struct device *esc_dev);
++#endif
++
+ #endif
