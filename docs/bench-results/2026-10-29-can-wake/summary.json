@@ -1,0 +1,85 @@
+{
+  "poll": {
+    "samples": 2000,
+    "mean_us": 848.6729505,
+    "p50_us": 873.736,
+    "p95_us": 999.146,
+    "p99_us": 1124.008,
+    "max_us": 1249.409,
+    "over_1ms": 41
+  },
+  "event": {
+    "samples": 2000,
+    "mean_us": 749.798983,
+    "p50_us": 748.967,
+    "p95_us": 873.997,
+    "p99_us": 874.515,
+    "max_us": 999.638,
+    "over_1ms": 0
+  },
+  "stats_fields": [
+    "version",
+    "poll_us",
+    "active_wakes",
+    "active_timeouts",
+    "active_empty_wakes",
+    "active_changes",
+    "ssc_expirations"
+  ],
+  "scheduler": {
+    "phase-1-stats.bin": [
+      1,
+      100,
+      3227,
+      3162,
+      3163,
+      64,
+      0
+    ],
+    "phase-2-stats.bin": [
+      1,
+      0,
+      65,
+      0,
+      1,
+      64,
+      0
+    ],
+    "phase-3-stats.bin": [
+      1,
+      100,
+      50953,
+      49952,
+      49953,
+      1000,
+      0
+    ],
+    "phase-4-stats.bin": [
+      1,
+      0,
+      1001,
+      0,
+      1,
+      1000,
+      0
+    ],
+    "phase-5-stats.bin": [
+      1,
+      0,
+      1001,
+      0,
+      1,
+      1000,
+      0
+    ],
+    "phase-6-stats.bin": [
+      1,
+      100,
+      50890,
+      49889,
+      49890,
+      1000,
+      0
+    ]
+  }
+}
