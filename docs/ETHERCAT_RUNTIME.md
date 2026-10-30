@@ -155,7 +155,7 @@ controller_state/tx_errors/rx_errors；UART 为 received_blocks/dropped_blocks/c
 
 动态配置同时以 u16 下载 `0x1c32:1=0` 和 `0x1c33:1=0`，显式选择 FreeRun。
 未下载时 SSC 可能自动选择 SM Sync，不能进入只支持 FreeRun 的网关周期。
-实验板首轮工具及实测进度见 [台架验证](ETHERCAT_BENCH.md)。
+主站选型和实测配置见 [最终方案](2026-10-30-master-selection-igh.md)。
 
 ## 控制频率与交换频率分离
 
@@ -174,7 +174,7 @@ Active时从站以10µs短忙等轮询SSC，不再依赖100µs tick休眠；ISR�
 
 主机布局编译器另外检查估算的总线上线时间不超过配置周期；多板/大PDO可能不允许125或250µs。
 布局能编译不代表调度、PCIe或ESC延迟满足周期，必须观察实际WKC与端到端时间。
-相关台架与已知失败见 [CAN RTT](ETHERCAT_CAN_RTT.md)。
+实测数据与运行约束见 [最终方案](2026-10-30-master-selection-igh.md)。
 
 快照修复后的125µs台架已通过1000条失能命令，平均RTT约934µs、P99约1000µs、最大1124µs；
-尚未通过每次反馈低于1ms或满负载1kHz命令验收，详见CAN RTT文档的最终实测。
+尚未通过每次反馈低于1ms或满负载1kHz命令验收，后续选型对比结果见最终方案。

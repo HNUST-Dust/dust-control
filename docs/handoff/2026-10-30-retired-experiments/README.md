@@ -1,5 +1,7 @@
 # 已退出使用的实验
 
+> 历史记录：`docs/bench-results/` 中的原始实验数据已清理，下文涉及该目录的路径不再可用。
+
 ## I225 接收时间戳诊断
 
 `igc-rx-timestamp.tar.gz` 保存原 `tools/experiments/igc_rx_timestamp/` 和 `tests/tools/test_igc_rx_timestamp_decode.py`。归档前逐文件校验内容一致；SHA-256：`16706e68b6106e5e8f75a22cbde6c20a7597fb985e43c6201f343c5e5cc29796`。需要复现时，在独立目录解压；原实验对应的内核、驱动版本及哈希见包内 manifest。实验结果保留在 `docs/bench-results/2026-10-30-master-rx-diag/`。

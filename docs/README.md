@@ -35,12 +35,8 @@
 OrbStack 用于开发和功能调试。实际多板 EtherCAT、控制周期、ROS2 话题和 Foxglove
 性能留到目标机器人主机验证，历史虚拟机测量不构成实机性能承诺。
 
-EtherCAT IgH 方案：[通信协议讨论稿](ETHERCAT_PROTOCOL_DISCUSSION.md)（网关职责已确认，协议尚未冻结）。
+[主站选型与最终方案](2026-10-30-master-selection-igh.md)：IgH 选型、台架结果与运行约束。
 
-EtherCAT [PDO 布局提案 v0](ETHERCAT_PDO_LAYOUT_V0.md)：每板容量、分区偏移、候选交付规则与三板预算。
-
-EtherCAT [YAML 可配置 PDO](ETHERCAT_PDO_CONFIGURATION.md)：已实现配置检查、映射生成与 IgH 主机路径；配套从站固件待实现。
-
-[EtherCAT 运行时与从站契约](ETHERCAT_RUNTIME.md)：当前有效的握手、SDO、序号、保护与状态查询规则。
+[外设实机验证摘要](2026-10-30-peripheral-validation.md)：清理后固件的 CAN3 和 UART 验证结果。
 
 旧 [USB 协议](protocols/USB.md)和 [UART 文档](protocols/UART.md)保留为历史对照，不是本分支当前传输契约。

@@ -1,6 +1,0 @@
-{
-  "zephyr.elf": "1d7c771aab0b021939772e840bd0bafbb2418d0de65f8c9d67705ee9a2f6b592",
-  "zephyr.hex": "55b0f4a2b3a0a4b16894d24ba0b9a02ca36e38f5dae82eea046f7f718779a52a",
-  ".config": "58193f5b2924c69a41e763e19a428e65345beaa0e9f3694169e7153b54a9e7e4",
-  "firmware.patch": "7da42fff5c1a51e4f5fddb59f8f83f8238d8f18c87afe77ffa6a5308727158da"
-}
