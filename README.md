@@ -37,6 +37,15 @@ cmake --build --preset production --parallel 2
 先完成固件/身份/映射和无输出验收，再按现场控制门控执行真实输出验证。
 配置修改后重启，不做热更新。
 
+### EtherCAT 网卡 ASPM 配置
+
+NUC 的 EtherCAT 专用 I225 网卡（PCI `0000:58:00.0`）必须关闭 ASPM：
+将 `l1_aspm`、`l1_1_aspm` 和 `l1_1_pcipm` 均设为 `0`，否则 125 μs
+周期下可能出现 WKC 持续为 0。该 NUC 已安装持久配置：EtherCAT 服务每次
+启动后重新应用，其他设备不受影响。安装和检查方法见
+[EtherCAT 网卡 ASPM 配置](tools/system/ethercat-aspm/README.md)。
+安装后已确认三个值为 0，但操作系统重启后的效果尚未实测。
+
 ## 回归
 
 ```bash
