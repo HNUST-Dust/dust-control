@@ -26,8 +26,8 @@
 | peak-to-peak | 377.133 μs | 270.643 μs | SOEM 低 28% |
 | 超时 / WKC 缺失 | 0 / 0 | 0 / 0 | — |
 
-> 当时使用 DM 失能帧 RTT 台架（CAN3 `0x003→0x013`），配置
-> `config/ethercat_dm_rtt_125us.yaml`，PDO Rx96/Tx400、signature `3858229428`。
+> 当时使用 DM 失能帧 RTT 台架（CAN3 `0x003→0x013`），周期 125 μs，
+> PDO Rx96/Tx400、signature `3858229428`；台架配置已清理。
 
 ---
 
