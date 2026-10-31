@@ -50,16 +50,13 @@ host::EthercatDeviceOptions NoSensors() {
 void Header(std::vector<uint8_t>& image, const ec::AdapterPdoLayout& layout,
             uint32_t sequence, uint64_t nonce = 77, uint64_t boot = 99) {
     auto* p = image.data();
-    w::Put32(p, w::kMagic);
-    w::Put16(p + 4, w::kMajor);
-    w::Put16(p + 6, w::kMinor);
-    w::Put64(p + 8, boot);
-    w::Put64(p + 16, nonce);
-    w::Put32(p + 24, sequence);
-    w::Put32(p + 28, uint32_t(rt::MonotonicTimeNs() / 1000));
-    w::Put32(p + 32, layout.layout_signature);
-    w::Put32(p + 36, w::kFirmwareProtection | 0x000f00ffU);
-    w::Put32(p + 40, w::kActive);
+    (void)layout;
+    w::Put32(p, uint32_t(boot));
+    w::Put32(p + 4, uint32_t(nonce));
+    w::Put32(p + 8, sequence);
+    w::Put32(p + 12, uint32_t(rt::MonotonicTimeNs() / 1000));
+    w::Put32(p + 16, w::kFirmwareProtection | 0x000f00ffU);
+    p[20] = uint8_t(w::kActive);
 }
 void Commands() {
     auto cfg = Config();
@@ -121,17 +118,17 @@ void SessionCodec() {
     const auto uart = Offset(layout.tx, "uart1.block_sequence");
     auto* p = input.data() + uart;
     w::Put32(p, 1);
-    w::Put32(p + 8, w::U32(input.data() + 28));
+    w::Put32(p + 8, w::U32(input.data() + 12));
     w::Put16(p + 12, 3);
-    w::Put16(p + 14, w::kDataValid);
-    p[16] = 4;
-    p[17] = 5;
-    p[18] = 6;
+    p[14] = w::kDataValid;
+    p[15] = 4;
+    p[16] = 5;
+    p[17] = 6;
     const auto imu = Offset(layout.tx, "imu.sample_sequence");
     w::Put32(input.data() + imu, 1);
-    w::Put32(input.data() + imu + 4, w::U32(input.data() + 28));
-    w::Put32(input.data() + imu + 8, 1);
-    w::Put32(input.data() + imu + 12, std::bit_cast<uint32_t>(25.0f));
+    w::Put32(input.data() + imu + 4, w::U32(input.data() + 12));
+    input.data()[imu + 8] = 1;
+    w::Put32(input.data() + imu + 9, std::bit_cast<uint32_t>(25.0f));
     const auto now = rt::MonotonicTimeNs();
     assert(session.Receive(input, now, 77));
     host::UartReceiveChunk chunk;
@@ -146,11 +143,11 @@ void SessionCodec() {
     assert(session.Encode(output, now + 1000000, 77, 2, w::kArm));
     const auto uart_out = Offset(layout.rx, "uart1.block_sequence");
     assert(w::U32(output.data() + uart_out + 4) == 1);
-    assert(w::U16(output.data() + uart_out + 14) & w::kAckValid);
+    assert(output.data()[uart_out + 14] & w::kAckValid);
     const auto request = session.RequestStatus(1, 2, 3);
     assert(session.Encode(output, now + 1000000, 77, 3, w::kArm));
-    assert(w::U32(output.data() + 44) == request && output[48] == 13 &&
-           output[49] == 2);
+    assert(w::U16(output.data() + 16) == request && output[14] == 13 &&
+           output[15] == 2);
     Header(input, layout, 2);
     w::Put32(p, 3);  // Missing UART block 2: no delivery or ACK advance.
     assert(session.Receive(input, now + 2000000, 77));
@@ -160,8 +157,8 @@ void SessionCodec() {
     assert(session.Receive(input, now + 3000000, 77));
     assert(session.uart_queue().TakeUartChunk(1, chunk) && chunk.sequence == 2);
     assert(session.Encode(output, now + 3000000, 77, 4, w::kStop));
-    assert(w::U32(output.data() + 28) == w::kStop);
-    assert(std::all_of(output.begin() + 64, output.end(),
+    assert(output[12] == w::kStop);
+    assert(std::all_of(output.begin() + 18, output.end(),
                        [](uint8_t x) { return x == 0; }));
     assert(!session.Receive(input, now + 30000000, 77));
 
@@ -171,24 +168,26 @@ void SessionCodec() {
         std::fill(input.begin(), input.end(), 0);
         Header(input, layout, 1);
         if (fault == 0) {
-            w::Put32(input.data() + 32, 0);
+            w::Put32(input.data(), 0);
         }
         if (fault == 1) {
-            w::Put64(input.data() + 16, 123);
+            w::Put32(input.data() + 4, 123);
         }
         if (fault == 2) {
-            w::Put32(input.data() + 36, 0);
+            w::Put32(input.data() + 16, 0);
         }
         if (fault == 3) {
             w::Put16(input.data() + uart + 12, 33);
         }
         if (fault == 4) {
             const auto can = Offset(layout.tx, "can2.batch_sequence");
-            w::Put16(input.data() + can + 8, 5);
+            input.data()[can + 8] = 5;
         }
         assert(!bad.Receive(input, now, 77));
         assert(!bad.error().empty());
     }
+    host::EthercatSession invalid_flags(cfg.adapters.begin()->second, layout, NoSensors());
+    assert(!invalid_flags.Encode(output, now, 77, 1, 0x101));
     host::EthercatSession reboot(cfg.adapters.begin()->second, layout,
                                  NoSensors());
     std::fill(input.begin(), input.end(), 0);
@@ -211,12 +210,12 @@ void CanSnapshotGap() {
             input.data() +
             Offset(layout.tx, "can" + std::to_string(bus) + ".batch_sequence");
         w::Put32(header, 1);
-        w::Put16(header + 8, 1);
-        auto* frame = header + 16;
-        w::Put32(frame, 0x201);
-        w::Put32(frame + 4, 1);
-        w::Put32(frame + 8, w::U32(input.data() + 28));
-        frame[12] = 8;
+        header[8] = 1;
+        auto* frame = header + 9;
+        w::Put16(frame, 0x201);
+        w::Put32(frame + 2, 1);
+        w::Put32(frame + 6, w::U32(input.data() + 12));
+        frame[10] = 8;
     }
     auto now = rt::MonotonicTimeNs();
     assert(session.Receive(input, now, 77));
@@ -225,17 +224,41 @@ void CanSnapshotGap() {
     Header(input, layout, 2);
     auto* header = input.data() + Offset(layout.tx, "can3.batch_sequence");
     w::Put32(header, 2);
-    w::Put32(header + 20, 3);  // A missing intermediate event.
+    w::Put32(header + 11, 3);  // Latest-value sequence may skip updates.
     now = rt::MonotonicTimeNs();
     assert(session.Receive(input, now, 77));
     assert(session.motor_decoder().Read()[0].valid);
-    assert(!session.motor_decoder()
-                .Read()[1]
-                .valid);  // Other board-local samples reset.
+    assert(session.motor_decoder().Read()[1].valid); // Coalescing is not a drop.
     const auto sample = session.motor_decoder().Read()[0].precise_timestamp_us;
     Header(input, layout, 3);
     assert(session.Receive(input, now + 1000000, 77));
     assert(session.motor_decoder().Read()[0].precise_timestamp_us == sample);
+    Header(input, layout, 4);
+    w::Put32(header, 3);
+    w::Put32(header + 4, 1); // A real transport drop still resets unwrap state.
+    w::Put32(header + 11, 4);
+    assert(session.Receive(input, now + 2000000, 77));
+    assert(!session.motor_decoder().Read()[1].valid);
+}
+void CanLatestSlots() {
+    auto cfg = Config();
+    const auto layout = ec::BuildPdoLayout(cfg).adapters.begin()->second;
+    host::EthercatSession session(cfg.adapters.begin()->second, layout, NoSensors());
+    std::vector<uint8_t> input(layout.tx.bytes);
+    auto *h = input.data() + Offset(layout.tx, "can3.batch_sequence");
+    Header(input, layout, 1);
+    w::Put32(h, 1); h[8] = 2;
+    auto *a = h + 9; auto *b = a + 19;
+    w::Put16(a, 0x201); w::Put32(a + 2, 100); a[10] = 8;
+    w::Put16(b, 0x013); w::Put32(b + 2, 99); b[10] = 8;
+    auto now = rt::MonotonicTimeNs();
+    assert(session.Receive(input, now, 77));
+    Header(input, layout, 2); w::Put32(h, 2);
+    w::Put32(a + 2, 103); // Other ID can remain unchanged and older.
+    assert(session.Receive(input, now + 1000000, 77));
+    Header(input, layout, 3); w::Put32(h, 3);
+    b[11] = 1; // Reusing an ID sequence with different bytes is invalid.
+    assert(!session.Receive(input, now + 2000000, 77));
 }
 void UnconfiguredHardware() {
     auto config = Config();
@@ -282,11 +305,11 @@ class FakeTransport final : public ec::Transport {
             Header(board.input, board.layout, seq, nonce_,
                    fault_ == 2 && cycle > 8 ? 101 : 99);
             if (!armed_) {
-                w::Put32(board.input.data() + 40, w::kReady);
-                w::Put64(board.input.data() + 16, 0);
+                board.input[20] = uint8_t(w::kReady);
+                w::Put32(board.input.data() + 4, 0);
             }
             if (fault_ == 4) {
-                w::Put32(board.input.data() + 32, 0);
+                w::Put32(board.input.data() + 16, 0);
             }
         }
         return true;
@@ -297,9 +320,9 @@ class FakeTransport final : public ec::Transport {
         ++observation_->sends;
         bool all_stop = true;
         for (const auto& board : boards) {
-            assert(w::U32(board.output.data()) == w::kMagic);
-            nonce_ = w::U64(board.output.data() + 8);
-            const auto flags = w::U32(board.output.data() + 28);
+            nonce_ = w::U32(board.output.data());
+            assert(nonce_ != 0);
+            const auto flags = board.output[12];
             armed_ = armed_ || flags == w::kArm;
             all_stop = all_stop && flags == w::kStop;
         }
@@ -405,7 +428,7 @@ void FastCycleCodec() {
         std::vector<uint8_t> output(layout.rx.bytes);
         assert(
             session.Encode(output, rt::MonotonicTimeNs(), 77, 1, w::kDiscover));
-        assert(w::U32(output.data() + 40) == period);
+        assert(layout.cycle_time_us == period && w::U32(output.data()) == 77);
     }
 }
 int main(int argc, char** argv) {
@@ -414,6 +437,7 @@ int main(int argc, char** argv) {
     Commands();
     SessionCodec();
     CanSnapshotGap();
+    CanLatestSlots();
     UnconfiguredHardware();
     MasterLifecycle(1, 0);
     MasterLifecycle(3, 0);

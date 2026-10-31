@@ -68,7 +68,10 @@ add_test(NAME architecture.dependencies COMMAND ${Python3_EXECUTABLE}
 
 add_test(NAME ethercat.pdo_layout COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/pdo_layout.py"
-  $<TARGET_FILE:dust_ethercat_layout> "${PROJECT_SOURCE_DIR}/config/ethercat_pdo.yaml")
+  $<TARGET_FILE:dust_ethercat_layout> "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/fixtures/full_pdo.yaml")
+add_test(NAME ethercat.pdo_compact COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/pdo_compact.py"
+  $<TARGET_FILE:dust_ethercat_layout>)
 
 add_executable(ethercat_runtime_contracts ethercat/runtime.cpp)
 target_link_libraries(ethercat_runtime_contracts PRIVATE dust_startup)

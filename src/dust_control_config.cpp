@@ -89,12 +89,26 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     DustControlConfig config;
     config.motors_file = root["motors"].as<std::string>();
     const auto bus = root["ethercat"];
-    yaml_validation::ValidateKeys(bus, {"pdo_file", "thread"});
+    yaml_validation::ValidateKeys(
+        bus, {"master_index", "cycle_time_us", "limits", "thread"});
     config.ethercat_thread = ReadThread(bus["thread"]);
-    config.pdo =
-        ethercat::LoadPdoConfig((std::filesystem::path(file).parent_path() /
-                                 bus["pdo_file"].as<std::string>())
-                                    .string());
+    config.pdo.master_index = static_cast<uint32_t>(
+        yaml_validation::ParseUnsignedInteger(bus["master_index"], 255));
+    config.pdo.cycle_time_us = static_cast<uint32_t>(
+        yaml_validation::ParseUnsignedInteger(bus["cycle_time_us"], 1000));
+    if (const auto limits = bus["limits"]) {
+        yaml_validation::ValidateKeys(
+            limits, {"max_rxpdo_bytes", "max_txpdo_bytes", "max_wire_time_us"});
+        config.pdo.max_rxpdo_bytes = static_cast<uint32_t>(
+            yaml_validation::ParseUnsignedInteger(limits["max_rxpdo_bytes"],
+                                                  4096));
+        config.pdo.max_txpdo_bytes = static_cast<uint32_t>(
+            yaml_validation::ParseUnsignedInteger(limits["max_txpdo_bytes"],
+                                                  4096));
+        config.pdo.max_wire_time_us = static_cast<uint32_t>(
+            yaml_validation::ParseUnsignedInteger(limits["max_wire_time_us"],
+                                                  1000));
+    }
     const auto execution = root["execution"];
     yaml_validation::ValidateKeys(execution,
                                   {"simulate", "realtime", "enable_output"});
@@ -109,8 +123,26 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     for (const auto& entry : adapters) {
         const auto name = entry.first.as<std::string>();
         const auto node = entry.second;
-        yaml_validation::ValidateKeys(node, {"uart_sensors"},
-                                      {"strict_hi91_crc"});
+        yaml_validation::ValidateKeys(
+            node, {"alias", "position", "vendor_id", "product_code",
+                   "uart_sensors"},
+            {"strict_hi91_crc"});
+        // PDO capacity comes from the schema's production profile; identity
+        // and master fields come from this application config.
+        ethercat::AdapterPdoConfig pdo_adapter = ethercat::ProductionCapacity();
+        pdo_adapter.alias = static_cast<uint16_t>(
+            yaml_validation::ParseUnsignedInteger(node["alias"], 65535));
+        pdo_adapter.position = static_cast<uint16_t>(
+            yaml_validation::ParseUnsignedInteger(node["position"], 65535));
+        pdo_adapter.vendor_id = static_cast<uint32_t>(
+            yaml_validation::ParseUnsignedInteger(node["vendor_id"],
+                                                  0xffffffffU));
+        pdo_adapter.product_code = static_cast<uint32_t>(
+            yaml_validation::ParseUnsignedInteger(node["product_code"],
+                                                  0xffffffffU));
+        if (!config.pdo.adapters.emplace(name, pdo_adapter).second) {
+            throw std::invalid_argument("Duplicate PDO adapter name: " + name);
+        }
         AdapterConfig adapter;
         if (node["strict_hi91_crc"]) {
             adapter.devices.strict_hi91_crc =

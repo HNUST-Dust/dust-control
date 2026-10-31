@@ -22,18 +22,19 @@ cmake --build --preset production --parallel 2
 真实启动会明确失败，不回退其他后端。ROS 模拟模式不申请主站。
 
 `dust_control.yaml` schema 3 包含 execution、motors、ethercat、adapters、modules。
-`ethercat.pdo_file` 相对应用配置文件解析，读取 [ethercat_pdo.yaml](../config/ethercat_pdo.yaml)。
+`ethercat` 提供 `master_index`、`cycle_time_us` 与 `limits`；从站身份
+（`alias`/`position`/`vendor_id`/`product_code`）在 `adapters` 下，PDO 容量来自
+`config/pdo_schema.yaml` 的固定生产 profile（生成的 `ProductionConfig()`），不再单独加载 PDO 文件。
 板卡集合必须一致；传感器绑定必须有对应 UART 接收容量，电机必须有对应 CAN 反馈容量，
 注册命令组必须装得下 CAN 发送槽。所有检查先于主站启动。
 
-PDO 文件每板增加 `vendor_id`、`product_code`（u32），来自从站实际注册身份。
-默认 0 是未配置标记，真实 IgH 启动拒绝它；不猜测厂商号。
-alias/position 定位仍在该文件，周期仅支持 1000 us。布局预览：
+从站身份来自实际注册身份，默认 0 是未配置标记，真实 IgH 启动拒绝它；不猜测厂商号。
+周期仅支持 125/250/500/1000 us。布局预览：
 
 ```bash
 cmake --preset ethercat-ci
 cmake --build --preset ethercat-ci --parallel 2
-./build/ethercat-ci/src/hardware/ethercat/dust_ethercat_layout config/ethercat_pdo.yaml
+./build/ethercat-ci/src/hardware/ethercat/dust_ethercat_layout --production
 ```
 
 ## 主站线程与启停
@@ -54,8 +55,8 @@ cmake --build --preset ethercat-ci --parallel 2
 
 ## 版本与公共头
 
-使用 [布局生成器](ETHERCAT_PDO_CONFIGURATION.md)产生的字段与偏移。
-显式小端；magic 为 `0x31435444`（DTC1），ABI major=1、minor=0。
+使用 [布局生成器](ETHERCAT_PDO_CONFIGURATION.md)产生的字段与偏移。ABI 4 的 RxPDO 公共头为 28 B、TxPDO 公共头为 32 B；ABI、周期和映射在 SDO 布局签名中校验，不在周期 PDO 中重复。CRC32 是兼容性检查而非认证。
+显式小端；ABI major=4、minor=0；启动签名包含协议版本，与历史版本的 PDO 不兼容。
 这是新 EtherCAT 协议，不兼容旧 MPC PDO 或 USB 包格式。
 
 Rx control_flags：Discover=1、Arm=2、Stop=4。Stop 区不携带业务目标。
@@ -108,9 +109,9 @@ remaining_valid_us 已扣主机等待时间；从站首次接纳时建立截止�
 active_source_mask 在 Arm 时锁定；来源首帧等待不超过 20 ms，任何来源失效触发整板保护。
 本地保护表和波特率沿用编译期 YAML 职责，不由普通 PDO 改写。
 
-上行不确认、不可靠重传，按总线发布最新的有界原始事件窗口；溢出丢旧且累计计数。
-主机按 batch_sequence 去重，按 bus_sequence 检测缺帧；发现缺口/丢弃变化重置本板电机
-解码状态，避免对缺失的角度样本继续展开。新样本恢复前原设备新鲜度门控仍有效。
+上行 CAN 按通道和标准 ID 保留最新帧，每个已配置 ID 独立覆盖；超过 20 ms 未更新的槽失效。主机按通道和 ID 去重并检查回绕，重复序号的帧内容必须一致。中间状态被覆盖导致的序号跳变属于正常行为，不是丢帧；实际接收队列溢出等 drops 变化仍会重置本板电机解码状态。PDO 中有效帧紧凑排列，槽位位置可变化，必须按 ID 识别。该机制不保证逐命令应答；角度解绕需要确保两次观察间角度变化没有歧义。
+
+每个映射的 CAN 通道在 adapter 侧配置的过滤 ID 数不得超过 YAML 的 rx_slots，否则从站拒绝 PDO 映射。RxPDO 的来源、期限、白名单及 Stop 保护不因本项改变。当前 ABI 4 仅离线验证，联机验收尚未执行。
 
 ## UART 与 IMU
 

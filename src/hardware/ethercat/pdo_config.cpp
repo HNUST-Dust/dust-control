@@ -8,6 +8,8 @@
 #include <utility>
 
 #include "yaml_validation.hpp"
+#include "wire.hpp"
+#include "pdo_schema.hpp"
 
 namespace dust_control::ethercat {
 namespace {
@@ -28,31 +30,26 @@ class ImageBuilder {
    public:
     explicit ImageBuilder(uint16_t first_mapping)
         : next_mapping_(first_mapping) {}
-    void Object(uint16_t index, std::string name) {
-        object_ = index;
-        subindex_ = 0;
-        prefix_ = std::move(name);
-    }
-    void Field(const std::string& name, uint8_t bytes) {
+    // Consume one (object, full name, bit length) tuple from the generated
+    // field walk. The name is already fully qualified; no per-side
+    // prefix/naming/chunking logic remains here.
+    void Emit(uint16_t object, const char* name, uint8_t bits) {
+        const uint8_t bytes = bits / 8;
         Require(bytes && bytes <= 30, "Invalid PDO field length");
         Require(subindex_ < 255, "Too many subindices in PDO object");
+        if (object != object_) {
+            object_ = object;
+            subindex_ = 0;
+        }
         if (image_.mappings.empty() ||
             image_.mappings.back().entries.size() == 255) {
             Require(image_.mappings.size() < 255, "Too many PDO mappings");
             image_.mappings.push_back({next_mapping_++, {}});
         }
         image_.mappings.back().entries.push_back(
-            {prefix_ + "." + name, object_, static_cast<uint8_t>(++subindex_),
-             static_cast<uint8_t>(bytes * 8), image_.bytes});
+            {name, object_, static_cast<uint8_t>(++subindex_), bits,
+             image_.bytes});
         image_.bytes += bytes;
-    }
-    void Bytes(const std::string& name, uint32_t bytes) {
-        // ec_pdo_entry_info_t has an 8-bit bit_length. Byte arrays are
-        // represented as several <=240-bit entries with a stable chunk rule.
-        for (uint32_t offset = 0; offset < bytes; offset += 30) {
-            Field(name + "[" + std::to_string(offset) + "]",
-                  static_cast<uint8_t>(std::min(30U, bytes - offset)));
-        }
     }
     ProcessImageLayout Finish() {
         return std::move(image_);
@@ -62,127 +59,8 @@ class ImageBuilder {
     uint16_t next_mapping_;
     uint16_t object_ = 0;
     unsigned subindex_ = 0;
-    std::string prefix_;
     ProcessImageLayout image_;
 };
-void RxHeader(ImageBuilder& b) {
-    b.Object(0x2000, "header");
-    b.Field("magic", 4);
-    b.Field("abi_major", 2);
-    b.Field("abi_minor", 2);
-    b.Field("session_id", 8);
-    b.Field("expected_boot_id", 8);
-    b.Field("exchange_sequence", 4);
-    b.Field("control_flags", 4);
-    b.Field("configuration_signature", 4);
-    b.Field("active_source_mask", 4);
-    b.Field("cycle_time_us", 4);
-    b.Field("status_request_sequence", 4);
-    b.Field("status_target", 1);
-    b.Field("status_channel", 1);
-    b.Bytes("reserved", 14);
-}
-void TxHeader(ImageBuilder& b) {
-    b.Object(0x3000, "header");
-    b.Field("magic", 4);
-    b.Field("abi_major", 2);
-    b.Field("abi_minor", 2);
-    b.Field("boot_id", 8);
-    b.Field("accepted_session_id", 8);
-    for (const char* name :
-         {"publish_sequence", "slave_now_us", "configuration_signature",
-          "capability_mask", "business_state", "fault_flags",
-          "accepted_chassis_sequence", "accepted_gimbal_sequence",
-          "status_reply_sequence", "reserved"}) {
-        b.Field(name, 4);
-    }
-}
-void CanSource(ImageBuilder& b, unsigned source, unsigned slots) {
-    if (!slots) {
-        return;
-    }
-    b.Object(static_cast<uint16_t>(0x2010 + source),
-             source ? "can.gimbal" : "can.chassis");
-    b.Field("source_sequence", 4);
-    b.Field("remaining_valid_us", 4);
-    b.Field("flags", 2);
-    b.Field("frame_count", 1);
-    b.Field("source_id", 1);
-    b.Field("reserved", 4);
-    for (unsigned i = 0; i < slots; ++i) {
-        const auto frame = "frames[" + std::to_string(i) + "].";
-        b.Field(frame + "channel", 1);
-        b.Field(frame + "length", 1);
-        b.Field(frame + "flags", 1);
-        b.Field(frame + "reserved", 1);
-        b.Field(frame + "id", 4);
-        b.Bytes(frame + "data", 8);
-    }
-}
-void CanFeedback(ImageBuilder& b, unsigned bus, unsigned slots) {
-    if (!slots) {
-        return;
-    }
-    b.Object(static_cast<uint16_t>(0x3010 + bus), "can" + std::to_string(bus));
-    b.Field("batch_sequence", 4);
-    b.Field("cumulative_drops", 4);
-    b.Field("frame_count", 2);
-    b.Field("flags", 2);
-    b.Field("reserved", 4);
-    for (unsigned i = 0; i < slots; ++i) {
-        const auto frame = "frames[" + std::to_string(i) + "].";
-        b.Field(frame + "id", 4);
-        b.Field(frame + "bus_sequence", 4);
-        b.Field(frame + "capture_time_us", 4);
-        b.Field(frame + "length", 1);
-        b.Field(frame + "flags", 1);
-        b.Field(frame + "reserved", 2);
-        b.Bytes(frame + "data", 8);
-    }
-}
-void Uart(ImageBuilder& b, unsigned port, unsigned bytes, bool tx_image) {
-    b.Object(static_cast<uint16_t>((tx_image ? 0x3020 : 0x2020) + port),
-             "uart" + std::to_string(port + 1));
-    b.Field("block_sequence", 4);
-    b.Field("peer_ack_sequence", 4);
-    b.Field("capture_time_us", 4);
-    b.Field("length", 2);
-    b.Field("flags", 2);
-    b.Bytes("data", bytes);
-}
-void Imu(ImageBuilder& b) {
-    b.Object(0x3030, "imu");
-    b.Field("sample_sequence", 4);
-    b.Field("capture_time_us", 4);
-    b.Field("flags", 4);
-    b.Field("temperature_c", 4);
-    b.Bytes("spi_bytes", 25);
-    b.Bytes("reserved", 7);
-}
-void Diagnostics(ImageBuilder& b) {
-    b.Object(0x3040, "diagnostics");
-    for (const char* name :
-         {"stop_reason", "rejected", "can_drops", "uart_drops",
-          "protection_errors", "configuration_errors", "firmware_flags",
-          "reserved"}) {
-        b.Field(name, 4);
-    }
-    for (unsigned bus = 0; bus < 4; ++bus) {
-        for (const char* name :
-             {"received", "submitted", "completed", "dropped", "errors",
-              "queue_depth", "controller_state", "packed_error_counts"}) {
-            b.Field("can" + std::to_string(bus) + "." + name, 4);
-        }
-    }
-    for (unsigned port = 1; port <= 6; ++port) {
-        b.Field("uart" + std::to_string(port) + ".rx_drops", 4);
-        b.Field("uart" + std::to_string(port) + ".tx_errors", 4);
-    }
-    b.Field("status_result", 4);
-    b.Field("status_value0", 4);
-    b.Field("status_value1", 4);
-    b.Field("status_value2", 4);
-}
 // Portable incremental CRC32. Explicit widths and separators avoid relying
 // on host struct layout, std::hash, YAML order or machine endianness.
 class Signature {
@@ -325,33 +203,34 @@ PdoLayout BuildPdoLayout(const PdoConfig& config) {
         Require(addresses.emplace(adapter.alias, adapter.position).second,
                 "Duplicate EtherCAT alias/position");
         ImageBuilder rx(0x1600), tx(0x1a00);
-        RxHeader(rx);
-        TxHeader(tx);
         for (unsigned i = 0; i < 2; ++i) {
             Require(adapter.can_tx_slots[i] <= 16,
                     "CAN source capacity exceeds 16");
-            CanSource(rx, i, adapter.can_tx_slots[i]);
         }
         for (unsigned i = 0; i < 4; ++i) {
             Require(adapter.can_rx_slots[i] <= 32,
                     "CAN bus capacity exceeds 32");
-            CanFeedback(tx, i, adapter.can_rx_slots[i]);
         }
         for (unsigned i = 0; i < 6; ++i) {
             const auto capacity = adapter.uart[i];
             Require(capacity.tx_bytes <= 512 && capacity.rx_bytes <= 512,
                     "UART capacity exceeds 512");
-            // Even a one-way stream needs its ACK in the reverse image.
-            // Omit the channel only when both directions are disabled.
-            if (capacity.tx_bytes || capacity.rx_bytes) {
-                Uart(rx, i, capacity.tx_bytes, false);
-                Uart(tx, i, capacity.rx_bytes, true);
-            }
         }
-        if (adapter.onboard_imu) {
-            Imu(tx);
+        // The field order/names/widths come from the generated schema walk.
+        dust::pdo::Config cfg;
+        cfg.can_tx = adapter.can_tx_slots;
+        cfg.can_rx = adapter.can_rx_slots;
+        for (unsigned i = 0; i < 6; ++i) {
+            cfg.uart_tx[i] = adapter.uart[i].tx_bytes;
+            cfg.uart_rx[i] = adapter.uart[i].rx_bytes;
         }
-        Diagnostics(tx);
+        cfg.imu = adapter.onboard_imu;
+        dust::pdo::WalkRx(cfg, [&](uint16_t o, const char* n, uint8_t b) {
+            rx.Emit(o, n, b);
+        });
+        dust::pdo::WalkTx(cfg, [&](uint16_t o, const char* n, uint8_t b) {
+            tx.Emit(o, n, b);
+        });
         AdapterPdoLayout layout;
         layout.alias = adapter.alias;
         layout.position = adapter.position;
@@ -363,6 +242,8 @@ PdoLayout BuildPdoLayout(const PdoConfig& config) {
                 "Adapter " + name + " exceeds process image planning limits");
         Signature signature;
         signature.Integer(kLayoutVersion);
+        signature.Integer(wire::kMajor);
+        signature.Integer(wire::kMinor);
         signature.Integer(config.cycle_time_us);
         signature.Image(layout.rx);
         signature.Image(layout.tx);

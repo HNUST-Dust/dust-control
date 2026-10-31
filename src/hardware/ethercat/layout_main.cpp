@@ -38,12 +38,17 @@ int main(int argc, char** argv) {
     const bool json = argc == 3 && std::string(argv[2]) == "--json";
     if (argc < 2 || argc > 3 || (argc == 3 && !json)) {
         std::cerr << "Usage: dust_ethercat_layout CONFIG.yaml [--json]\n"
+                     "       dust_ethercat_layout --production [--json]\n"
                      "Layout preview only; no hardware access.\n";
         return 2;
     }
+    const std::string target = argv[1];
     try {
-        const auto layout = dust_control::ethercat::BuildPdoLayout(
-            dust_control::ethercat::LoadPdoConfig(argv[1]));
+        const dust_control::ethercat::PdoConfig config =
+            target == "--production"
+                ? dust_control::ethercat::ProductionPdoConfig()
+                : dust_control::ethercat::LoadPdoConfig(target);
+        const auto layout = dust_control::ethercat::BuildPdoLayout(config);
         if (json) {
             std::cout << "{\"layout_version\":" << layout.version
                       << ",\"hardware_accessed\":false,\"master_index\":"

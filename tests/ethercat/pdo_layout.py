@@ -42,11 +42,10 @@ with tempfile.TemporaryDirectory() as directory:
 
     original = run(base)
     board = original['adapters']['base']
-    # v0's 48-byte artificial trailing padding is deliberately omitted.
-    assert board['rx']['bytes'] == 976
-    assert board['tx']['bytes'] == 1536
-    assert original['estimated_frames'] == 3
-    assert original['estimated_wire_time_ns'] == (976 + 1536 + 3 * 52) * 80
+    assert board['rx']['bytes'] == 786
+    assert board['tx']['bytes'] == 1094
+    assert original['estimated_frames'] == 2
+    assert original['estimated_wire_time_ns'] == (786 + 1094 + 2 * 52) * 80
     check_image(board['rx'])
     check_image(board['tx'])
 
@@ -63,8 +62,8 @@ with tempfile.TemporaryDirectory() as directory:
                    2: {'tx_bytes': 0, 'rx_bytes': 128}}
     pdo['onboard_imu'] = False
     reduced = run(small)['adapters']['base']
-    assert reduced['rx']['bytes'] == 64 + 16 + 6 * 16 + 2 * 16
-    assert reduced['tx']['bytes'] == 64 + 2 * (16 + 3 * 24) + 2 * 16 + 160 + 224
+    assert reduced['rx']['bytes'] == 18 + 11 + 6 * 12 + 2 * 15
+    assert reduced['tx']['bytes'] == 22 + 2 * (9 + 3 * 19) + (15 + 32) + (15 + 128) + 28
     assert reduced['layout_signature'] != board['layout_signature']
     check_image(reduced['rx'])
     check_image(reduced['tx'])
@@ -98,7 +97,7 @@ with tempfile.TemporaryDirectory() as directory:
     for i, name in enumerate(['arm', 'head'], 1):
         all_three['adapters'][name] = copy.deepcopy(base['adapters']['base'])
         all_three['adapters'][name]['position'] = i
-    assert run(all_three)['estimated_wire_time_ns'] == 640320
+    assert run(all_three)['estimated_wire_time_ns'] == 476160
     over_budget = copy.deepcopy(all_three)
     for adapter in over_budget['adapters'].values():
         adapter['pdo']['can']['rx_slots'] = {i: 32 for i in range(4)}

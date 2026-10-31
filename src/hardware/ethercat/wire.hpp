@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <span>
 namespace dust_control::ethercat::wire {
-inline constexpr uint32_t kMagic = 0x31435444;  // DTC1, little endian.
-inline constexpr uint16_t kMajor = 1, kMinor = 0;
+inline constexpr uint16_t kMajor = 5, kMinor = 0;
 inline constexpr uint32_t kDiscover = 1, kArm = 2, kStop = 4;
 inline constexpr uint32_t kReady = 1, kActive = 2, kProtected = 3;
 inline constexpr uint32_t kFirmwareProtection = 1U << 31;

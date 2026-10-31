@@ -58,7 +58,7 @@ class EthercatSession {
     UartReceiveQueue& uart_queue() {
         return uart_queue_;
     }
-    std::array<uint8_t, 224> diagnostics() const {
+    std::array<uint8_t, 28> diagnostics() const {
         return diagnostics_.Read();
     }
     struct StatusReply {
@@ -71,7 +71,7 @@ class EthercatSession {
     StatusReply status_reply() const {
         return status_reply_.Read();
     }
-    uint64_t boot_id() const {
+    uint32_t boot_id() const {
         return boot_id_;
     }  // Master thread only.
     bool active() const {
@@ -102,7 +102,7 @@ class EthercatSession {
     devices::RefereeDecoder referee_;
     devices::OnboardImu onboard_imu_;
     UartReceiveQueue uart_queue_;
-    concurrency::PublishedSnapshot<std::array<uint8_t, 224>> diagnostics_;
+    concurrency::PublishedSnapshot<std::array<uint8_t, 28>> diagnostics_;
     std::array<std::optional<uint32_t>, 2> sources_{};
     std::array<std::optional<uint32_t>, 4> can_{};
     std::array<std::optional<uint32_t>, 6> uart_rx_{}, uart_tx_{};
@@ -112,14 +112,21 @@ class EthercatSession {
     uint32_t status_request_ = 0;
     uint8_t status_target_ = 0, status_channel_ = 0;
     concurrency::PublishedSnapshot<StatusReply> status_reply_;
-    uint64_t boot_id_ = 0, last_publish_ns_ = 0;
+    uint32_t boot_id_ = 0;
+    uint64_t last_publish_ns_ = 0;
     uint32_t publish_sequence_ = 0, imu_sequence_ = 0;
     bool have_publish_ = false, have_imu_ = false, active_ = false;
     struct Sequence {
         uint32_t value = 0;
         bool present = false;
     };
-    std::array<Sequence, 4> can_sequence_{}, can_frame_sequence_{};
+    struct CanLatest {
+        uint32_t id = 0;
+        Sequence sequence{};
+        std::array<uint8_t, 19> frame{};
+    };
+    std::array<Sequence, 4> can_sequence_{};
+    std::array<std::array<CanLatest, 32>, 4> can_latest_{};
     std::array<uint32_t, 4> can_drops_{};
     std::array<Sequence, 6> uart_sequence_{};
     std::array<uint32_t, 6> uart_peer_ack_{};

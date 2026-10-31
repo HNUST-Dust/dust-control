@@ -1,22 +1,29 @@
 # YAML 配置 PDO 布局
 
+> 生产布局已固定：唯一事实源是 [config/pdo_schema.yaml](../config/pdo_schema.yaml)（字段结构 +
+> `production` 生产 profile），生成的 `pdo_schema.hpp` 由固件与主站共用，运行时不再加载独立 PDO 文件。
+> 本文描述的是**离线布局工具/交叉测试**使用的通用 schema-1 PDO 配置格式（用于任意容量预览），
+> 生产部署请用 `dust_ethercat_layout --production`。
+
 已实现：配置解析、校验、可变布局生成、候选对象/PDO 映射、签名和线路预算。
 主机 IgH 动态映射与业务交换已接入，见 [运行时契约](ETHERCAT_RUNTIME.md)。
 配套从站对象字典/固件与 ESI 尚未实现。本布局预览工具本身不访问硬件。
 
 ## 使用
 
-配置文件：[ethercat_pdo.yaml](../config/ethercat_pdo.yaml)。
-这是独立 PDO 配置，由 schema3 的 `dust_control.yaml` 引用。
-修改后重新运行工具即可检查；主机运行时启动时加载同一文件，不热修改。
+生产布局（来自 `config/pdo_schema.yaml`）：
 
 ```bash
 cmake -S . -B build/pdo -G Ninja \
   -DBUILD_TESTING=ON -DDUST_BUILD_ROS2=OFF -DDUST_BUILD_MPC=OFF
 cmake --build build/pdo --target dust_ethercat_layout --parallel 2
-./build/pdo/src/hardware/ethercat/dust_ethercat_layout config/ethercat_pdo.yaml
-# 完整映射（JSON 可用于审查和后续工具接入）：
-./build/pdo/src/hardware/ethercat/dust_ethercat_layout config/ethercat_pdo.yaml --json
+./build/pdo/src/hardware/ethercat/dust_ethercat_layout --production --json
+```
+
+任意容量的离线预览仍可传入 schema-1 配置文件：
+
+```bash
+./build/pdo/src/hardware/ethercat/dust_ethercat_layout tests/ethercat/fixtures/full_pdo.yaml --json
 ```
 
 也可在启用 `DUST_BUILD_TOOLS` 的开发配置中构建该工具。

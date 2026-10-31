@@ -8,10 +8,16 @@ schema_version: 3
 motors: motors_params.yaml
 execution: {simulate: false, realtime: true, enable_output: false}
 ethercat:
-  pdo_file: ethercat_pdo.yaml
+  master_index: 0
+  cycle_time_us: 125
+  limits: {max_rxpdo_bytes: 4096, max_txpdo_bytes: 4096, max_wire_time_us: 125}
   thread: {cpu: 3, priority: 80}
 adapters:
   base:
+    alias: 0
+    position: 0
+    vendor_id: 0
+    product_code: 0
     uart_sensors: {remote: 1, hi91: 2, referee: 3}
     strict_hi91_crc: false
 modules:
@@ -28,6 +34,9 @@ modules:
     adapter: base
     thread: {cpu: null, priority: 0}
 ```
+
+PDO 容量不再单独配置：固定生产 profile 由 `config/pdo_schema.yaml` 生成
+（`ProductionConfig()`），`dust_control.yaml` 只提供主站索引、周期、预算和从站身份。
 
 PDO 文件相对应用 YAML 所在目录解析；设备参数仍相对配置目录加载。
 每台电机在 motors_params.yaml 声明 adapter，底盘 sensor_adapter 只选遥控与 HI91 来源。

@@ -5,11 +5,19 @@ execution:
   realtime: true
   enable_output: false
 ethercat:
-  pdo_file: ethercat_pdo.yaml
+  master_index: 0
+  cycle_time_us: 125
+  # Planning guards, not verified HPM5E31 ESC resource limits.
+  limits: {max_rxpdo_bytes: 4096, max_txpdo_bytes: 4096, max_wire_time_us: 125}
   thread: {cpu: 3, priority: 80}
 adapters:
   base:
-    uart_sensors: {remote: 1, hi91: 2, referee: 3}
+    alias: 0
+    position: 0
+    # Replace with actual registered slave identity. Zero prevents hardware startup.
+    vendor_id: 0
+    product_code: 0
+    uart_sensors: {remote: 5, hi91: 2, referee: null}
     strict_hi91_crc: false
 modules:
   chassis:

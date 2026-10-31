@@ -144,11 +144,19 @@ int main() {
     OnboardImu onboard;
     std::array<uint8_t, 25> onboard_raw{};
     onboard_raw[0] = 42;
+    onboard_raw[1] = 0x10; onboard_raw[2] = 0x00; // +1 g
+    onboard_raw[3] = 0xf0; onboard_raw[4] = 0x00; // -1 g
+    onboard_raw[7] = 0x40; onboard_raw[8] = 0x00; // 1000 deg/s
+    onboard_raw[9] = 0xc0; onboard_raw[10] = 0x00;
     onboard.Consume(onboard_raw, 25.0F, 7, 1234);
     onboard_raw[0] = 0;
     assert(onboard.Read().raw[0] == 42 && onboard.Read().sample_us == 1234);
     assert(onboard.Read().temperature_c == 25.0F &&
            onboard.Read().sequence == 7);
+    assert(onboard.Read().accel_raw[0] == 4096 && onboard.Read().accel_raw[1] == -4096);
+    assert(onboard.Read().gyro_raw[0] == 16384 && onboard.Read().gyro_raw[1] == -16384);
+    assert(std::abs(onboard.Read().accel_mps2[0] - 9.80665F) < 0.0001F);
+    assert(std::abs(onboard.Read().gyro_rad_s[0] - 17.453293F) < 0.0001F);
     onboard.Reset();
     assert(onboard.Read().sequence == 0);
 }

@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "pdo_schema.hpp"
+
 namespace dust_control::ethercat {
 // Offline layout schema; this does not authorize hardware outputs.
 inline constexpr uint16_t kLayoutVersion = 1;
@@ -68,6 +70,31 @@ struct PdoLayout {
     uint32_t estimated_wire_time_ns = 0;
     std::map<std::string, AdapterPdoLayout> adapters;
 };
+// PDO capacity from the schema's fixed production profile (single source of
+// truth). Identity/master fields are filled by the caller from application
+// configuration, not duplicated here.
+inline AdapterPdoConfig ProductionCapacity() {
+    const auto p = dust::pdo::ProductionConfig();
+    AdapterPdoConfig adapter;
+    adapter.can_tx_slots = p.can_tx;
+    adapter.can_rx_slots = p.can_rx;
+    for (unsigned i = 0; i < 6; ++i) {
+        adapter.uart[i] = {p.uart_tx[i], p.uart_rx[i]};
+    }
+    adapter.onboard_imu = p.imu;
+    return adapter;
+}
+// Complete production PdoConfig for offline preview: schema capacity plus the
+// production defaults (master 0, placeholder identity). The runtime overrides
+// identity/master from application configuration.
+inline PdoConfig ProductionPdoConfig() {
+    PdoConfig config;
+    config.master_index = 0;
+    config.cycle_time_us = dust::pdo::kProductionCycleUs;
+    config.max_wire_time_us = dust::pdo::kProductionCycleUs;
+    config.adapters["base"] = ProductionCapacity();
+    return config;
+}
 PdoConfig LoadPdoConfig(const std::string& file);
 PdoLayout BuildPdoLayout(const PdoConfig& config);
 }  // namespace dust_control::ethercat

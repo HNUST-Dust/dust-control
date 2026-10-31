@@ -1,7 +1,7 @@
 # 启动配置
 
-- `dust_control.yaml`：schema 3，整机 execution、EtherCAT 主站线程、具名板卡和模块绑定。
-- `ethercat_pdo.yaml`：schema 1，主站索引、从站身份与每板可配置 PDO 容量，运行时与布局工具共用。
+- `dust_control.yaml`：schema 3，整机 execution、EtherCAT 主站（master_index/cycle/limits）、从站身份与具名板卡/模块绑定。
+- `pdo_schema.yaml`：PDO 协议唯一事实源（字段结构 + `production` 生产 profile）；生成的头文件供固件与主站共用，不再有独立 PDO 运行时文件。
 - `motors_params.yaml`：schema 5，六个具名电机的 adapter/bus/协议/ID/方向/新鲜度。
 - `sensors_params.yaml`：HI91、遥控新鲜度；`chassis_params.yaml`：机构和控制参数。
 
