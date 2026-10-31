@@ -14,9 +14,9 @@ adapters:
   base:
     alias: 0
     position: 0
-    # Replace with actual registered slave identity. Zero prevents hardware startup.
-    vendor_id: 0
-    product_code: 0
+    # Fixed lab identity: must match config/esi/DUST_HPM5E31_Gateway.xml.
+    vendor_id: 3415
+    product_code: 1146372913
     uart_sensors: {remote: 5, hi91: 2, referee: null}
     strict_hi91_crc: false
 modules:
