@@ -11,9 +11,13 @@ struct OnboardImuSample {
     float temperature_c = 0;
     uint64_t sample_us = 0;
     uint32_t sequence = 0;
+    std::array<int16_t, 3> accel_raw{};
+    std::array<int16_t, 3> gyro_raw{};
+    std::array<float, 3> accel_mps2{};
+    std::array<float, 3> gyro_rad_s{};
 };
 
-// 板载 IMU 独立保存原始采样；坐标和量程未验证前不替换 HI91 控制输入。
+// HXY 传感器坐标系；未经实机验证，不替换 HI91 控制输入。
 class OnboardImu {
    public:
     void Reset();
