@@ -5,11 +5,11 @@
 namespace dust_control::test {
 inline constexpr std::array<devices::MotorAddress, 6> kMotorAddresses{{
     {3, 0x200, 0x201, 0},
-    {2, 0x200, 0x201, 0},
+    {0, 0x200, 0x201, 0},
     {3, 0x000, 0x010, 0},
     {3, 0x003, 0x013, 0},
-    {2, 0x001, 0x011, 0},
-    {2, 0x002, 0x012, 0},
+    {0, 0x001, 0x011, 0},
+    {0, 0x002, 0x012, 0},
 }};
 // 离线契约的明确接线，不参与生产构建或 YAML 加载。
 inline devices::MotorConfig MotorFixture() {

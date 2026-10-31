@@ -34,7 +34,7 @@ ec::PdoConfig Config(unsigned count = 1) {
         ec::AdapterPdoConfig board;
         board.position = i;
         board.can_tx_slots = {6, 4};
-        board.can_rx_slots = {0, 0, 4, 4};
+        board.can_rx_slots = {4, 0, 0, 4};
         board.uart[0] = {16, 32};
         board.uart[1] = {128, 128};
         config.adapters.emplace("board" + std::to_string(i), board);
@@ -180,7 +180,7 @@ void SessionCodec() {
             w::Put16(input.data() + uart + 12, 33);
         }
         if (fault == 4) {
-            const auto can = Offset(layout.tx, "can2.batch_sequence");
+            const auto can = Offset(layout.tx, "can0.batch_sequence");
             input.data()[can + 8] = 5;
         }
         assert(!bad.Receive(input, now, 77));
@@ -205,7 +205,7 @@ void CanSnapshotGap() {
                                   dust_control::test::MotorFixture());
     std::vector<uint8_t> input(layout.tx.bytes);
     Header(input, layout, 1);
-    for (unsigned bus : {2U, 3U}) {
+    for (unsigned bus : {0U, 3U}) {
         auto* header =
             input.data() +
             Offset(layout.tx, "can" + std::to_string(bus) + ".batch_sequence");

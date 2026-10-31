@@ -56,7 +56,7 @@ JSON 写到 stdout，错误写到 stderr，配置错误退出码 1、命令用�
 每板可额外指定 vendor_id/product_code，默认 0 在真实启动时拒绝。
 设备绑定、线程调度、波特率和保护帧保留各自配置职责。
 
-例：只使用 CAN2/3、UART1/2 的一块底盘板：
+例：只使用 CAN0/3、UART1/2 的一块底盘板：
 
 ```yaml
 schema_version: 1

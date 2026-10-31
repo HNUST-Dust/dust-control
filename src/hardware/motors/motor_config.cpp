@@ -35,8 +35,8 @@ void ValidateMotorConfig(const MotorConfig& config) {
             throw std::runtime_error(
                 "Current chassis requires DJI wheels and DM joints");
         }
-        if (address.bus != 2 && address.bus != 3) {
-            throw std::runtime_error("Gateway supports only CAN2/CAN3");
+        if (address.bus != 0 && address.bus != 3) {
+            throw std::runtime_error("Gateway supports only CAN0/CAN3");
         }
         if (address.command_id > 0x7ff || address.feedback_id > 0x7ff ||
             (i < 2 && (address.command_slot > 3 ||
