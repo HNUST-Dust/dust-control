@@ -71,8 +71,9 @@ int main() {
             if (imu.sequence) {
                 assert(imu.sample_us == imu.sequence);
                 assert(imu.temperature_c == float(imu.sequence));
-                for (const auto byte : imu.raw) {
-                    assert(byte == uint8_t(imu.sequence));
+                for (size_t axis = 0; axis < 3; ++axis) {
+                    assert(imu.accel_raw[axis] == int16_t(imu.sequence));
+                    assert(imu.gyro_raw[axis] == -int16_t(imu.sequence));
                 }
             }
             const auto sample = remote.Read();
@@ -84,9 +85,10 @@ int main() {
     for (uint32_t sequence = 1; sequence <= 10000; ++sequence) {
         const std::array<uint8_t, 8> can{0, 0, 0, 123, 0, 0, 0, 0};
         motor.Consume(address.bus, address.feedback_id, can, sequence, true);
-        std::array<uint8_t, 25> raw{};
-        raw.fill(uint8_t(sequence));
-        onboard.Consume(raw, float(sequence), sequence, sequence);
+        std::array<int16_t, 3> accel{}, gyro{};
+        accel.fill(int16_t(sequence));
+        gyro.fill(-int16_t(sequence));
+        onboard.Consume(accel, gyro, float(sequence), sequence, sequence);
         std::array<uint8_t, 25> sbus{};
         sbus[0] = 15;
         sbus[7] = sequence % 2 ? 0x40 : 0;

@@ -30,12 +30,11 @@ if(NOT DUST_BUILD_ROS2 AND NOT BUILD_TESTING)
 endif()
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Threads REQUIRED)
-if(BUILD_TESTING)
-  find_package(Python3 REQUIRED COMPONENTS Interpreter)
-endif()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_library(dust_headers INTERFACE)
 target_include_directories(dust_headers INTERFACE "${PROJECT_SOURCE_DIR}/src")
 find_package(yaml-cpp REQUIRED)
+add_subdirectory(src/concurrency)
 add_subdirectory(src/hardware)
 add_subdirectory(src/chassis)
 add_subdirectory(src/gimbal)
@@ -57,7 +56,7 @@ install(FILES docs/ETHERCAT_RUNTIME.md docs/ETHERCAT_PDO_CONFIGURATION.md
 
 if(DUST_BUILD_ROS2)
   install(TARGETS dust_startup dust_chassis_runtime dust_chassis
-                  dust_realtime dust_motors dust_remote dust_imu dust_referee dust_gimbal dust_ui
+                  dust_realtime dust_motors dust_remote dust_imu dust_gimbal dust_ui
           LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
   add_executable(dust_control_node src/main.cpp src/dust_control_node.cpp src/chassis_telemetry.cpp)
   ament_target_dependencies(dust_control_node rclcpp rcl_interfaces sensor_msgs diagnostic_msgs)

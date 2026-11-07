@@ -7,7 +7,6 @@
 
 namespace dust_control::devices {
 struct OnboardImuSample {
-    std::array<uint8_t, 25> raw{};
     float temperature_c = 0;
     uint64_t sample_us = 0;
     uint32_t sequence = 0;
@@ -21,7 +20,8 @@ struct OnboardImuSample {
 class OnboardImu {
    public:
     void Reset();
-    void Consume(const std::array<uint8_t, 25>& raw, float temperature_c,
+    void Consume(const std::array<int16_t, 3>& accel_raw,
+                 const std::array<int16_t, 3>& gyro_raw, float temperature_c,
                  uint32_t sequence, uint64_t sample_us);
     OnboardImuSample Read() const;
 

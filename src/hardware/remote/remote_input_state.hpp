@@ -7,8 +7,6 @@ namespace dust_control::input {
 
 enum RemoteInputSource : uint8_t {
     kRemoteInputUnknown = 0,
-    kRemoteInputDr16 = 1,
-    kRemoteInputVt03 = 2,
     kRemoteInputWfly = 3,
 };
 

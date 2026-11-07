@@ -7,7 +7,7 @@
 #include <chassis/controller_inputs.h>
 
 #include <cstdint>
-#include <hardware/motors/motor_protocol.hpp>
+#include <hardware/motors/motor_types.hpp>
 
 #include "leg_kinematics.h"
 
@@ -108,6 +108,8 @@ struct ChassisCycleInput {
 /** 本周期生成的执行器目标与估计状态，物理量单位由字段注明。 */
 struct ChassisControlOutput {
     dust_control::devices::MotorTargets motor_targets{};
+    // 本周期没有显式命令时可用的目标；由输出策略决定，不重放历史命令。
+    dust_control::devices::MotorTargets idle_motor_targets{};
     // 必须显式启用；默认或零输出不能触发弹簧补偿。
     bool joint_control_active = false;
     // 仅开环跳跃推力阶段绕过反向弹簧补偿。

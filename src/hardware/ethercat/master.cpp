@@ -6,7 +6,7 @@
 #include <random>
 #include <stdexcept>
 
-#include "chassis/runtime/realtime_loop.hpp"
+#include "concurrency/realtime_loop.hpp"
 #include "wire.hpp"
 namespace dust_control::ethercat {
 EthercatMaster::EthercatMaster(PdoConfig config,
@@ -88,7 +88,6 @@ void EthercatMaster::Fail(const std::string& reason) {
 void EthercatMaster::Run() {
     bool opened = false;
     uint64_t nonce = 0;
-    uint32_t exchange = 0;
     MasterStatistics statistics;
     try {
         std::string reason;
@@ -142,15 +141,15 @@ void EthercatMaster::Run() {
                     all_active = false;
                     all_discovered = false;
                     if (ready_) {
-                        throw std::runtime_error(board.name +
-                                                 ": EtherCAT OP/WKC lost (operational=" +
-                                                 std::to_string(board.operational) +
-                                                 ", complete=" +
-                                                 std::to_string(board.complete) + ")");
+                        throw std::runtime_error(
+                            board.name +
+                            ": EtherCAT OP/WKC lost (operational=" +
+                            std::to_string(board.operational) + ", complete=" +
+                            std::to_string(board.complete) + ")");
                     }
                 }
                 all_active = all_active && session.active();
-                all_discovered = all_discovered && session.boot_id() != 0;
+                all_discovered = all_discovered && session.discovered();
             }
             if (!ready_ && all_active) {
                 for (auto& [name, session] : sessions_) {
@@ -171,7 +170,6 @@ void EthercatMaster::Run() {
                 throw std::runtime_error(
                     "EtherCAT receive exceeded dispatch deadline");
             }
-            ++exchange;
             for (auto& board : boards_) {
                 auto& session = *sessions_.at(board.name);
                 if (ready_ && !session.healthy()) {
@@ -181,7 +179,7 @@ void EthercatMaster::Run() {
                 const auto flags =
                     all_discovered ? wire::kArm : wire::kDiscover;
                 if (!session.Encode(board.output, realtime::MonotonicTimeNs(),
-                                    nonce, exchange, flags)) {
+                                    nonce, flags)) {
                     throw std::runtime_error(board.name + ": " +
                                              session.error());
                 }
@@ -209,7 +207,7 @@ void EthercatMaster::Run() {
             for (auto& board : boards_) {
                 auto& session = *sessions_.at(board.name);
                 session.Encode(board.output, realtime::MonotonicTimeNs(), nonce,
-                               ++exchange, wire::kStop);
+                               wire::kStop);
             }
             for (unsigned i = 0; i < 25; ++i) {
                 transport_->Send(boards_, ignored);

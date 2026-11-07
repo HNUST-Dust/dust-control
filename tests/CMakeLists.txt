@@ -54,7 +54,7 @@ target_link_libraries(output_target_contracts PRIVATE dust_chassis dust_motors)
 target_compile_options(output_target_contracts PRIVATE -UNDEBUG)
 add_test(NAME chassis.output_targets COMMAND output_target_contracts)
 add_executable(independent_decoder_contracts protocols/independent_decoders.cpp)
-target_link_libraries(independent_decoder_contracts PRIVATE dust_motors dust_remote dust_imu dust_referee)
+target_link_libraries(independent_decoder_contracts PRIVATE dust_motors dust_remote dust_imu)
 target_compile_options(independent_decoder_contracts PRIVATE -UNDEBUG)
 add_test(NAME devices.independent_decoders COMMAND independent_decoder_contracts)
 add_executable(decoder_snapshot_contracts protocols/decoder_snapshots.cpp)
@@ -68,10 +68,9 @@ add_test(NAME architecture.dependencies COMMAND ${Python3_EXECUTABLE}
 
 add_test(NAME ethercat.pdo_layout COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/pdo_layout.py"
-  $<TARGET_FILE:dust_ethercat_layout> "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/fixtures/full_pdo.yaml")
-add_test(NAME ethercat.pdo_compact COMMAND ${Python3_EXECUTABLE}
-  "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/pdo_compact.py"
-  $<TARGET_FILE:dust_ethercat_layout>)
+  $<TARGET_FILE:dust_ethercat_layout> "${PROJECT_SOURCE_DIR}/config/dust_control.yaml")
+add_test(NAME ethercat.schema COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/ethercat/schema.py" "${PROJECT_SOURCE_DIR}")
 
 add_executable(ethercat_runtime_contracts ethercat/runtime.cpp)
 target_link_libraries(ethercat_runtime_contracts PRIVATE dust_startup)
@@ -95,3 +94,13 @@ add_executable(ethercat_dtg1_contracts ethercat/dtg1.cpp)
 target_link_libraries(ethercat_dtg1_contracts PRIVATE dust_ethercat)
 target_compile_options(ethercat_dtg1_contracts PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME ethercat.dtg1_contracts COMMAND ethercat_dtg1_contracts)
+
+add_executable(ethercat_motor_command_contracts ethercat/motor_commands.cpp)
+target_link_libraries(ethercat_motor_command_contracts PRIVATE dust_chassis dust_ethercat)
+target_compile_options(ethercat_motor_command_contracts PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME ethercat.motor_commands COMMAND ethercat_motor_command_contracts)
+
+add_executable(ethercat_imu_contracts ethercat/imu.cpp)
+target_link_libraries(ethercat_imu_contracts PRIVATE dust_ethercat)
+target_compile_options(ethercat_imu_contracts PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME ethercat.imu COMMAND ethercat_imu_contracts)

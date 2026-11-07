@@ -8,16 +8,17 @@
 #include "chassis_controller.h"
 #include "chassis_observation.hpp"
 #include "concurrency/thread.hpp"
-#include "hardware/motors/motor_protocol.hpp"
+#include "hardware/motors/motor_config.hpp"
 
 namespace dust_control::devices {
 class MotorFeedbackDecoder;
 class WflySbusDecoder;
-class Hi91Decoder;
+class Hi91Imu;
 }  // namespace dust_control::devices
 namespace dust_control::host {
 class EthercatTransmitter;
-}
+class MotorCommandEncoder;
+}  // namespace dust_control::host
 namespace dust_control::chassis {
 struct ChassisRuntimeOptions {
     concurrency::ThreadOptions thread{true, 3, 80};
@@ -25,7 +26,8 @@ struct ChassisRuntimeOptions {
     // 借用整机启动许可；为空时由独立调用者直接管理输出策略。
     const std::atomic<bool>* startup_ready = nullptr;
 };
-// 借用本板设备和发送器，motors 仅包含本板电机；借用对象须长于底盘线程寿命。
+// 借用本板设备、编码器和发送器；借用对象须长于底盘线程寿命。
+// motors 仅包含本板电机，并与会话编码器使用的接线配置一致。
 struct ChassisMotorAdapter {
     std::string name;
     const devices::MotorFeedbackDecoder* feedback = nullptr;
@@ -33,12 +35,12 @@ struct ChassisMotorAdapter {
     devices::MotorConfig motors;
     // DustControl 在握手和发送线程就绪后置 true；独立调用者可省略。
     const std::atomic<bool>* started = nullptr;
-    bool fixed_motor_batch = false;
+    const dust_control::host::MotorCommandEncoder* encoder = nullptr;
 };
 struct ChassisDevices {
     std::vector<ChassisMotorAdapter> motor_adapters;
     const devices::WflySbusDecoder* remote = nullptr;
-    const devices::Hi91Decoder* imu = nullptr;
+    const devices::Hi91Imu* imu = nullptr;
 };
 class ChassisRuntime {
    public:
@@ -65,10 +67,17 @@ class ChassisRuntime {
 
    private:
     void Run();
-    const dust_control::chassis::ChassisConfig config_;
+    // 更新绝对唤醒时间；错过周期不补发，超过看门狗期限时抛出异常。
+    bool WaitForNextCycle(uint64_t& release, unsigned& late_cycles);
+    ControllerInputs ReadInputs() const;
+    // 先完成所有板的编码再逐板提交；提交失败时由工作线程故障退出。
+    void SubmitMotorTargets(const ChassisControlOutput& output,
+                            uint64_t command_sequence, uint64_t tick_start);
+    void PublishObservation(ChassisObservation& sample, uint64_t tick_start,
+                            uint64_t observation_sequence, unsigned late_cycles,
+                            uint64_t& observation_drops);
     ChassisRuntimeOptions options_;
     ChassisDevices devices_;
-    std::vector<devices::MotorEncoder> encoders_;
     dust_control::chassis::ChassisController controller_;
     ChassisObservationQueue observations_;
     std::atomic<bool> stop_{false};

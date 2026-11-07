@@ -12,7 +12,7 @@
 #include "support_force_estimator.h"
 
 namespace dust_control::chassis {
-// 控制周期的同步执行入口，不依赖线程、USB、RTOS、全局通道或遥测。
+// 控制周期的同步执行入口，不依赖线程、硬件传输、全局通道或遥测。
 class ChassisController {
    public:
     explicit ChassisController(

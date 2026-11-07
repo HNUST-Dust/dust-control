@@ -45,11 +45,16 @@ bool ChassisOutputPolicy::Apply(ChassisControlState state, uint32_t loop_ticks,
     PrepareJointOutput(state, input, output, config_);
     auto& targets = output.motor_targets;
     targets = {};
+    auto& idle_targets = output.idle_motor_targets;
+    SetWheelTargets(idle_targets);
+    SetJointTargets(idle_targets, dust_control::devices::MotorMode::kTorque);
     switch (state) {
         case ChassisControlState::kDisabled:
         case ChassisControlState::kSafetyStop:
         case ChassisControlState::kActionFault:
         case ChassisControlState::kTiltFault:
+            SetJointTargets(idle_targets,
+                            dust_control::devices::MotorMode::kDisable);
             if ((loop_ticks % 100U) == 0U) {
                 SetJointTargets(targets,
                                 dust_control::devices::MotorMode::kDisable);

@@ -1,10 +1,19 @@
-add_library(dust_ethercat_pdo pdo_config.cpp)
-target_link_libraries(dust_ethercat_pdo PUBLIC dust_headers PRIVATE yaml-cpp)
+set(pdo_header "${PROJECT_BINARY_DIR}/generated/pdo_schema.hpp")
+add_custom_command(OUTPUT "${pdo_header}"
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/generate_pdo_schema.py"
+          --schema "${PROJECT_SOURCE_DIR}/config/pdo_schema.yaml" --output "${pdo_header}"
+  DEPENDS "${PROJECT_SOURCE_DIR}/tools/generate_pdo_schema.py"
+          "${PROJECT_SOURCE_DIR}/config/pdo_schema.yaml"
+  VERBATIM)
+add_custom_target(dust_pdo_schema DEPENDS "${pdo_header}")
+add_library(dust_ethercat_pdo pdo_config.cpp "${pdo_header}")
+add_dependencies(dust_ethercat_pdo dust_pdo_schema)
+target_include_directories(dust_ethercat_pdo PUBLIC "${PROJECT_BINARY_DIR}/generated")
+target_link_libraries(dust_ethercat_pdo PUBLIC dust_headers)
 target_compile_options(dust_ethercat_pdo PRIVATE -Wall -Wextra -Wpedantic -Werror)
-add_library(dust_control::ethercat_pdo ALIAS dust_ethercat_pdo)
-
-add_library(dust_ethercat commands.cpp session.cpp session_dtg1.cpp master.cpp transport_igh.cpp uart_receive_queue.cpp)
-target_link_libraries(dust_ethercat PUBLIC dust_ethercat_pdo dust_motors dust_remote dust_imu dust_referee dust_realtime)
+add_library(dust_ethercat commands.cpp session.cpp master.cpp transport_igh.cpp)
+target_link_libraries(dust_ethercat PUBLIC dust_ethercat_pdo dust_motors dust_remote dust_imu dust_realtime)
+add_dependencies(dust_ethercat dust_pdo_schema)
 target_compile_options(dust_ethercat PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(DUST_BUILD_IGH)
   find_path(IGH_INCLUDE_DIR ecrt.h REQUIRED HINTS /opt/etherlab/include)
@@ -19,7 +28,7 @@ endif()
 add_library(dust_control::ethercat ALIAS dust_ethercat)
 if(DUST_BUILD_TOOLS OR BUILD_TESTING)
   add_executable(dust_ethercat_layout layout_main.cpp)
-  target_link_libraries(dust_ethercat_layout PRIVATE dust_ethercat_pdo)
+  target_link_libraries(dust_ethercat_layout PRIVATE dust_startup)
   target_compile_options(dust_ethercat_layout PRIVATE -Wall -Wextra -Wpedantic -Werror)
   install(TARGETS dust_ethercat_layout RUNTIME DESTINATION bin)
 endif()

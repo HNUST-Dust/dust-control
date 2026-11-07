@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "chassis/runtime/realtime_loop.hpp"
+#include "concurrency/realtime_loop.hpp"
 
 int main() {
     // 保留原 EtherCAT 测试中覆盖的共享统计行为。

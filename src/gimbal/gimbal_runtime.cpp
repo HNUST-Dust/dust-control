@@ -6,13 +6,9 @@
 #include <stdexcept>
 
 namespace dust_control::gimbal {
-GimbalRuntime::GimbalRuntime(GimbalDevices devices,
-                             concurrency::ThreadOptions thread)
-    : devices_(devices), thread_(thread) {
+GimbalRuntime::GimbalRuntime(concurrency::ThreadOptions thread)
+    : thread_(thread) {
     concurrency::ValidateThreadOptions(thread_);
-    if ((devices_.motors && !devices_.can) || (devices_.imu && !devices_.can)) {
-        throw std::invalid_argument("Incomplete gimbal device interfaces");
-    }
 }
 GimbalRuntime::~GimbalRuntime() {
     Stop();

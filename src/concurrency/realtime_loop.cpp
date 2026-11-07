@@ -1,4 +1,4 @@
-#include "chassis/runtime/realtime_loop.hpp"
+#include "concurrency/realtime_loop.hpp"
 
 #include <time.h>
 
@@ -7,8 +7,6 @@
 #include <cstring>
 #include <numeric>
 
-#include "concurrency/thread.hpp"
-
 namespace dust_control::realtime {
 
 std::uint64_t MonotonicTimeNs() {
@@ -16,11 +14,6 @@ std::uint64_t MonotonicTimeNs() {
     clock_gettime(CLOCK_MONOTONIC, &now);
     return static_cast<std::uint64_t>(now.tv_sec) * 1'000'000'000ULL +
            static_cast<std::uint64_t>(now.tv_nsec);
-}
-
-bool ConfigureCurrentThread(int cpu, int priority, std::string& error) {
-    return dust_control::concurrency::ConfigureThread({true, cpu, priority},
-                                                      error);
 }
 
 bool SleepUntilNs(std::uint64_t absolute_time_ns, std::string& error) {

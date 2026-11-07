@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "pdo_config.hpp"
+#include "dust_control_config.hpp"
 
 namespace {
 using dust_control::ethercat::ProcessImageLayout;
@@ -38,16 +38,13 @@ int main(int argc, char** argv) {
     const bool json = argc == 3 && std::string(argv[2]) == "--json";
     if (argc < 2 || argc > 3 || (argc == 3 && !json)) {
         std::cerr << "Usage: dust_ethercat_layout CONFIG.yaml [--json]\n"
-                     "       dust_ethercat_layout --production [--json]\n"
                      "Layout preview only; no hardware access.\n";
         return 2;
     }
     const std::string target = argv[1];
     try {
-        const dust_control::ethercat::PdoConfig config =
-            target == "--production"
-                ? dust_control::ethercat::ProductionPdoConfig()
-                : dust_control::ethercat::LoadPdoConfig(target);
+        const auto config =
+            dust_control::app::LoadDustControlConfig(target).pdo;
         const auto layout = dust_control::ethercat::BuildPdoLayout(config);
         if (json) {
             std::cout << "{\"layout_version\":" << layout.version

@@ -1,4 +1,3 @@
-add_subdirectory(runtime)
 add_library(dust_chassis
   chassis_config.cpp
   balance_controller.cpp

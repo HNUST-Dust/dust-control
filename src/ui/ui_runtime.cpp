@@ -6,12 +6,8 @@
 #include <stdexcept>
 
 namespace dust_control::ui {
-UiRuntime::UiRuntime(UiDevices devices, concurrency::ThreadOptions thread)
-    : devices_(devices), thread_(thread) {
+UiRuntime::UiRuntime(concurrency::ThreadOptions thread) : thread_(thread) {
     concurrency::ValidateThreadOptions(thread_);
-    if (bool(devices_.referee) != devices_.uart.has_value()) {
-        throw std::invalid_argument("Incomplete UI device interfaces");
-    }
 }
 UiRuntime::~UiRuntime() {
     Stop();

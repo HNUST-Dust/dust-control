@@ -3,35 +3,21 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <thread>
 
 #include "concurrency/thread.hpp"
-#include "hardware/ethercat/commands.hpp"
 
-namespace dust_control::devices {
-class RefereeDecoder;
-}
 namespace dust_control::ui {
-// 接口全部借用，必须长于本模块线程寿命；为空时离线运行。
-struct UiDevices {
-    const devices::RefereeDecoder* referee = nullptr;
-    std::optional<dust_control::host::UartFramePort> uart;
-};
 // 当前仅建立独立线程与生命周期；等待停止，不生成命令或维持虚假心跳。
 class UiRuntime {
    public:
-    explicit UiRuntime(UiDevices devices = {},
-                       concurrency::ThreadOptions thread = {});
+    explicit UiRuntime(concurrency::ThreadOptions thread = {});
     ~UiRuntime();
     void Start();
     void Stop();
     bool finished() const {
         return finished_.load();
-    }
-    bool attached() const {
-        return devices_.uart.has_value();
     }
     // 仅在 finished() 或 Stop() 后读取。
     const std::string& error() const {
@@ -40,7 +26,6 @@ class UiRuntime {
 
    private:
     void Run();
-    const UiDevices devices_;
     const concurrency::ThreadOptions thread_;
     std::mutex mutex_;
     std::condition_variable changed_;

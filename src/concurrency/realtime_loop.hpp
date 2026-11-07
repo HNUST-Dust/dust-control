@@ -7,7 +7,6 @@
 namespace dust_control::realtime {
 
 std::uint64_t MonotonicTimeNs();
-bool ConfigureCurrentThread(int cpu, int priority, std::string& error);
 bool SleepUntilNs(std::uint64_t absolute_time_ns, std::string& error);
 
 struct SampleSummary {

@@ -1,4 +1,4 @@
-"""Application schema 3 and PDO configuration fail before any bus access."""
+"""Application schema 4 and PDO configuration fail before any bus access."""
 import copy
 import pathlib
 import shutil
@@ -29,7 +29,10 @@ with tempfile.TemporaryDirectory() as temporary:
     run(lambda d: d['dust_control.yaml']['ethercat'].__setitem__('master_index', 256))
     run(lambda d: d['dust_control.yaml']['ethercat']['thread'].__setitem__('priority', 100))
     run(lambda d: d['dust_control.yaml']['modules']['chassis'].__setitem__('sensor_adapter', 'absent'))
-    run(lambda d: d['dust_control.yaml']['adapters']['base']['uart_sensors'].__setitem__('hi91', 1))
+    run(lambda d: d['dust_control.yaml']['adapters']['base'].__setitem__('protocol', 'generic'))
+    run(lambda d: d['dust_control.yaml']['adapters']['base'].__setitem__('strict_hi91_crc', True))
+    run(lambda d: d['dust_control.yaml']['ethercat'].__setitem__('cycle_time_us', 1000))
+    run(lambda d: d['dust_control.yaml'].__setitem__('schema_version', 3))
     run(lambda d: d['dust_control.yaml']['adapters']['base'].pop('vendor_id'))
     run(lambda d: d['motors_params.yaml']['motors'][0].__setitem__('adapter', 'absent'))
     run(lambda d: d['motors_params.yaml']['motors'][0].__setitem__('freshness_deadline_us', 0))
@@ -37,4 +40,4 @@ with tempfile.TemporaryDirectory() as temporary:
     run(lambda d: d['chassis_params.yaml'].__setitem__('unknown', 1))
     run(lambda d: d['dust_control.yaml']['execution'].update(simulate=True, enable_output=True))
     run(lambda d: d['dust_control.yaml']['execution'].update(simulate=True, realtime=False), valid=True)
-print('Application/PDO schema, bindings, missing files and legacy USB rejection passed')
+print('Application/PDO schema, bindings, missing files and retired configuration rejection passed')

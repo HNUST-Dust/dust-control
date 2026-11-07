@@ -69,19 +69,13 @@ class IghTransport final : public Transport {
                 Check(ecrt_slave_config_sdo32(slave.config, 0x2100, 3, 20000) ==
                           0,
                       "Cannot queue slave command watchdog SDO");
-                // Capacity descriptor, split across distinct subindices.
-                unsigned sub = 4;
-                for (auto n : c.can_tx_slots) {
-                    Sdo(slave.config, sub++, n);
+                // 固件启动对象的固定值由当前 schema 生成，保持原启动字节。
+                unsigned subindex = 4;
+                for (const auto value : pdo::kStartupValues) {
+                    Check(ecrt_slave_config_sdo32(slave.config, 0x2100,
+                                                  subindex++, value) == 0,
+                          "Cannot queue DTG1 startup SDO");
                 }
-                for (auto n : c.can_rx_slots) {
-                    Sdo(slave.config, sub++, n);
-                }
-                for (auto n : c.uart) {
-                    Sdo(slave.config, sub++, n.tx_bytes);
-                    Sdo(slave.config, sub++, n.rx_bytes);
-                }
-                Sdo(slave.config, sub, c.onboard_imu ? 1 : 0);
                 // SSC 未显式收到同步方式时会自动选 SM Sync；首版网关仅支持
                 // FreeRun。
                 Check(
@@ -152,10 +146,6 @@ class IghTransport final : public Transport {
         if (!good) {
             throw std::runtime_error(reason);
         }
-    }
-    static void Sdo(ec_slave_config_t* sc, unsigned sub, uint32_t value) {
-        Check(ecrt_slave_config_sdo32(sc, 0x2100, sub, value) == 0,
-              "Cannot queue slave capacity SDO");
     }
     void Map(Slave& slave, const ProcessImageLayout& image, uint8_t sm,
              ec_direction_t direction, ec_watchdog_mode_t watchdog,

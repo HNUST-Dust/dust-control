@@ -9,12 +9,15 @@ rules = {
     "src/chassis": ("hardware/", "runtime/"),
     "src/gimbal": ("chassis/chassis_runtime.hpp", "ui/ui_runtime.hpp"),
     "src/ui": ("chassis/chassis_runtime.hpp", "gimbal/gimbal_runtime.hpp"),
+    "src/hardware/ethercat": ("chassis/",),
     **{f"src/hardware/{group}": ("hardware/ethercat/", "chassis/", "runtime/")
-       for group in ("motors", "remote", "imu", "referee")},
+       for group in ("motors", "remote", "imu")},
 }
 # 底盘只引用设备侧的被动数据定义，不能引用 Decoder、Encoder 或通信实现。
 chassis_data_headers = {
     "hardware/remote/remote_input_state.hpp",
+    "hardware/motors/motor_types.hpp",
+    "hardware/imu/imu_sample.hpp",
 }
 for directory, forbidden in rules.items():
     for path in (root / directory).rglob("*"):
@@ -35,28 +38,23 @@ for directory, forbidden in rules.items():
                     and match[1].endswith("chassis_runtime.hpp")):
                 violations.append(f"{path.relative_to(root)}:{number}: algorithm includes business runtime")
             if (not is_chassis_runtime and match and match[1].startswith(forbidden)
-                    and not (directory == "src/chassis" and (match[1] in chassis_data_headers or
-                        (path.name in ("controller_inputs.h", "chassis_types.h") and match[1] in ("hardware/motors/motor_protocol.hpp", "hardware/imu/hi91_protocol.h"))))):
+                    and not (directory == "src/chassis" and match[1] in chassis_data_headers)):
                 violations.append(f"{path.relative_to(root)}:{number}: {match[1]}")
             if path.relative_to(root).as_posix().removeprefix("src/") in chassis_data_headers:
-                if ((match and match[1].startswith(("hardware/", "chassis/", "runtime/")))
+                if ((match and match[1] not in ("array", "cstdint"))
                         or "protocols::" in line):
                     violations.append(f"{path.relative_to(root)}:{number}: data header depends on implementation")
-            # 公共协议头集中数据定义；算法仍不能使用设备服务。
+            # 数据定义独立于协议服务；算法不能使用设备服务。
             if directory == "src/chassis" and not is_chassis_runtime and re.search(
-                    r"\b(MotorEncoder|MotorFeedbackDecoder|DecodeMotorFeedback|WflySbusDecoder|Hi91Decoder|Hi91TimeGuard|OnboardImu|RefereeDecoder)\b", line):
+                    r"\b(MotorEncoder|MotorCommandEncoder|MotorFeedbackDecoder|DecodeMotorFeedback|WflySbusDecoder|Hi91Imu|OnboardImu)\b", line):
                 violations.append(f"{path.relative_to(root)}:{number}: algorithm uses motor device service")
+            if directory == "src/chassis" and re.search(
+                    r"\b(dtg1|fixed_motor_batch)\b", line):
+                violations.append(f"{path.relative_to(root)}:{number}: chassis depends on transport batch format")
             if directory == "src/chassis" and "protocols::" in line:
                 violations.append(f"{path.relative_to(root)}:{number}: protocol type")
 
-# 自有代码使用统一根；外部工具生成的历史布局保留其接口。
-# Shared wire headers are copied verbatim from the MCU gateway; preserve its
-# namespaces so host and slave compile the same protocol definitions.
-generated_namespace_headers = {
-    "src/hardware/ethercat/pdo_schema.hpp",
-    "src/common/device_pdo.hpp", "src/common/device_sensor_page.hpp",
-    "src/common/hi91_compact.hpp",
-}
+# 自有代码统一使用 dust_control 根命名空间。
 for directory in ("src", "tests"):
     for path in (root / directory).rglob("*"):
         if path.suffix not in (".cpp", ".cc", ".h", ".hpp"):
@@ -65,8 +63,6 @@ for directory in ("src", "tests"):
         if path.suffix in (".h", ".hpp", ".hh", ".hxx"):
             if len(re.findall(r"^\s*#\s*pragma\s+once\s*$", path.read_text(), re.M)) != 1:
                 violations.append(f"{relative}: header must use exactly one pragma once")
-        if relative in generated_namespace_headers:
-            continue
         for number, line in enumerate(path.read_text().splitlines(), 1):
             if re.search(r"\bdust_control::modules\b", line):
                 violations.append(f"{relative}:{number}: chassis code must use dust_control::chassis")
@@ -79,7 +75,7 @@ for directory in ("src", "tests"):
 
 links = (root / "src/chassis/CMakeLists.txt").read_text()
 for block in re.findall(r"target_link_libraries\(dust_chassis\s+([^)]*)\)", links):
-    for dependency in ("dust_ethercat", "dust_motors", "dust_remote", "dust_imu", "dust_referee", "dust_chassis_runtime", "dust_startup", "yaml-cpp"):
+    for dependency in ("dust_ethercat", "dust_motors", "dust_remote", "dust_imu", "dust_chassis_runtime", "dust_startup", "yaml-cpp"):
         if dependency in block.split():
             violations.append(f"dust_chassis links {dependency}")
 

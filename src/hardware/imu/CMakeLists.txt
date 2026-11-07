@@ -1,6 +1,6 @@
 add_library(dust_imu
   imu_config.cpp
-  hi91_protocol.cpp
+  hi91_imu.cpp
   onboard_imu.cpp
 )
 target_link_libraries(dust_imu PUBLIC dust_headers Threads::Threads PRIVATE yaml-cpp)

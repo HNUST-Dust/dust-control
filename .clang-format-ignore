@@ -1,2 +1,1 @@
-# Generated message/layout headers must be changed through their generators.
-tests/benchmarks/can_usb_stress_test/host/bridge_layout.hpp
+# Generated files live under build/ and are not formatted.

@@ -39,7 +39,7 @@ DustControl::DustControl(DustControlConfig config,
                 "Chassis requires all six named motors");
         }
         for (const auto& owner : chassis_motors_.adapters) {
-            if (!config_.adapters.contains(owner)) {
+            if (!config_.pdo.adapters.contains(owner)) {
                 throw std::invalid_argument("Unknown motor adapter: " + owner);
             }
             if (!motor_configs_.contains(owner)) {
@@ -93,14 +93,13 @@ void DustControl::CreateAdapters() {
     thread.realtime = config_.execution.realtime;
     master_ = std::make_unique<ethercat::EthercatMaster>(config_.pdo, thread);
     const auto layout = ethercat::BuildPdoLayout(config_.pdo);
-    for (const auto& [name, adapter] : config_.adapters) {
-        auto devices = adapter.devices;
+    for (const auto& [name, adapter] : config_.pdo.adapters) {
+        (void)adapter;
         const auto motors = motor_configs_.find(name);
-        devices.decode_motors = motors != motor_configs_.end();
         auto session = std::make_unique<host::EthercatSession>(
-            config_.pdo.adapters.at(name), layout.adapters.at(name), devices,
-            devices.decode_motors ? motors->second : devices::MotorConfig{},
-            imu_);
+            layout.adapters.at(name), motors != motor_configs_.end()
+                                          ? motors->second
+                                          : devices::MotorConfig{});
         master_->Attach(name, *session);
         adapters_.try_emplace(name, std::move(session));
     }
@@ -117,7 +116,7 @@ void DustControl::CreateChassis() {
         chassis::ChassisDevices devices;
         if (auto* bus = SessionFor(config_.chassis.adapter)) {
             devices.remote = &bus->wfly_sbus_decoder();
-            devices.imu = &bus->hi91_decoder();
+            devices.imu = &bus->hi91_imu();
         }
         for (const auto& [name, config] : motor_configs_) {
             if (auto* bus = SessionFor(name)) {
@@ -125,7 +124,8 @@ void DustControl::CreateChassis() {
                                 [](bool value) { return value; })) {
                     devices.motor_adapters.push_back(
                         {name, &bus->motor_decoder(), &bus->transmitter(),
-                         config, &adapters_.at(name).started, config_.pdo.adapters.at(name).dtg1});
+                         config, &adapters_.at(name).started,
+                         &bus->motor_encoder()});
                 }
             }
         }
@@ -139,31 +139,17 @@ void DustControl::CreateChassis() {
 
 void DustControl::CreateGimbal() {
     if (config_.gimbal.enabled) {
-        gimbal::GimbalDevices devices;
-        if (auto* bus = SessionFor(config_.gimbal.adapter)) {
-            if (motor_configs_.contains(config_.gimbal.adapter)) {
-                devices.motors = &bus->motor_decoder();
-            }
-            devices.imu = &bus->hi91_decoder();
-            devices.can.emplace(bus->transmitter(),
-                                dust_control::host::CanProducer::kGimbal);
-        }
         auto thread = config_.gimbal.thread;
         thread.realtime = config_.execution.realtime;
-        gimbal_ = std::make_unique<gimbal::GimbalRuntime>(devices, thread);
+        gimbal_ = std::make_unique<gimbal::GimbalRuntime>(thread);
     }
 }
 
 void DustControl::CreateUi() {
     if (config_.ui.enabled) {
-        ui::UiDevices devices;
-        if (auto* bus = SessionFor(config_.ui.adapter)) {
-            devices.referee = &bus->referee_decoder();
-            devices.uart.emplace(bus->transmitter());
-        }
         auto thread = config_.ui.thread;
         thread.realtime = config_.execution.realtime;
-        ui_ = std::make_unique<ui::UiRuntime>(devices, thread);
+        ui_ = std::make_unique<ui::UiRuntime>(thread);
     }
 }
 
@@ -175,7 +161,7 @@ void DustControl::StartAdapters() {
         adapter.started = true;
         std::cout << "EtherCAT adapter " << name << " ready" << std::endl;
     }
-    for (const auto& [name, config] : config_.adapters) {
+    for (const auto& [name, config] : config_.pdo.adapters) {
         (void)config;
         StartModulesFor(name);
     }

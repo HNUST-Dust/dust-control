@@ -44,34 +44,10 @@ void ValidateDustControlConfig(const DustControlConfig& config) {
     }
     (void)ethercat::BuildPdoLayout(config.pdo);
     concurrency::ValidateThreadOptions(config.ethercat_thread);
-    if (config.adapters.size() != config.pdo.adapters.size()) {
-        throw std::invalid_argument("Application/PDO adapter sets must match");
-    }
-    for (const auto& [name, adapter] : config.adapters) {
-        if (!config.pdo.adapters.contains(name)) {
-            throw std::invalid_argument("Missing PDO adapter: " + name);
-        }
-        adapter.devices.uart_sensors.Validate();
-        const auto& capacity = config.pdo.adapters.at(name);
-        if (capacity.dtg1) {
-            const auto& u=adapter.devices.uart_sensors;
-            if (u.remote!=5 || u.hi91!=2 || u.referee!=0)
-                throw std::invalid_argument("DTG1 binds SBUS UART5 and HI91 UART2 only");
-            continue;
-        }
-        for (const auto port : {adapter.devices.uart_sensors.remote,
-                                adapter.devices.uart_sensors.hi91,
-                                adapter.devices.uart_sensors.referee}) {
-            if (port && !capacity.uart[port - 1].rx_bytes) {
-                throw std::invalid_argument(
-                    "Sensor binding requires UART RX capacity");
-            }
-        }
-    }
     for (const auto* module : {&config.chassis, &config.gimbal, &config.ui}) {
         concurrency::ValidateThreadOptions(module->thread);
         if (!module->adapter.empty() &&
-            !config.adapters.contains(module->adapter)) {
+            !config.pdo.adapters.contains(module->adapter)) {
             throw std::invalid_argument("Unknown module adapter: " +
                                         module->adapter);
         }
@@ -88,7 +64,7 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     yaml_validation::ValidateKeys(
         root, {"schema_version", "execution", "adapters", "modules", "motors",
                "ethercat"});
-    if (yaml_validation::ParseUnsignedInteger(root["schema_version"], 3) != 3) {
+    if (yaml_validation::ParseUnsignedInteger(root["schema_version"], 4) != 4) {
         throw std::invalid_argument(
             "Unsupported application configuration version");
     }
@@ -105,15 +81,15 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     if (const auto limits = bus["limits"]) {
         yaml_validation::ValidateKeys(
             limits, {"max_rxpdo_bytes", "max_txpdo_bytes", "max_wire_time_us"});
-        config.pdo.max_rxpdo_bytes = static_cast<uint32_t>(
-            yaml_validation::ParseUnsignedInteger(limits["max_rxpdo_bytes"],
-                                                  4096));
-        config.pdo.max_txpdo_bytes = static_cast<uint32_t>(
-            yaml_validation::ParseUnsignedInteger(limits["max_txpdo_bytes"],
-                                                  4096));
-        config.pdo.max_wire_time_us = static_cast<uint32_t>(
-            yaml_validation::ParseUnsignedInteger(limits["max_wire_time_us"],
-                                                  1000));
+        config.pdo.max_rxpdo_bytes =
+            static_cast<uint32_t>(yaml_validation::ParseUnsignedInteger(
+                limits["max_rxpdo_bytes"], 4096));
+        config.pdo.max_txpdo_bytes =
+            static_cast<uint32_t>(yaml_validation::ParseUnsignedInteger(
+                limits["max_txpdo_bytes"], 4096));
+        config.pdo.max_wire_time_us =
+            static_cast<uint32_t>(yaml_validation::ParseUnsignedInteger(
+                limits["max_wire_time_us"], 1000));
     }
     const auto execution = root["execution"];
     yaml_validation::ValidateKeys(execution,
@@ -121,7 +97,6 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     config.execution.simulate = execution["simulate"].as<bool>();
     config.execution.realtime = execution["realtime"].as<bool>();
     config.execution.enable_output = execution["enable_output"].as<bool>();
-    config.adapters.clear();
     const auto adapters = root["adapters"];
     if (!adapters.IsMap()) {
         throw std::invalid_argument("adapters must be a mapping");
@@ -129,57 +104,24 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
     for (const auto& entry : adapters) {
         const auto name = entry.first.as<std::string>();
         const auto node = entry.second;
-        yaml_validation::ValidateKeys(
-            node, {"alias", "position", "vendor_id", "product_code",
-                   "uart_sensors"},
-            {"strict_hi91_crc", "protocol"});
-        // PDO capacity comes from the schema's production profile; identity
-        // and master fields come from this application config.
-        ethercat::AdapterPdoConfig pdo_adapter = ethercat::ProductionCapacity();
-        if (node["protocol"]) {
-            const auto protocol = node["protocol"].as<std::string>();
-            if (protocol == "dtg1") pdo_adapter = ethercat::Dtg1Capacity();
-            else if (protocol != "generic") throw std::invalid_argument("Unknown PDO protocol: " + protocol);
+        yaml_validation::ValidateKeys(node, {"alias", "position", "vendor_id",
+                                             "product_code", "protocol"});
+        if (node["protocol"].as<std::string>() != "dtg1") {
+            throw std::invalid_argument("Only the DTG1 protocol is supported");
         }
+        ethercat::AdapterPdoConfig pdo_adapter;
         pdo_adapter.alias = static_cast<uint16_t>(
             yaml_validation::ParseUnsignedInteger(node["alias"], 65535));
         pdo_adapter.position = static_cast<uint16_t>(
             yaml_validation::ParseUnsignedInteger(node["position"], 65535));
-        pdo_adapter.vendor_id = static_cast<uint32_t>(
-            yaml_validation::ParseUnsignedInteger(node["vendor_id"],
-                                                  0xffffffffU));
-        pdo_adapter.product_code = static_cast<uint32_t>(
-            yaml_validation::ParseUnsignedInteger(node["product_code"],
-                                                  0xffffffffU));
+        pdo_adapter.vendor_id =
+            static_cast<uint32_t>(yaml_validation::ParseUnsignedInteger(
+                node["vendor_id"], 0xffffffffU));
+        pdo_adapter.product_code =
+            static_cast<uint32_t>(yaml_validation::ParseUnsignedInteger(
+                node["product_code"], 0xffffffffU));
         if (!config.pdo.adapters.emplace(name, pdo_adapter).second) {
             throw std::invalid_argument("Duplicate PDO adapter name: " + name);
-        }
-        AdapterConfig adapter;
-        if (node["strict_hi91_crc"]) {
-            adapter.devices.strict_hi91_crc =
-                node["strict_hi91_crc"].as<bool>();
-        }
-        if (const auto sensors = node["uart_sensors"]) {
-            yaml_validation::ValidateKeys(sensors,
-                                          {"remote", "hi91", "referee"});
-            const auto channel = [](const YAML::Node& value) -> uint8_t {
-                if (value.IsNull()) {
-                    return 0;
-                }
-                const auto parsed =
-                    yaml_validation::ParseUnsignedInteger(value, 6);
-                if (!parsed) {
-                    throw std::invalid_argument(
-                        "UART channel must be 1..6 or null");
-                }
-                return static_cast<uint8_t>(parsed);
-            };
-            adapter.devices.uart_sensors = {channel(sensors["remote"]),
-                                            channel(sensors["hi91"]),
-                                            channel(sensors["referee"])};
-        }
-        if (!config.adapters.emplace(name, std::move(adapter)).second) {
-            throw std::invalid_argument("Duplicate adapter name: " + name);
         }
     }
     const auto modules = root["modules"];

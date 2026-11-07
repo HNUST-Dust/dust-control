@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "dust_control_node.hpp"
 
-#include <chassis/runtime/realtime_loop.hpp>
 #include <chrono>
 #include <cmath>
+#include <concurrency/realtime_loop.hpp>
 #include <stdexcept>
 
 #include "chassis_telemetry.hpp"
@@ -43,15 +43,11 @@ DustControlNode::DustControlNode(const rclcpp::NodeOptions& options)
 std::string DustControlNode::DeclareConfigurationDirectory() {
     const auto& overrides =
         get_node_parameters_interface()->get_parameter_overrides();
-    for (const auto* legacy :
-         {"simulate", "enable_output", "realtime", "run_seconds",
-          "command_source", "command_timeout_ms", "control_cpu", "usb_cpu",
-          "priority", "strict_hi91_crc", "usb_serial", "usb_product",
-          "usb_pid"}) {
-        if (overrides.contains(legacy)) {
-            throw std::invalid_argument(
-                std::string("Unsupported startup parameter: ") + legacy +
-                "; use config_directory and dust_control.yaml");
+    for (const auto& [name, value] : overrides) {
+        (void)value;
+        if (name != "config_directory" && name != "use_sim_time") {
+            throw std::invalid_argument("Unsupported startup parameter: " +
+                                        name);
         }
     }
     rcl_interfaces::msg::ParameterDescriptor descriptor;
