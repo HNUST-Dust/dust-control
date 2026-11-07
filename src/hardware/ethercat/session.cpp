@@ -58,6 +58,20 @@ EthercatSession::EthercatSession(const ethercat::AdapterPdoConfig& capacity,
       motors_(motors),
       imu_(options.strict_hi91_crc, imu) {
     options_.uart_sensors.Validate();
+    if (capacity_.dtg1) {
+        if (layout_.rx.bytes!=60 || layout_.tx.bytes!=180 || layout_.layout_signature!=0x44544731)
+            throw std::invalid_argument("DTG1 PDO layout mismatch");
+        if (options_.uart_sensors.remote!=5 || options_.uart_sensors.hi91!=2 || options_.uart_sensors.referee)
+            throw std::invalid_argument("DTG1 sensor bindings mismatch");
+        for (const auto& route : dust::device_pdo::kRoutes) {
+            bool found=false;
+            for (size_t i=0;i<motors.present.size();++i)
+                found |= motors.present[i] && motors.addresses[i].bus==route.bus &&
+                    motors.addresses[i].command_id==route.command && motors.addresses[i].feedback_id==route.feedback;
+            if (options_.decode_motors && !found) throw std::invalid_argument("DTG1 motor route mismatch");
+        }
+        return;
+    }
     for (auto port : {options_.uart_sensors.remote, options_.uart_sensors.hi91,
                       options_.uart_sensors.referee}) {
         if (port && !capacity_.uart[port - 1].rx_bytes) {
@@ -130,6 +144,7 @@ void EthercatSession::Discontinuity(unsigned port) {
 }
 bool EthercatSession::Receive(std::span<const uint8_t> image, uint64_t now_ns,
                               uint64_t session) {
+    if (capacity_.dtg1) return ReceiveDtg1(image, now_ns, session);
     if (image.size() != layout_.tx.bytes) {
         return FailInput("EtherCAT TxPDO length mismatch");
     }
@@ -357,6 +372,7 @@ bool EthercatSession::Receive(std::span<const uint8_t> image, uint64_t now_ns,
 bool EthercatSession::Encode(std::span<uint8_t> image, uint64_t now_ns,
                              uint64_t session, uint32_t exchange,
                              uint32_t flags) {
+    if (capacity_.dtg1) return EncodeDtg1(image, now_ns, session, flags);
     if (image.size() != layout_.rx.bytes) {
         return FailInput("EtherCAT RxPDO length mismatch");
     }

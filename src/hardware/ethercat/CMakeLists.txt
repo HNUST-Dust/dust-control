@@ -3,7 +3,7 @@ target_link_libraries(dust_ethercat_pdo PUBLIC dust_headers PRIVATE yaml-cpp)
 target_compile_options(dust_ethercat_pdo PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(dust_control::ethercat_pdo ALIAS dust_ethercat_pdo)
 
-add_library(dust_ethercat commands.cpp session.cpp master.cpp transport_igh.cpp uart_receive_queue.cpp)
+add_library(dust_ethercat commands.cpp session.cpp session_dtg1.cpp master.cpp transport_igh.cpp uart_receive_queue.cpp)
 target_link_libraries(dust_ethercat PUBLIC dust_ethercat_pdo dust_motors dust_remote dust_imu dust_referee dust_realtime)
 target_compile_options(dust_ethercat PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(DUST_BUILD_IGH)

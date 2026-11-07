@@ -181,6 +181,14 @@ void ChassisRuntime::Run() {
                 state ==
                     dust_control::chassis::ChassisControlState::kActionFault ||
                 state == dust_control::chassis::ChassisControlState::kTiltFault;
+            if (devices_.motor_adapters[i].fixed_motor_batch) {
+                for (size_t motor=0;motor<targets.size();++motor) {
+                    if (!motors.present[motor]) continue;
+                    if (safe) targets[motor] = {motor<2 ? devices::MotorMode::kTorque : devices::MotorMode::kDisable, 0};
+                    else if (targets[motor].mode == devices::MotorMode::kNone)
+                        targets[motor] = {devices::MotorMode::kTorque, 0};
+                }
+            }
             // 仅关节板也必须在 20 ms 租约内收到真实安全命令。
             // 根据当前安全状态重新生成失能指令，不重放历史目标或发送假心跳。
             if (safe && !motors.present[0] && !motors.present[1] &&

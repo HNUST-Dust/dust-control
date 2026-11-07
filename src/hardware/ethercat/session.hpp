@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "commands.hpp"
+#include "dtg1_state.hpp"
 #include "hardware/imu/hi91_protocol.h"
 #include "hardware/imu/onboard_imu.hpp"
 #include "hardware/motors/motor_protocol.hpp"
@@ -90,6 +91,9 @@ class EthercatSession {
     }
 
    private:
+    bool ReceiveDtg1(std::span<const uint8_t>, uint64_t, uint64_t);
+    bool EncodeDtg1(std::span<uint8_t>, uint64_t, uint64_t, uint32_t);
+    Dtg1State dtg1_;
     bool FailInput(const char* reason);
     void Discontinuity(unsigned port);
     const ethercat::AdapterPdoConfig capacity_;

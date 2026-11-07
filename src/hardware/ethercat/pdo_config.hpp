@@ -24,6 +24,7 @@ struct AdapterPdoConfig {
     std::array<uint8_t, 4> can_rx_slots{};
     std::array<UartCapacity, 6> uart{};
     bool onboard_imu = true;
+    bool dtg1 = false;  // Fixed 60 B Rx / 180 B Tx gateway wire protocol.
 };
 struct PdoConfig {
     uint32_t master_index = 0;
@@ -94,6 +95,12 @@ inline PdoConfig ProductionPdoConfig() {
     config.max_wire_time_us = dust::pdo::kProductionCycleUs;
     config.adapters["base"] = ProductionCapacity();
     return config;
+}
+inline AdapterPdoConfig Dtg1Capacity() {
+    AdapterPdoConfig adapter;
+    adapter.dtg1 = true;
+    adapter.can_rx_slots = {3, 0, 0, 3};
+    return adapter;
 }
 PdoConfig LoadPdoConfig(const std::string& file);
 PdoLayout BuildPdoLayout(const PdoConfig& config);

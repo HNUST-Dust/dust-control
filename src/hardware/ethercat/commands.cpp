@@ -16,7 +16,7 @@ bool EthercatTransmitter::ConfigureCan(CanProducer producer,
     const std::lock_guard lock(mutex_);
     const auto index = static_cast<size_t>(producer);
     if (started_ || registration_closed_ || index >= sources_.size() ||
-        groups.empty() || groups.size() > capacity_.can_tx_slots[index] ||
+        groups.empty() || groups.size() > (capacity_.dtg1 && index == 0 ? 6U : capacity_.can_tx_slots[index]) ||
         !timeout_ns || timeout_ns > kCommandTimeoutUs * 1000ULL ||
         sources_[index].group_count) {
         return false;

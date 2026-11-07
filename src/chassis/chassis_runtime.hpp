@@ -33,6 +33,7 @@ struct ChassisMotorAdapter {
     devices::MotorConfig motors;
     // DustControl 在握手和发送线程就绪后置 true；独立调用者可省略。
     const std::atomic<bool>* started = nullptr;
+    bool fixed_motor_batch = false;
 };
 struct ChassisDevices {
     std::vector<ChassisMotorAdapter> motor_adapters;

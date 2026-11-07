@@ -248,6 +248,21 @@ PdoLayout BuildPdoLayout(const PdoConfig& config) {
         signature.Image(layout.rx);
         signature.Image(layout.tx);
         layout.layout_signature = signature.Finish();
+        if (adapter.dtg1) {
+            Require(config.cycle_time_us == 125 && adapter.can_tx_slots == std::array<uint8_t, 2>{} &&
+                    adapter.can_rx_slots == std::array<uint8_t, 4>{3,0,0,3} && adapter.onboard_imu &&
+                    std::all_of(adapter.uart.begin(),adapter.uart.end(),[](const auto& u){return !u.tx_bytes && !u.rx_bytes;}),
+                    "DTG1 requires fixed 125 us CAN0/CAN3 gateway capacity");
+            layout.rx = {60, {{0x1600, {}}}};
+            layout.tx = {180, {{0x1a00, {}}}};
+            for (unsigned i=0;i<6;++i) {
+                layout.rx.mappings[0].entries.push_back({"device.rx",0x2050,uint8_t(i+1),80,i*10});
+                layout.tx.mappings[0].entries.push_back({"device.tx",0x3051,uint8_t(i+1),80,i*10});
+            }
+            for (unsigned i=0;i<4;++i)
+                layout.tx.mappings[0].entries.push_back({"device.tx",0x3051,uint8_t(i+7),240,60+i*30});
+            layout.layout_signature = 0x44544731;
+        }
         result.total_rx_bytes += layout.rx.bytes;
         result.total_tx_bytes += layout.tx.bytes;
         result.estimated_frames +=

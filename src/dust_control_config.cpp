@@ -53,6 +53,12 @@ void ValidateDustControlConfig(const DustControlConfig& config) {
         }
         adapter.devices.uart_sensors.Validate();
         const auto& capacity = config.pdo.adapters.at(name);
+        if (capacity.dtg1) {
+            const auto& u=adapter.devices.uart_sensors;
+            if (u.remote!=5 || u.hi91!=2 || u.referee!=0)
+                throw std::invalid_argument("DTG1 binds SBUS UART5 and HI91 UART2 only");
+            continue;
+        }
         for (const auto port : {adapter.devices.uart_sensors.remote,
                                 adapter.devices.uart_sensors.hi91,
                                 adapter.devices.uart_sensors.referee}) {
@@ -126,10 +132,15 @@ DustControlConfig LoadDustControlConfig(const std::string& file) {
         yaml_validation::ValidateKeys(
             node, {"alias", "position", "vendor_id", "product_code",
                    "uart_sensors"},
-            {"strict_hi91_crc"});
+            {"strict_hi91_crc", "protocol"});
         // PDO capacity comes from the schema's production profile; identity
         // and master fields come from this application config.
         ethercat::AdapterPdoConfig pdo_adapter = ethercat::ProductionCapacity();
+        if (node["protocol"]) {
+            const auto protocol = node["protocol"].as<std::string>();
+            if (protocol == "dtg1") pdo_adapter = ethercat::Dtg1Capacity();
+            else if (protocol != "generic") throw std::invalid_argument("Unknown PDO protocol: " + protocol);
+        }
         pdo_adapter.alias = static_cast<uint16_t>(
             yaml_validation::ParseUnsignedInteger(node["alias"], 65535));
         pdo_adapter.position = static_cast<uint16_t>(

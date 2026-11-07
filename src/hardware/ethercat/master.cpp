@@ -98,6 +98,7 @@ void EthercatMaster::Run() {
         opened = true;
         std::random_device random;
         nonce = (uint64_t(random()) << 32) | random();
+        nonce |= 1;  // DTG1 uses a nonzero low 32-bit session token.
         if (!nonce) {
             nonce = 1;
         }
@@ -142,7 +143,10 @@ void EthercatMaster::Run() {
                     all_discovered = false;
                     if (ready_) {
                         throw std::runtime_error(board.name +
-                                                 ": EtherCAT OP/WKC lost");
+                                                 ": EtherCAT OP/WKC lost (operational=" +
+                                                 std::to_string(board.operational) +
+                                                 ", complete=" +
+                                                 std::to_string(board.complete) + ")");
                     }
                 }
                 all_active = all_active && session.active();

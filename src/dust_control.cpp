@@ -125,7 +125,7 @@ void DustControl::CreateChassis() {
                                 [](bool value) { return value; })) {
                     devices.motor_adapters.push_back(
                         {name, &bus->motor_decoder(), &bus->transmitter(),
-                         config, &adapters_.at(name).started});
+                         config, &adapters_.at(name).started, config_.pdo.adapters.at(name).dtg1});
                 }
             }
         }
