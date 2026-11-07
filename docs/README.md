@@ -1,42 +1,15 @@
 # 文档索引
 
-本目录的现行说明以当前源码为准。历史迁移过程与验证结果单独保存，旧命令和旧参数
-不代表今天仍然可用。当前应用只有 ROS2 节点入口，配置在启动时从 YAML 加载。
+- [架构与数据流](ARCHITECTURE.md)
+- [装配与线程配置](DUST_CONTROL_CONFIGURATION.md)
+- [DTG1 PDO schema与布局](ETHERCAT_PDO_CONFIGURATION.md)
+- [DTG1运行与故障契约](ETHERCAT_RUNTIME.md)
+- [设备输入](protocols/UART.md)
+- [ROS2与Foxglove](ROS2.md)
+- [构建与回归](TESTING.md)
+- [C++维护约定](CPP_STYLE.md)
+- [MPC开发](MPC.md)
+- [版本管理](BRANCHES.md)
 
-## 建议阅读顺序
-
-| 文档 | 解决的问题 |
-|---|---|
-| [架构](ARCHITECTURE.md) | 模块如何分工，线程和 Adapter 由谁拥有，数据如何流动 |
-| [运行配置](DUST_CONTROL_CONFIGURATION.md) | execution、模块启用、多板绑定、CPU 和优先级如何配置 |
-| [ROS2 使用](ROS2.md) | 如何构建、启动节点，订阅底盘观测，选择配置目录 |
-| [配置字段](../config/README.md) | 电机、传感器和底盘 YAML 的具体范围及校验规则 |
-| [测试](TESTING.md) | 生产与模块测试如何构建，哪些结论仍需实机验证 |
-
-## 开发与协议
-
-| 文档 | 内容 |
-|---|---|
-| [C++ 风格](CPP_STYLE.md) | 排版、命名、所有权与维护规则 |
-| [EtherCAT 运行时](ETHERCAT_RUNTIME.md) | IgH 主站、动态 PDO、握手与从站保护契约 |
-| [PDO 配置](ETHERCAT_PDO_CONFIGURATION.md) | YAML 通道容量、布局签名与实际主站映射 |
-| [MPC](MPC.md) | 在研算法、开发程序与验证入口 |
-| [分支约定](BRANCHES.md) | USB 正式分支、EtherCAT 开发分支及 CI |
-| [Foxglove 使用](../tools/foxglove/README.md) | 独立 Bridge、统一端口与布局 |
-
-## 历史与证据
-
-- [迁移与导入来源](history/MIGRATION.md)：迁移背景、原始文件位置和源码清单。
-- [重构与验证记录](history/VALIDATION.md)：逐次修改的检查结果，包括失败与局限。
-- [YAML 参数筛选](history/YAML_PARAMETER_REVIEW.md)：参数削减时的决策依据。
-- [性能报告](benchmarks/README.md)：历史测量、环境和原始数据。
-- [v0.1 发布记录](releases/v0.1.md)：发布时的源码与验证范围。
-
-OrbStack 用于开发和功能调试。实际多板 EtherCAT、控制周期、ROS2 话题和 Foxglove
-性能留到目标机器人主机验证，历史虚拟机测量不构成实机性能承诺。
-
-[主站选型与最终方案](2026-10-30-master-selection-igh.md)：IgH 选型、台架结果与运行约束。
-
-[外设实机验证摘要](2026-10-30-peripheral-validation.md)：清理后固件的 CAN3 和 UART 验证结果。
-
-旧 [USB 协议](protocols/USB.md)和 [UART 文档](protocols/UART.md)保留为历史对照，不是本分支当前传输契约。
+当前支持的接口以源码、配置和上述文档为准。历史源码、补丁和交接快照已从工作树撤除，
+需要追溯时使用Git历史。带日期的测量记录仅描述当时环境，不作为当前运行指令。

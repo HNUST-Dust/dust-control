@@ -1,33 +1,37 @@
 # 架构与数据流
 
-main → DustControlNode → DustControl。ROS 发布观测；DustControl 加载 YAML、装配并协调启停。
-底盘、云台、UI 保留各自线程，通信统一交给一个 EthercatMaster 周期线程。
+`main → DustControlNode → DustControl`。节点发布观测，DustControl 加载配置、
+拥有设备会话与业务模块，并协调启停。
 
 ```text
 DustControl
-├─ ChassisRuntime / GimbalRuntime / UiRuntime
-├─ 按名字拥有 EthercatSession
-│  ├─ 原设备 Decoder 与快照
-│  ├─ 原始 UART 接收队列
-│  └─ EthercatTransmitter（有界来源/消息缓冲，无独立线程）
-└─ EthercatMaster（唯一 IgH 线程）
-   └─ IghTransport → 动态 PDO / domain → 1～3 块从站
+├─ ChassisRuntime → ChassisController::Tick
+├─ GimbalRuntime / UiRuntime（生命周期占位，无设备端口或业务输出）
+├─ EthercatSession（每板一份）
+│  ├─ MotorFeedbackDecoder / MotorCommandEncoder
+│  ├─ WflySbusDecoder / Hi91Imu / OnboardImu
+│  └─ EthercatTransmitter（完整六电机批次与20 ms期限）
+└─ EthercatMaster（唯一通信线程）→ IghTransport
 ```
 
-接收：IgH Receive/domain_process → 校验 OP/WKC → 每板业务头/会话校验 →
-CAN/UART/原始 IMU → 现有设备 Consume/Read。控制读取快照并生成 MotorTargets，
-MotorEncoder 编成 CAN 后提交本板来源缓冲；主站每周期编码最新有效来源并 Send。
+通用线程、时钟、等待、快照和统计位于 `src/concurrency/`，不依赖业务模块。
+控制算法只引用设备被动数据头，不引用编解码服务、ROS、YAML 或主站。
+底盘、云台、UI 各自拥有线程；业务只借用设备接口，不拥有或停止共享主站。
 
-业务不拥有主站，不调用 ecrt，不停止共享会话，不在循环解析 YAML。
-控制器与设备编解码保持独立于 ROS/IgH；本分支直接使用具体 EtherCAT 端口，
-没有额外 USB/EtherCAT 后端切换层。
+底盘周期按等待、采集输入、控制计算、编码提交、发布观测顺序执行。
+输出策略生成周期命令和本周期空槽目标；通信编码器据此补齐 DTG1 六电机批次，
+不读取底盘状态、不重放上一周期的使能或清错命令。
+所有板先编码成功，再逐板提交；编码失败不提交本周期的部分目标。
 
-先完整加载和校验配置，再创建会话、注册命令组、启动底盘安全计算，最后启动主站。
-全板握手完成前 started/startup_ready 门控阻止业务输出；全板 ready 后仍需原遥控与状态机条件。
-空业务模块不伪造 CAN 来源；配置的从站统一交换诊断/传感器，不通过虚假控制心跳续租。
+`config/pdo_schema.yaml` 由 CMake 自动生成 `build/<preset>/generated/pdo_schema.hpp`。
+布局、固定路由与启动 SDO 值只在 schema 维护；源目录不保存生成头或第二种 PDO 实现。
+应用 schema 4 从 `dust_control.yaml` 加载从站身份、主站和模块配置。
 
-退出先取消许可、回收业务线程，再统一发送全板 Stop 并释放主站。
-丢线、从站复位或来源失效终止整机会话；不在运行中自动重新 Arm。
+接收路径为 OP/WKC 检查、DTG1 页解码、设备校验与物理量转换、快照发布。
+HI91 网关序号只用于会话去重/回绕/回退检查，不作为传感器毫秒时间。
+紧凑页直接转为测量值，不生成串口帧或 CRC；板载 IMU 直接读取三轴原始值，
+保留原量程和坐标映射，不替代控制用 HI91。
 
-配置与协议详见 [装配](DUST_CONTROL_CONFIGURATION.md)、[运行时](ETHERCAT_RUNTIME.md)、
-[PDO 配置](ETHERCAT_PDO_CONFIGURATION.md)。
+启动先完成配置与装配，再启动底盘安全计算和主站握手，全部就绪后才发布启动许可。
+退出先取消许可、回收业务线程，再由主站统一发 Stop 并关闭资源。
+丢线、从站复位、损坏页或命令超时终止会话，不自动重新使能。

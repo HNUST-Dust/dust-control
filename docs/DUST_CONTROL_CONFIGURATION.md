@@ -1,60 +1,28 @@
-# EtherCAT 装配与线程配置
+# 装配与线程配置
 
-`dust_control.yaml` schema 3 管理 execution、motors、ethercat、adapters、modules。
-旧 USB schema 2/serial/receive_thread/send_thread 被拒绝，不隐式兼容。
+`config/dust_control.yaml` schema 4 管理 execution、motors、ethercat、adapters、modules。
+完整示例以仓库配置文件为准。未知、重复或缺失字段拒绝；不保留旧schema兼容分支。
 
-```yaml
-schema_version: 3
-motors: motors_params.yaml
-execution: {simulate: false, realtime: true, enable_output: false}
-ethercat:
-  master_index: 0
-  cycle_time_us: 125
-  limits: {max_rxpdo_bytes: 4096, max_txpdo_bytes: 4096, max_wire_time_us: 125}
-  thread: {cpu: 3, priority: 80}
-adapters:
-  base:
-    alias: 0
-    position: 0
-    vendor_id: 0
-    product_code: 0
-    uart_sensors: {remote: 1, hi91: 2, referee: 3}
-    strict_hi91_crc: false
-modules:
-  chassis:
-    enabled: true
-    sensor_adapter: base
-    thread: {cpu: 3, priority: 80}
-  gimbal:
-    enabled: true
-    adapter: null
-    thread: {cpu: null, priority: 0}
-  ui:
-    enabled: true
-    adapter: base
-    thread: {cpu: null, priority: 0}
-```
+| 配置 | 作用 |
+|---|---|
+| execution.simulate | 离线运行，不创建真实会话或申请主站 |
+| execution.realtime | 启用线程CPU绑定、FIFO及内存锁定 |
+| execution.enable_output | 整机输出许可；还需遥控、传感器和状态机条件 |
+| ethercat.master_index | IgH主站索引 |
+| ethercat.cycle_time_us | 必须与构建期schema一致，当前125 μs |
+| ethercat.limits | PDO大小和估算线时的规划上限 |
+| adapters | 1～3个具名从站，protocol固定dtg1，填写alias/position/vendor_id/product_code |
+| modules | 底盘、云台、UI的开关、启动绑定与线程配置 |
 
-PDO 容量不再单独配置：固定生产 profile 由 `config/pdo_schema.yaml` 生成
-（`ProductionConfig()`），`dust_control.yaml` 只提供主站索引、周期、预算和从站身份。
+六个具名电机由 `motors_params.yaml` 配置实际板卡、总线、协议、ID和方向；
+DTG1要求六条路由与构建期schema匹配，当前底盘不支持将六电机分散到不同板。
+底盘sensor_adapter选择遥控和HI91来源，必须具有完整的底盘电机来源。
+UART5 SBUS、UART2 HI91和板载IMU由当前协议固定，不提供串口CRC或UART用途配置。
 
-PDO 文件相对应用 YAML 所在目录解析；设备参数仍相对配置目录加载。
-每台电机在 motors_params.yaml 声明 adapter，底盘 sensor_adapter 只选遥控与 HI91 来源。
-每板独立 Decoder/序号/命令组，不同板允许同 CAN ID。所有板共享主站线程。
+底盘按1 kHz执行。主站按125 μs交换；云台/UI独立线程目前等待停止，不接入设备端口。
+线程cpu为null表示不绑定，priority=0为普通调度；非零优先级必须配置有效CPU。
+realtime=false关闭实时调度和绑定，用于离线测试。
 
-应用 adapters 与 PDO adapters 名字集合必须一致，数量为 1～3。
-增加板时同时配置应用绑定、PDO 身份/容量及电机归属。alias/position 定位，
-vendor_id/product_code 校验身份，初始 0 不允许真实启动。
-传感器通道为 1～6，null 禁用，不能重复绑定。绑定需要实际 UART RX 容量。
-电机需要本板 CAN RX 容量；底盘命令组数量不得超过本板 chassis tx_slots。
-
-`simulate: true` 不创建主站/会话，只运行离线控制流程，不是动力学仿真。
-模拟禁止 enable_output。`realtime: false` 禁用 FIFO 和内存锁定，但保留显式 CPU 绑定；
-需要完全不绑核时配置 cpu:null。priority=0 为普通调度，1～99 为 FIFO。
-
-模块 enabled:false 不创建线程；云台/UI adapter:null 表示离线借用接口。
-底盘必须完整拥有六台电机和遥控/HI91 绑定；云台/UI 当前仍为空业务实现。
-主站 Arm 是安全通信转发授权，原控制器使能流程保持不变。
-
-配置启动时加载，无热更新。相关文件错误在申请 IgH 主站前失败。
-单次会话/对象不支持重启；恢复故障需创建新应用并重新经过门控。
+设备新鲜度在 `sensors_params.yaml` 和 `motors_params.yaml` 维护。
+结构和控制参数在 `chassis_params.yaml` 维护。相对设备文件路径按配置目录解析。
+配置修改后重启；PDO schema修改还必须重新构建并同步从站固件。
