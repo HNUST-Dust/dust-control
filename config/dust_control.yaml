@@ -12,6 +12,7 @@ ethercat:
   thread: {cpu: 3, priority: 80}
 adapters:
   base:
+    protocol: dtg1
     alias: 0
     position: 0
     # Fixed lab identity: must match config/esi/DUST_HPM5E31_Gateway.xml.
@@ -23,7 +24,7 @@ modules:
   chassis:
     enabled: true
     sensor_adapter: base
-    thread: {cpu: 3, priority: 80}
+    thread: {cpu: 2, priority: 70}
   gimbal:
     enabled: true
     adapter: null
