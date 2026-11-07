@@ -90,3 +90,8 @@ add_executable(chassis_control_contracts chassis/control_contracts.cpp)
 target_link_libraries(chassis_control_contracts PRIVATE dust_chassis dust_motors)
 target_compile_options(chassis_control_contracts PRIVATE -UNDEBUG)
 add_test(NAME chassis.control_contracts COMMAND chassis_control_contracts)
+
+add_executable(ethercat_dtg1_contracts ethercat/dtg1.cpp)
+target_link_libraries(ethercat_dtg1_contracts PRIVATE dust_ethercat)
+target_compile_options(ethercat_dtg1_contracts PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME ethercat.dtg1_contracts COMMAND ethercat_dtg1_contracts)

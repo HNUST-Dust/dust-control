@@ -50,7 +50,13 @@ for directory, forbidden in rules.items():
                 violations.append(f"{path.relative_to(root)}:{number}: protocol type")
 
 # 自有代码使用统一根；外部工具生成的历史布局保留其接口。
-generated_namespace_headers = set()
+# Shared wire headers are copied verbatim from the MCU gateway; preserve its
+# namespaces so host and slave compile the same protocol definitions.
+generated_namespace_headers = {
+    "src/hardware/ethercat/pdo_schema.hpp",
+    "src/common/device_pdo.hpp", "src/common/device_sensor_page.hpp",
+    "src/common/hi91_compact.hpp",
+}
 for directory in ("src", "tests"):
     for path in (root / directory).rglob("*"):
         if path.suffix not in (".cpp", ".cc", ".h", ".hpp"):
