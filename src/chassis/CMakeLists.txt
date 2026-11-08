@@ -12,7 +12,6 @@ add_library(dust_chassis
   leg_kinematics.cc
   leg_vmc.cpp
   recovery_controller.cpp
-  stool_controller.cpp
   support_force_estimator.cpp
   unified_lqr_schedule.cc
 )

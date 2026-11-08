@@ -104,3 +104,8 @@ add_executable(ethercat_imu_contracts ethercat/imu.cpp)
 target_link_libraries(ethercat_imu_contracts PRIVATE dust_ethercat)
 target_compile_options(ethercat_imu_contracts PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME ethercat.imu COMMAND ethercat_imu_contracts)
+
+add_executable(chassis_controller_sequence chassis/controller_sequence.cpp)
+target_link_libraries(chassis_controller_sequence PRIVATE dust_chassis)
+target_compile_options(chassis_controller_sequence PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME chassis.controller_sequence COMMAND chassis_controller_sequence)
