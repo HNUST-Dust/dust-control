@@ -71,7 +71,8 @@ ClimbStairsControllerOutput ClimbStairsController::Update(
         EnterPhase(ClimbStairsPhase::kMotion1);
     }
 
-    UpdateReferences(input);
+    // 爬楼先更新参考及阶段，再求解关节目标和 PID 输出。
+    UpdatePhase(input, dt);
     const bool targets_valid = UpdateJointTargets(input);
 
     ClimbStairsControllerOutput output = {};
@@ -96,65 +97,79 @@ ClimbStairsControllerOutput ClimbStairsController::Update(
     return output;
 }
 
-void ClimbStairsController::UpdateReferences(const ChassisCycleInput &input) {
-    using namespace chassis_config;
-    const double dt = std::clamp(input.dt, 0.0005, 0.01);
-    const double ready_hold_s = static_cast<double>(kClimbReadyHoldMs) * 0.001;
+void ClimbStairsController::UpdatePhase(const ChassisCycleInput &input,
+                                        double dt) {
+    switch (phase_) {
+        case ClimbStairsPhase::kMotion1:
+            UpdateMotion1(input, dt);
+            break;
+        case ClimbStairsPhase::kMotion2:
+            UpdateMotion2(input, dt);
+            break;
+        case ClimbStairsPhase::kInit:
+        case ClimbStairsPhase::kReturn:
+        case ClimbStairsPhase::kFailed:
+            break;
+    }
+}
 
-    if (phase_ == ClimbStairsPhase::kMotion1) {
-        for (Side side : {Side::kLeft, Side::kRight}) {
-            leg_length_reference_.Get(side) = MoveToward(
-                leg_length_reference_.Get(side), kClimbIntermediateLegLength,
-                kClimbLegLengthRate * dt);
-            leg_angle_reference_.Get(side) = MoveTowardAngle(
-                leg_angle_reference_.Get(side), input.pitch + kClimbSwingTheta,
-                kClimbMotion1AngleRateDeg * kDegToRad * dt);
-        }
-        const bool ready =
-            std::abs(input.leg.left.length - kClimbIntermediateLegLength) <
-                kClimbLengthTolerance &&
-            std::abs(input.leg.right.length - kClimbIntermediateLegLength) <
-                kClimbLengthTolerance &&
-            std::abs(std::remainder(
-                input.leg.left.angle - input.pitch - kClimbSwingTheta,
-                kTwoPi)) < kClimbMotion1AngleToleranceDeg * kDegToRad &&
-            std::abs(std::remainder(
-                input.leg.right.angle - input.pitch - kClimbSwingTheta,
-                kTwoPi)) < kClimbMotion1AngleToleranceDeg * kDegToRad;
-        ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
-        if (ready_elapsed_s_ >= ready_hold_s) {
-            EnterPhase(ClimbStairsPhase::kMotion2);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kClimbMotion1TimeoutMs) * 0.001) {
-            EnterPhase(ClimbStairsPhase::kFailed);
-        }
-    } else if (phase_ == ClimbStairsPhase::kMotion2) {
-        for (Side side : {Side::kLeft, Side::kRight}) {
-            leg_length_reference_.Get(side) =
-                MoveToward(leg_length_reference_.Get(side),
-                           kClimbRetractedLegLength, kClimbLegLengthRate * dt);
-            leg_angle_reference_.Get(side) =
-                MoveTowardAngle(leg_angle_reference_.Get(side), input.pitch,
-                                kClimbMotion2AngleRateDeg * kDegToRad * dt);
-        }
-        const bool ready =
-            std::abs(input.leg.left.length - kClimbRetractedLegLength) <
-                kClimbLengthTolerance &&
-            std::abs(input.leg.right.length - kClimbRetractedLegLength) <
-                kClimbLengthTolerance &&
-            std::abs(
-                std::remainder(input.leg.left.angle - input.pitch, kTwoPi)) <
-                kClimbMotion2AngleToleranceDeg * kDegToRad &&
-            std::abs(
-                std::remainder(input.leg.right.angle - input.pitch, kTwoPi)) <
-                kClimbMotion2AngleToleranceDeg * kDegToRad;
-        ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
-        if (ready_elapsed_s_ >= ready_hold_s) {
-            EnterPhase(ClimbStairsPhase::kReturn);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kClimbMotion2TimeoutMs) * 0.001) {
-            EnterPhase(ClimbStairsPhase::kFailed);
-        }
+void ClimbStairsController::UpdateMotion1(const ChassisCycleInput &input,
+                                          double dt) {
+    using namespace chassis_config;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        leg_length_reference_.Get(side) =
+            MoveToward(leg_length_reference_.Get(side),
+                       kClimbIntermediateLegLength, kClimbLegLengthRate * dt);
+        leg_angle_reference_.Get(side) = MoveTowardAngle(
+            leg_angle_reference_.Get(side), input.pitch + kClimbSwingTheta,
+            kClimbMotion1AngleRateDeg * kDegToRad * dt);
+    }
+    const bool ready =
+        std::abs(input.leg.left.length - kClimbIntermediateLegLength) <
+            kClimbLengthTolerance &&
+        std::abs(input.leg.right.length - kClimbIntermediateLegLength) <
+            kClimbLengthTolerance &&
+        std::abs(std::remainder(
+            input.leg.left.angle - input.pitch - kClimbSwingTheta, kTwoPi)) <
+            kClimbMotion1AngleToleranceDeg * kDegToRad &&
+        std::abs(std::remainder(
+            input.leg.right.angle - input.pitch - kClimbSwingTheta, kTwoPi)) <
+            kClimbMotion1AngleToleranceDeg * kDegToRad;
+    ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
+    if (ready_elapsed_s_ >= static_cast<double>(kClimbReadyHoldMs) * 0.001) {
+        EnterPhase(ClimbStairsPhase::kMotion2);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kClimbMotion1TimeoutMs) * 0.001) {
+        EnterPhase(ClimbStairsPhase::kFailed);
+    }
+}
+
+void ClimbStairsController::UpdateMotion2(const ChassisCycleInput &input,
+                                          double dt) {
+    using namespace chassis_config;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        leg_length_reference_.Get(side) =
+            MoveToward(leg_length_reference_.Get(side),
+                       kClimbRetractedLegLength, kClimbLegLengthRate * dt);
+        leg_angle_reference_.Get(side) =
+            MoveTowardAngle(leg_angle_reference_.Get(side), input.pitch,
+                            kClimbMotion2AngleRateDeg * kDegToRad * dt);
+    }
+    const bool ready =
+        std::abs(input.leg.left.length - kClimbRetractedLegLength) <
+            kClimbLengthTolerance &&
+        std::abs(input.leg.right.length - kClimbRetractedLegLength) <
+            kClimbLengthTolerance &&
+        std::abs(std::remainder(input.leg.left.angle - input.pitch, kTwoPi)) <
+            kClimbMotion2AngleToleranceDeg * kDegToRad &&
+        std::abs(std::remainder(input.leg.right.angle - input.pitch, kTwoPi)) <
+            kClimbMotion2AngleToleranceDeg * kDegToRad;
+    ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
+    if (ready_elapsed_s_ >= static_cast<double>(kClimbReadyHoldMs) * 0.001) {
+        EnterPhase(ClimbStairsPhase::kReturn);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kClimbMotion2TimeoutMs) * 0.001) {
+        EnterPhase(ClimbStairsPhase::kFailed);
     }
 }
 

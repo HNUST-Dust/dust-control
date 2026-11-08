@@ -57,8 +57,12 @@ class RecoveryController {
     };
 
     void EnterPhase(RecoveryPhase phase, const ChassisCycleInput &input);
-    void UpdateReferences(const ChassisCycleInput &input,
-                          const RecoveryGimbalStatus &gimbal);
+    void UpdatePhase(const ChassisCycleInput &input,
+                     const RecoveryGimbalStatus &gimbal, double dt);
+    void UpdateTurnOver(const ChassisCycleInput &input,
+                        const RecoveryGimbalStatus &gimbal, double dt);
+    void UpdateSwing(const ChassisCycleInput &input, double dt);
+    void UpdateDrawBack(const ChassisCycleInput &input, double dt);
     bool UpdateJointTargets(const ChassisCycleInput &input);
     double ComputeJointTorque(Side side, Joint joint, double target,
                               double position, double velocity, double dt);

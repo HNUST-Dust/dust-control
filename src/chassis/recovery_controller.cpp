@@ -33,6 +33,8 @@ constexpr uint32_t kRecoveryMaximumTurnoverReversals = 3;
 
 namespace {
 using namespace dust_control::chassis::chassis_config;
+constexpr double kRecoveryPitchLimit = 0.45;
+constexpr double kRecoveryRollLimit = 20.0 * kDegToRad;
 
 double MoveToward(double current, double target, double maximum_delta) {
     return current +
@@ -86,7 +88,8 @@ RecoveryControllerOutput RecoveryController::Update(
         reference_initialized_ = true;
     }
 
-    UpdateReferences(input, gimbal);
+    // 回正先更新参考及阶段，再用当前参考求解关节输出。
+    UpdatePhase(input, gimbal, dt);
     const bool targets_valid = UpdateJointTargets(input);
     RecoveryControllerOutput output = {};
     output.phase = phase_;
@@ -111,167 +114,187 @@ RecoveryControllerOutput RecoveryController::Update(
     return output;
 }
 
-void RecoveryController::UpdateReferences(const ChassisCycleInput &input,
-                                          const RecoveryGimbalStatus &gimbal) {
+void RecoveryController::UpdatePhase(const ChassisCycleInput &input,
+                                     const RecoveryGimbalStatus &gimbal,
+                                     double dt) {
+    switch (phase_) {
+        case RecoveryPhase::kInit: {
+            // 正值表示重力沿配置的机体直立方向。
+            const double upright_accel_g =
+                kRecoveryUprightAccelSign * input.imu.vertical_accel_g;
+            if (!std::isfinite(input.imu.vertical_accel_g) ||
+                std::abs(input.imu.vertical_accel_g) < 0.05) {
+                EnterPhase(RecoveryPhase::kFailed, input);
+            } else if (upright_accel_g > kRecoveryUprightAccelThresholdG) {
+                // 已经直立时只收腿并对齐；此时进入 Swing 会把普通使能
+                // 变成不必要的翻身动作。
+                EnterPhase(RecoveryPhase::kDrawBack, input);
+            } else {
+                EnterPhase(RecoveryPhase::kTurnOver, input);
+            }
+            break;
+        }
+        case RecoveryPhase::kTurnOver:
+            UpdateTurnOver(input, gimbal, dt);
+            break;
+        case RecoveryPhase::kYawFront:
+            if (!gimbal.available ||
+                (gimbal.aligned && gimbal.safe_for_leg_motion)) {
+                EnterPhase(RecoveryPhase::kSwing, input);
+            }
+            break;
+        case RecoveryPhase::kSwing:
+            UpdateSwing(input, dt);
+            break;
+        case RecoveryPhase::kDrawBack:
+            UpdateDrawBack(input, dt);
+            break;
+        case RecoveryPhase::kReturn:
+        case RecoveryPhase::kFailed:
+            break;
+    }
+}
+
+void RecoveryController::UpdateTurnOver(const ChassisCycleInput &input,
+                                        const RecoveryGimbalStatus &gimbal,
+                                        double dt) {
     using namespace chassis_config;
-    const double dt = std::clamp(input.dt, 0.0005, 0.01);
-    const double ready_hold = static_cast<double>(kRecoveryReadyHoldMs) * 0.001;
-    const double pitch_limit = 0.45;
-    const double roll_limit = 20.0 * kDegToRad;
-    // 归一化 IMU 安装方向，使正值始终表示重力沿配置的机体直立方向。
     const double upright_accel_g =
         kRecoveryUprightAccelSign * input.imu.vertical_accel_g;
-
-    if (phase_ == RecoveryPhase::kInit) {
-        if (!std::isfinite(input.imu.vertical_accel_g) ||
-            std::abs(input.imu.vertical_accel_g) < 0.05) {
-            EnterPhase(RecoveryPhase::kFailed, input);
-        } else if (upright_accel_g > kRecoveryUprightAccelThresholdG) {
-            // 已经直立时只收腿并对齐；此时进入 Swing 会把普通使能
-            // 变成不必要的翻身动作。
-            EnterPhase(RecoveryPhase::kDrawBack, input);
-        } else {
-            EnterPhase(RecoveryPhase::kTurnOver, input);
-        }
-    } else if (phase_ == RecoveryPhase::kTurnOver) {
-        const bool upright_detected =
-            upright_accel_g > kRecoveryUprightAccelThresholdG;
+    const bool upright_detected =
+        upright_accel_g > kRecoveryUprightAccelThresholdG;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        leg_length_reference_.Get(side) =
+            MoveToward(leg_length_reference_.Get(side),
+                       kRecoveryMaximumLegLength, kRecoveryExtendLegRate * dt);
+    }
+    // 检测到直立后立即冻结摆动命令。短确认窗口用于排除单样本冲击尖峰，
+    // 避免像原先保持 100 ms 那样额外摆动 18 度。
+    if (!upright_detected) {
+        turnover_progress_ += turnover_direction_ *
+                              kRecoveryTurnoverSweepRateDeg * kDegToRad * dt;
+    }
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        leg_angle_reference_.Get(side) =
+            phase_start_angle_.Get(side) + turnover_progress_;
+    }
+    const bool legs_extended =
+        input.leg.left.length > 0.30 && input.leg.right.length > 0.30;
+    const bool stopped = !upright_detected && legs_extended &&
+                         (std::abs(input.leg.left.angle_rate) <
+                              kRecoveryTurnoverStuckSpeedDeg * kDegToRad ||
+                          std::abs(input.leg.right.angle_rate) <
+                              kRecoveryTurnoverStuckSpeedDeg * kDegToRad);
+    turnover_stuck_elapsed_s_ = stopped ? turnover_stuck_elapsed_s_ + dt : 0.0;
+    if (turnover_stuck_elapsed_s_ >=
+        static_cast<double>(kRecoveryStuckTimeoutMs) * 0.001) {
+        turnover_stuck_elapsed_s_ = 0.0;
+        turnover_progress_ = 0.0;
+        turnover_direction_ = -turnover_direction_;
         for (Side side : {Side::kLeft, Side::kRight}) {
+            phase_start_angle_.Get(side) = input.leg.Get(side).angle;
+        }
+        if (++turnover_reversals_ > kRecoveryMaximumTurnoverReversals) {
+            EnterPhase(RecoveryPhase::kFailed, input);
+        }
+    }
+    upright_elapsed_s_ =
+        upright_detected ? upright_elapsed_s_ + dt : upright_elapsed_s_ * 0.5;
+    if (upright_elapsed_s_ >=
+        static_cast<double>(kRecoveryUprightHoldMs) * 0.001) {
+        // 无云台时没有额外的朝向约束，立即收腿也能抑制残余翻转运动。
+        EnterPhase(gimbal.available ? RecoveryPhase::kYawFront
+                                    : RecoveryPhase::kDrawBack,
+                   input);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kRecoveryTurnoverTimeoutMs) * 0.001) {
+        EnterPhase(RecoveryPhase::kFailed, input);
+    }
+}
+
+void RecoveryController::UpdateSwing(const ChassisCycleInput &input,
+                                     double dt) {
+    using namespace chassis_config;
+    bool all_ready = true;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        const double swing_target = input.pitch + kRecoverySwingTheta;
+        const bool stuck =
+            input.leg.Get(side).length > 0.30 &&
+            std::abs(input.leg.Get(side).angle_rate) <
+                kRecoverySwingStuckSpeedDeg * kDegToRad &&
+            std::abs(std::remainder(input.leg.Get(side).angle - swing_target,
+                                    kTwoPi)) > 10.0 * kDegToRad;
+        swing_stuck_elapsed_s_.Get(side) =
+            stuck ? swing_stuck_elapsed_s_.Get(side) + dt : 0.0;
+        if (swing_stuck_elapsed_s_.Get(side) >=
+            static_cast<double>(kRecoveryStuckTimeoutMs) * 0.001) {
+            swing_escape_phase_.Get(side) = SwingEscapePhase::kBackToVertical;
+            swing_stuck_elapsed_s_.Get(side) = 0.0;
+        }
+        if (swing_escape_phase_.Get(side) ==
+            SwingEscapePhase::kBackToVertical) {
+            leg_length_reference_.Get(side) = MoveToward(
+                leg_length_reference_.Get(side), kRecoveryMinimumLegLength,
+                kRecoveryEscapeLegRate * dt);
+            leg_angle_reference_.Get(side) = MoveTowardAngle(
+                leg_angle_reference_.Get(side), input.pitch + 0.5 * kTwoPi,
+                kRecoverySwingAngleRateDeg * kDegToRad * dt);
+            if (std::abs(std::remainder(
+                    input.leg.Get(side).angle - input.pitch - 0.5 * kTwoPi,
+                    kTwoPi)) < 10.0 * kDegToRad) {
+                swing_escape_phase_.Get(side) = SwingEscapePhase::kToFinal;
+            }
+        } else {
             leg_length_reference_.Get(side) = MoveToward(
                 leg_length_reference_.Get(side), kRecoveryMaximumLegLength,
                 kRecoveryExtendLegRate * dt);
-        }
-        // 检测到直立后立即冻结摆动命令。短确认窗口用于排除单样本冲击尖峰，
-        // 避免像原先保持 100 ms 那样额外摆动 18 度。
-        if (!upright_detected) {
-            turnover_progress_ += turnover_direction_ *
-                                  kRecoveryTurnoverSweepRateDeg * kDegToRad *
-                                  dt;
-        }
-        for (Side side : {Side::kLeft, Side::kRight}) {
             leg_angle_reference_.Get(side) =
-                phase_start_angle_.Get(side) + turnover_progress_;
+                MoveTowardAngle(leg_angle_reference_.Get(side), swing_target,
+                                kRecoverySwingAngleRateDeg * kDegToRad * dt);
         }
-        const bool legs_extended =
-            input.leg.left.length > 0.30 && input.leg.right.length > 0.30;
-        const bool stopped = !upright_detected && legs_extended &&
-                             (std::abs(input.leg.left.angle_rate) <
-                                  kRecoveryTurnoverStuckSpeedDeg * kDegToRad ||
-                              std::abs(input.leg.right.angle_rate) <
-                                  kRecoveryTurnoverStuckSpeedDeg * kDegToRad);
-        turnover_stuck_elapsed_s_ =
-            stopped ? turnover_stuck_elapsed_s_ + dt : 0.0;
-        if (turnover_stuck_elapsed_s_ >=
-            static_cast<double>(kRecoveryStuckTimeoutMs) * 0.001) {
-            turnover_stuck_elapsed_s_ = 0.0;
-            turnover_progress_ = 0.0;
-            turnover_direction_ = -turnover_direction_;
-            for (Side side : {Side::kLeft, Side::kRight}) {
-                phase_start_angle_.Get(side) = input.leg.Get(side).angle;
-            }
-            if (++turnover_reversals_ > kRecoveryMaximumTurnoverReversals) {
-                EnterPhase(RecoveryPhase::kFailed, input);
-            }
-        }
-        upright_elapsed_s_ = upright_detected ? upright_elapsed_s_ + dt
-                                              : upright_elapsed_s_ * 0.5;
-        if (upright_elapsed_s_ >=
-            static_cast<double>(kRecoveryUprightHoldMs) * 0.001) {
-            // 无云台时没有额外的朝向约束，立即收腿也能抑制残余翻转运动。
-            EnterPhase(gimbal.available ? RecoveryPhase::kYawFront
-                                        : RecoveryPhase::kDrawBack,
-                       input);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kRecoveryTurnoverTimeoutMs) * 0.001) {
-            EnterPhase(RecoveryPhase::kFailed, input);
-        }
-    } else if (phase_ == RecoveryPhase::kYawFront) {
-        if (!gimbal.available ||
-            (gimbal.aligned && gimbal.safe_for_leg_motion)) {
-            EnterPhase(RecoveryPhase::kSwing, input);
-        }
-    } else if (phase_ == RecoveryPhase::kSwing) {
-        bool all_ready = true;
-        for (Side side : {Side::kLeft, Side::kRight}) {
-            const double swing_target = input.pitch + kRecoverySwingTheta;
-            const bool stuck = input.leg.Get(side).length > 0.30 &&
-                               std::abs(input.leg.Get(side).angle_rate) <
-                                   kRecoverySwingStuckSpeedDeg * kDegToRad &&
-                               std::abs(std::remainder(
-                                   input.leg.Get(side).angle - swing_target,
-                                   kTwoPi)) > 10.0 * kDegToRad;
-            swing_stuck_elapsed_s_.Get(side) =
-                stuck ? swing_stuck_elapsed_s_.Get(side) + dt : 0.0;
-            if (swing_stuck_elapsed_s_.Get(side) >=
-                static_cast<double>(kRecoveryStuckTimeoutMs) * 0.001) {
-                swing_escape_phase_.Get(side) =
-                    SwingEscapePhase::kBackToVertical;
-                swing_stuck_elapsed_s_.Get(side) = 0.0;
-            }
-            if (swing_escape_phase_.Get(side) ==
-                SwingEscapePhase::kBackToVertical) {
-                leg_length_reference_.Get(side) = MoveToward(
-                    leg_length_reference_.Get(side), kRecoveryMinimumLegLength,
-                    kRecoveryEscapeLegRate * dt);
-                leg_angle_reference_.Get(side) = MoveTowardAngle(
-                    leg_angle_reference_.Get(side), input.pitch + 0.5 * kTwoPi,
-                    kRecoverySwingAngleRateDeg * kDegToRad * dt);
-                if (std::abs(std::remainder(
-                        input.leg.Get(side).angle - input.pitch - 0.5 * kTwoPi,
-                        kTwoPi)) < 10.0 * kDegToRad) {
-                    swing_escape_phase_.Get(side) = SwingEscapePhase::kToFinal;
-                }
-            } else {
-                leg_length_reference_.Get(side) = MoveToward(
-                    leg_length_reference_.Get(side), kRecoveryMaximumLegLength,
-                    kRecoveryExtendLegRate * dt);
-                leg_angle_reference_.Get(side) = MoveTowardAngle(
-                    leg_angle_reference_.Get(side), swing_target,
-                    kRecoverySwingAngleRateDeg * kDegToRad * dt);
-            }
-            const bool side_ready =
-                std::abs(std::remainder(
-                    input.leg.Get(side).angle - swing_target, kTwoPi)) <
-                15.0 * kDegToRad;
-            all_ready = all_ready && side_ready;
-        }
-        const bool pose_ready =
-            all_ready &&
-            std::abs(input.pitch) < pitch_limit + 15.0 * kDegToRad &&
-            std::abs(input.roll) < roll_limit + 10.0 * kDegToRad;
-        ready_elapsed_s_ = pose_ready ? ready_elapsed_s_ + dt : 0.0;
-        if (ready_elapsed_s_ >= ready_hold) {
-            EnterPhase(RecoveryPhase::kDrawBack, input);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kRecoverySwingTimeoutMs) * 0.001) {
-            EnterPhase(RecoveryPhase::kFailed, input);
-        }
-    } else if (phase_ == RecoveryPhase::kDrawBack) {
-        for (Side side : {Side::kLeft, Side::kRight}) {
-            leg_length_reference_.Get(side) = MoveToward(
-                leg_length_reference_.Get(side), kRecoveryMinimumLegLength,
-                kRecoveryDrawbackLegRate * dt);
-            leg_angle_reference_.Get(side) =
-                MoveTowardAngle(leg_angle_reference_.Get(side), input.pitch,
-                                kRecoveryDrawbackAngleRateDeg * kDegToRad * dt);
-        }
-        const bool ready =
-            std::abs(input.leg.left.length - kRecoveryMinimumLegLength) <
-                0.05 &&
-            std::abs(input.leg.right.length - kRecoveryMinimumLegLength) <
-                0.05 &&
-            std::abs(input.leg.left.length - input.leg.right.length) < 0.04 &&
-            std::abs(input.leg.left.angle - input.pitch) < 15.0 * kDegToRad &&
-            std::abs(input.leg.right.angle - input.pitch) < 15.0 * kDegToRad &&
-            std::abs(input.pitch) < pitch_limit &&
-            std::abs(input.roll) < roll_limit;
-        ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
-        if (ready_elapsed_s_ >= ready_hold) {
-            EnterPhase(RecoveryPhase::kReturn, input);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kRecoveryDrawbackTimeoutMs) * 0.001) {
-            EnterPhase(RecoveryPhase::kFailed, input);
-        }
+        const bool side_ready =
+            std::abs(std::remainder(input.leg.Get(side).angle - swing_target,
+                                    kTwoPi)) < 15.0 * kDegToRad;
+        all_ready = all_ready && side_ready;
+    }
+    const bool pose_ready =
+        all_ready &&
+        std::abs(input.pitch) < kRecoveryPitchLimit + 15.0 * kDegToRad &&
+        std::abs(input.roll) < kRecoveryRollLimit + 10.0 * kDegToRad;
+    ready_elapsed_s_ = pose_ready ? ready_elapsed_s_ + dt : 0.0;
+    if (ready_elapsed_s_ >= static_cast<double>(kRecoveryReadyHoldMs) * 0.001) {
+        EnterPhase(RecoveryPhase::kDrawBack, input);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kRecoverySwingTimeoutMs) * 0.001) {
+        EnterPhase(RecoveryPhase::kFailed, input);
+    }
+}
+
+void RecoveryController::UpdateDrawBack(const ChassisCycleInput &input,
+                                        double dt) {
+    using namespace chassis_config;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        leg_length_reference_.Get(side) = MoveToward(
+            leg_length_reference_.Get(side), kRecoveryMinimumLegLength,
+            kRecoveryDrawbackLegRate * dt);
+        leg_angle_reference_.Get(side) =
+            MoveTowardAngle(leg_angle_reference_.Get(side), input.pitch,
+                            kRecoveryDrawbackAngleRateDeg * kDegToRad * dt);
+    }
+    const bool ready =
+        std::abs(input.leg.left.length - kRecoveryMinimumLegLength) < 0.05 &&
+        std::abs(input.leg.right.length - kRecoveryMinimumLegLength) < 0.05 &&
+        std::abs(input.leg.left.length - input.leg.right.length) < 0.04 &&
+        std::abs(input.leg.left.angle - input.pitch) < 15.0 * kDegToRad &&
+        std::abs(input.leg.right.angle - input.pitch) < 15.0 * kDegToRad &&
+        std::abs(input.pitch) < kRecoveryPitchLimit &&
+        std::abs(input.roll) < kRecoveryRollLimit;
+    ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
+    if (ready_elapsed_s_ >= static_cast<double>(kRecoveryReadyHoldMs) * 0.001) {
+        EnterPhase(RecoveryPhase::kReturn, input);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kRecoveryDrawbackTimeoutMs) * 0.001) {
+        EnterPhase(RecoveryPhase::kFailed, input);
     }
 }
 

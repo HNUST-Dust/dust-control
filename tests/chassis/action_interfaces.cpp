@@ -9,6 +9,7 @@
 
 #include "chassis/chassis_types.h"
 #include "chassis/climb_stairs_controller.h"
+#include "chassis/jump_controller.h"
 #include "chassis/recovery_controller.h"
 
 namespace chassis = dust_control::chassis;
@@ -68,30 +69,66 @@ void Trace(bool trace, int action, int phase, bool finished, bool failed,
 }
 void RecoveryPaths(bool trace) {
     std::array<bool, 7> visited{};
-    for (unsigned scenario = 0; scenario < 5; ++scenario) {
+    enum class Scenario {
+        kUpright,
+        kGimbal,
+        kInvalidAcceleration,
+        kTurnoverTimeout,
+        kDrawbackTimeout,
+        kTurnoverStuck,
+        kSwingTimeout,
+        kSwingEscape
+    };
+    for (auto scenario :
+         {Scenario::kUpright, Scenario::kGimbal, Scenario::kInvalidAcceleration,
+          Scenario::kTurnoverTimeout, Scenario::kDrawbackTimeout,
+          Scenario::kTurnoverStuck, Scenario::kSwingTimeout,
+          Scenario::kSwingEscape}) {
         chassis::RecoveryController recovery;
         chassis::ChassisCycleInput input{};
         input.pitch = 0.03;
         input.roll = -0.02;
         SetPose(input, 0.18, 0.22, 0.05, -0.06);
         chassis::RecoveryGimbalStatus gimbal;
-        gimbal.available = scenario == 1;
+        gimbal.available = scenario == Scenario::kGimbal ||
+                           (scenario == Scenario::kSwingTimeout ||
+                            scenario == Scenario::kSwingEscape);
         gimbal.aligned = gimbal.safe_for_leg_motion = false;
         bool terminal = false;
+        unsigned swing_ticks = 0;
         visited[size_t(recovery.phase())] = true;
         for (unsigned tick = 0; tick < 4500; ++tick) {
-            input.imu.vertical_accel_g =
-                scenario == 2                                   ? 0
-                : scenario == 3 || (scenario == 1 && tick < 30) ? -1
-                                                                : 1;
-            if (scenario == 0 && tick >= 60) {
+            input.imu.vertical_accel_g = 1;
+            if (scenario == Scenario::kInvalidAcceleration) {
+                input.imu.vertical_accel_g = 0;
+            } else if (scenario == Scenario::kTurnoverTimeout ||
+                       scenario == Scenario::kTurnoverStuck ||
+                       (gimbal.available && tick < 30)) {
+                input.imu.vertical_accel_g = -1;
+            }
+            if (scenario == Scenario::kUpright && tick >= 60) {
                 SetPose(input, 0.15, 0.15, input.pitch, input.pitch);
             }
-            if (scenario == 1) {
+            if (scenario == Scenario::kTurnoverStuck) {
+                SetPose(input, 0.33, 0.33, 0, 0);
+            }
+            if (gimbal.available) {
                 gimbal.aligned = gimbal.safe_for_leg_motion = tick >= 80;
                 if (recovery.phase() == chassis::RecoveryPhase::kSwing) {
-                    SetPose(input, 0.33, 0.33, input.pitch + 1.45,
-                            input.pitch + 1.45);
+                    ++swing_ticks;
+                    double angle = input.pitch + 1.45;
+                    double length = 0.33;
+                    if (scenario == Scenario::kSwingTimeout ||
+                        (scenario == Scenario::kSwingEscape &&
+                         swing_ticks < 650)) {
+                        angle = 0;
+                    } else if (scenario == Scenario::kSwingEscape &&
+                               swing_ticks < 700) {
+                        angle =
+                            input.pitch + chassis::chassis_config::kTwoPi * 0.5;
+                        length = 0.15;
+                    }
+                    SetPose(input, length, length, angle, angle);
                 } else if (recovery.phase() ==
                            chassis::RecoveryPhase::kDrawBack) {
                     SetPose(input, 0.15, 0.15, input.pitch, input.pitch);
@@ -111,7 +148,9 @@ void RecoveryPaths(bool trace) {
                   result.failed, result.request_gimbal_disable, result.control);
             if (result.finished || result.failed) {
                 assert(!result.control.joint_control_active);
-                assert(result.finished == (scenario < 2));
+                assert(result.finished == ((scenario == Scenario::kUpright ||
+                                            scenario == Scenario::kGimbal) ||
+                                           scenario == Scenario::kSwingEscape));
                 terminal = true;
                 break;
             }
@@ -125,7 +164,9 @@ void RecoveryPaths(bool trace) {
 }
 void ClimbPaths(bool trace) {
     std::array<bool, 5> visited{};
-    for (unsigned scenario = 0; scenario < 2; ++scenario) {
+    enum class Scenario { kSuccess, kMotion1Timeout, kMotion2Timeout };
+    for (auto scenario : {Scenario::kSuccess, Scenario::kMotion1Timeout,
+                          Scenario::kMotion2Timeout}) {
         chassis::ClimbStairsController climb;
         chassis::ChassisCycleInput input{};
         input.pitch = 0.03;
@@ -133,12 +174,13 @@ void ClimbPaths(bool trace) {
         bool terminal = false;
         visited[size_t(climb.phase())] = true;
         for (unsigned tick = 0; tick < 1500; ++tick) {
-            if (scenario == 0 && tick >= 40) {
+            if (scenario != Scenario::kMotion1Timeout && tick >= 40) {
                 if (climb.phase() == chassis::ClimbStairsPhase::kMotion1) {
                     SetPose(input, 0.33, 0.33, input.pitch + 1.45,
                             input.pitch + 1.45);
-                } else if (climb.phase() ==
-                           chassis::ClimbStairsPhase::kMotion2) {
+                } else if (scenario == Scenario::kSuccess &&
+                           climb.phase() ==
+                               chassis::ClimbStairsPhase::kMotion2) {
                     SetPose(input, 0.15, 0.15, input.pitch, input.pitch);
                 }
             }
@@ -150,11 +192,11 @@ void ClimbPaths(bool trace) {
                    (result.phase == chassis::ClimbStairsPhase::kReturn));
             assert(result.failed ==
                    (result.phase == chassis::ClimbStairsPhase::kFailed));
-            Trace(trace, 5 + int(scenario), int(result.phase), result.finished,
+            Trace(trace, 20 + int(scenario), int(result.phase), result.finished,
                   result.failed, false, result.control);
             if (result.finished || result.failed) {
                 assert(!result.control.joint_control_active);
-                assert(result.finished == (scenario == 0));
+                assert(result.finished == (scenario == Scenario::kSuccess));
                 terminal = true;
                 break;
             }
@@ -166,6 +208,118 @@ void ClimbPaths(bool trace) {
     assert(std::all_of(visited.begin(), visited.end(),
                        [](bool value) { return value; }));
 }
+void JumpPaths(bool trace) {
+    std::array<bool, 7> visited{};
+    enum class Scenario {
+        kSuccess,
+        kThrustTimeout,
+        kRetractTimeout,
+        kAirTimeout,
+        kTotalTimeout
+    };
+    for (auto scenario : {Scenario::kSuccess, Scenario::kThrustTimeout,
+                          Scenario::kRetractTimeout, Scenario::kAirTimeout,
+                          Scenario::kTotalTimeout}) {
+        chassis::JumpController jump;
+        chassis::ChassisCycleInput input{};
+        input.pitch = 0.03;
+        input.theta = {0.05, -0.04};
+        input.theta_rate = {0.02, -0.03};
+        input.imu.yaw_deg = 175;
+        unsigned thrust_ticks = 0, air_ticks = 0;
+        bool terminal = false;
+        visited[size_t(jump.phase())] = true;
+        for (unsigned tick = 0; tick < 2200; ++tick) {
+            const auto phase = jump.phase();
+            if (phase == chassis::JumpPhase::kInit ||
+                phase == chassis::JumpPhase::kPreCompress) {
+                const double length =
+                    scenario == Scenario::kTotalTimeout || tick < 20 ? 0.22
+                                                                     : 0.15;
+                SetPose(input, length, length, 0.05, -0.04);
+            } else if (phase == chassis::JumpPhase::kThrust) {
+                ++thrust_ticks;
+                const double length =
+                    scenario == Scenario::kThrustTimeout ||
+                            (scenario == Scenario::kTotalTimeout &&
+                             thrust_ticks < 250)
+                        ? 0.22
+                        : 0.335;
+                SetPose(input, length, length, 0.05, -0.04);
+            } else if (phase == chassis::JumpPhase::kAirRetract) {
+                const double length =
+                    scenario == Scenario::kRetractTimeout ? 0.24 : 0.16;
+                SetPose(input, length, length, 0.05, -0.04);
+            } else if (phase == chassis::JumpPhase::kAir) {
+                ++air_ticks;
+                SetPose(input, 0.20, 0.21, 0.05, -0.04);
+                input.leg.left.length_rate = input.leg.right.length_rate =
+                    scenario == Scenario::kSuccess ? -0.1 : 0.0;
+            }
+            const auto result = jump.Update(input);
+            visited[size_t(result.phase)] = true;
+            assert(result.phase == jump.phase());
+            assert(result.finished ==
+                   (result.phase == chassis::JumpPhase::kReturn));
+            assert(result.failed ==
+                   (result.phase == chassis::JumpPhase::kFailed));
+            if (phase == chassis::JumpPhase::kInit ||
+                phase == chassis::JumpPhase::kPreCompress) {
+                assert(result.precompress_leg_length.has_value());
+                assert(!result.control.bypass_gas_spring_compensation);
+            } else {
+                assert(!result.precompress_leg_length.has_value());
+                assert(result.control.bypass_gas_spring_compensation ==
+                       (phase == chassis::JumpPhase::kThrust));
+            }
+            // 直接动作接口由总控设置控制许可，此处只生成物理输出。
+            assert(!result.control.joint_control_active);
+            for (double value : {result.control.physical_wheel_torque.left,
+                                 result.control.physical_wheel_torque.right,
+                                 result.control.body_on_leg_torque.left,
+                                 result.control.body_on_leg_torque.right,
+                                 result.control.leg_axial_force.left,
+                                 result.control.leg_axial_force.right}) {
+                assert(std::isfinite(value));
+            }
+            Trace(trace, 30 + int(scenario), int(result.phase), result.finished,
+                  result.failed, false, result.control);
+            if (trace) {
+                std::cout << "jump "
+                          << result.precompress_leg_length.has_value() << ' '
+                          << result.precompress_leg_length.value_or(0) << ' '
+                          << result.control.bypass_gas_spring_compensation
+                          << ' ' << result.control.physical_wheel_torque.left
+                          << ' ' << result.control.physical_wheel_torque.right
+                          << ' ' << result.control.body_on_leg_torque.left
+                          << ' ' << result.control.body_on_leg_torque.right
+                          << ' ' << result.control.leg_axial_force.left << ' '
+                          << result.control.leg_axial_force.right << '\n';
+            }
+            if (result.finished || result.failed) {
+                assert(result.finished == (scenario == Scenario::kSuccess));
+                if (scenario == Scenario::kAirTimeout) {
+                    assert(air_ticks >= 1500);
+                }
+                if (scenario == Scenario::kTotalTimeout) {
+                    assert(air_ticks < 1500 && tick >= 1999);
+                }
+                terminal = true;
+                break;
+            }
+        }
+        assert(terminal);
+        jump.Reset();
+        assert(jump.phase() == chassis::JumpPhase::kInit);
+        SetPose(input, 0.15, 0.15, 0.05, -0.04);
+        const auto restarted = jump.Update(input);
+        assert(restarted.phase == chassis::JumpPhase::kThrust);
+        assert(restarted.precompress_leg_length.has_value());
+    }
+    assert(std::all_of(visited.begin(), visited.end(),
+                       [](bool value) { return value; }));
+}
+
 void JointMapping(bool trace) {
     chassis::ChassisConfig config;
     config.joint_position_kp = 0;
@@ -191,7 +345,7 @@ void JointMapping(bool trace) {
                                 expected) < 1e-12);
             }
         }
-        Trace(trace, 7, 0, false, false, false, control);
+        Trace(trace, 40, 0, false, false, false, control);
     }
 }
 }  // namespace
@@ -201,4 +355,5 @@ int main(int argc, char** argv) {
     RecoveryPaths(trace);
     ClimbPaths(trace);
     JointMapping(trace);
+    JumpPaths(trace);
 }

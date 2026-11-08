@@ -69,6 +69,158 @@ void JumpController::EnterPhase(JumpPhase phase,
     }
 }
 
+JumpControllerOutput JumpController::Update(const ChassisCycleInput &input) {
+    const double dt = std::clamp(input.dt, 0.0005, 0.01);
+    if (phase_ == JumpPhase::kInit) {
+        theta_reference_ = {input.theta.left, input.theta.right};
+        yaw_reference_ = static_cast<double>(input.imu.yaw_deg) * kDegToRad;
+        total_elapsed_s_ = 0.0;
+        EnterPhase(JumpPhase::kPreCompress, input);
+    }
+
+    total_elapsed_s_ += dt;
+    phase_elapsed_s_ += dt;
+    JumpControllerOutput output = {};
+
+    // 各阶段先生成本周期输出，再推进阶段；不可按返回 phase 重新计算输出。
+    UpdatePhase(input, dt, output);
+
+    if (phase_ != JumpPhase::kReturn && phase_ != JumpPhase::kFailed &&
+        total_elapsed_s_ >= static_cast<double>(kJumpTotalTimeoutMs) * 0.001) {
+        EnterPhase(JumpPhase::kFailed, input);
+    }
+
+    output.phase = phase_;
+    output.finished = phase_ == JumpPhase::kReturn;
+    output.failed = phase_ == JumpPhase::kFailed;
+    return output;
+}
+
+void JumpController::UpdatePhase(const ChassisCycleInput &input, double dt,
+                                 JumpControllerOutput &output) {
+    switch (phase_) {
+        case JumpPhase::kPreCompress:
+            UpdatePreCompress(input, output);
+            break;
+        case JumpPhase::kThrust:
+            UpdateThrust(input, output.control);
+            break;
+        case JumpPhase::kAirRetract:
+            UpdateAirRetract(input, dt, output.control);
+            break;
+        case JumpPhase::kAir: {
+            const FlightControllerOutput airborne =
+                airborne_controller_.Update(input);
+            output.control = airborne.control;
+            if (airborne.failed) {
+                EnterPhase(JumpPhase::kFailed, input);
+            } else if (airborne.finished) {
+                EnterPhase(JumpPhase::kReturn, input);
+            }
+            break;
+        }
+        case JumpPhase::kInit:
+        case JumpPhase::kReturn:
+        case JumpPhase::kFailed:
+            break;
+    }
+}
+
+void JumpController::UpdatePreCompress(const ChassisCycleInput &input,
+                                       JumpControllerOutput &output) {
+    const double precompress_length =
+        std::clamp(kJumpPrecompressLegLength, config_.min_commanded_leg_length,
+                   config_.max_commanded_leg_length);
+    // 即使本周期末切换到推力，也保留本周期的预压缩请求。
+    output.precompress_leg_length = precompress_length;
+    const auto ready = [&](Side side) {
+        const LegKinematics &leg = input.leg.Get(side);
+        return std::abs(leg.length - precompress_length) <=
+                   kJumpPrecompressLengthTolerance &&
+               std::abs(leg.length_rate) <= kJumpPrecompressSpeedTolerance;
+    };
+    if ((ready(Side::kLeft) && ready(Side::kRight)) ||
+        phase_elapsed_s_ >=
+            static_cast<double>(kJumpPrecompressTimeoutMs) * 0.001) {
+        EnterPhase(JumpPhase::kThrust, input);
+    }
+}
+
+void JumpController::UpdateThrust(const ChassisCycleInput &input,
+                                  ChassisControlOutput &output) {
+    output.bypass_gas_spring_compensation = true;
+    double actuator[kOutputCount] = {};
+    ComputeAttitudeControl(input, actuator);
+    output.physical_wheel_torque = {actuator[kLeftWheel],
+                                    actuator[kRightWheel]};
+    ComputeVmcLeg(input, Side::kLeft, input.leg.left.length, 0.0, 0.0,
+                  actuator[kLeftLegTorque], output);
+    ComputeVmcLeg(input, Side::kRight, input.leg.right.length, 0.0, 0.0,
+                  actuator[kRightLegTorque], output);
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        JointPair<double> &torque = output.joint_torque.Get(side);
+        // 左右五连杆互为镜像，需在各自运动学分支应用配置的关节方向，
+        // 使正跳跃力矩伸展双腿，而非只伸展左腿。
+        const double mirror_sign = static_cast<double>(
+            config_.leg_hardware(side == Side::kRight).kinematic_branch);
+        torque.b =
+            std::clamp(torque.b + mirror_sign * kJumpJointBThrustSign *
+                                      config_.jump_thrust_torque,
+                       -config_.joint_torque_limit, config_.joint_torque_limit);
+        torque.d =
+            std::clamp(torque.d + mirror_sign * kJumpJointDThrustSign *
+                                      config_.jump_thrust_torque,
+                       -config_.joint_torque_limit, config_.joint_torque_limit);
+    }
+    if (input.leg.left.length >= kJumpThrustExitLegLength &&
+        input.leg.right.length >= kJumpThrustExitLegLength) {
+        EnterPhase(JumpPhase::kAirRetract, input);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kJumpThrustTimeoutMs) * 0.001) {
+        EnterPhase(JumpPhase::kFailed, input);
+    }
+}
+
+void JumpController::UpdateAirRetract(const ChassisCycleInput &input, double dt,
+                                      ChassisControlOutput &output) {
+    double actuator[kOutputCount] = {};
+    ComputeAttitudeControl(input, actuator);
+    const double maximum_delta = kJumpAirRetractRate * dt;
+    retract_reference_.left = MoveToward(
+        retract_reference_.left, kJumpAirRetractLegLength, maximum_delta);
+    retract_reference_.right = MoveToward(
+        retract_reference_.right, kJumpAirRetractLegLength, maximum_delta);
+    const double left_rate = retract_reference_.left > kJumpAirRetractLegLength
+                                 ? -kJumpAirRetractRate
+                                 : 0.0;
+    const double right_rate =
+        retract_reference_.right > kJumpAirRetractLegLength
+            ? -kJumpAirRetractRate
+            : 0.0;
+    ComputeVmcLeg(input, Side::kLeft, retract_reference_.left, left_rate,
+                  kJumpAirRetractGravityFeedforward, actuator[kLeftLegTorque],
+                  output);
+    ComputeVmcLeg(input, Side::kRight, retract_reference_.right, right_rate,
+                  kJumpAirRetractGravityFeedforward, actuator[kRightLegTorque],
+                  output);
+    const bool retracted =
+        std::abs(input.leg.left.length - kJumpAirRetractLegLength) <=
+            kJumpAirRetractLengthTolerance &&
+        std::abs(input.leg.right.length - kJumpAirRetractLegLength) <=
+            kJumpAirRetractLengthTolerance &&
+        std::abs(input.leg.left.length_rate) <=
+            kJumpPrecompressSpeedTolerance &&
+        std::abs(input.leg.right.length_rate) <= kJumpPrecompressSpeedTolerance;
+    air_retract_hold_s_ = retracted ? air_retract_hold_s_ + dt : 0.0;
+    if (air_retract_hold_s_ >=
+        static_cast<double>(kJumpAirRetractHoldMs) * 0.001) {
+        EnterPhase(JumpPhase::kAir, input);
+    } else if (phase_elapsed_s_ >=
+               static_cast<double>(kJumpAirRetractTimeoutMs) * 0.001) {
+        EnterPhase(JumpPhase::kFailed, input);
+    }
+}
+
 void JumpController::ComputeAttitudeControl(
     const ChassisCycleInput &input, double actuator[kOutputCount]) const {
     double state_error[kStateCount] = {};
@@ -128,126 +280,4 @@ void JumpController::ComputeVmcLeg(const ChassisCycleInput &input, Side side,
                           config_.joint_torque_limit);
 }
 
-JumpControllerOutput JumpController::Update(const ChassisCycleInput &input) {
-    const double dt = std::clamp(input.dt, 0.0005, 0.01);
-    if (phase_ == JumpPhase::kInit) {
-        theta_reference_ = {input.theta.left, input.theta.right};
-        yaw_reference_ = static_cast<double>(input.imu.yaw_deg) * kDegToRad;
-        total_elapsed_s_ = 0.0;
-        EnterPhase(JumpPhase::kPreCompress, input);
-    }
-
-    total_elapsed_s_ += dt;
-    phase_elapsed_s_ += dt;
-    JumpControllerOutput output = {};
-
-    if (phase_ == JumpPhase::kPreCompress) {
-        const double precompress_length = std::clamp(
-            kJumpPrecompressLegLength, config_.min_commanded_leg_length,
-            config_.max_commanded_leg_length);
-        // 即使本周期末切换到推力，也保留本周期的预压缩请求。
-        output.precompress_leg_length = precompress_length;
-        const auto ready = [&](Side side) {
-            const LegKinematics &leg = input.leg.Get(side);
-            return std::abs(leg.length - precompress_length) <=
-                       kJumpPrecompressLengthTolerance &&
-                   std::abs(leg.length_rate) <= kJumpPrecompressSpeedTolerance;
-        };
-        if ((ready(Side::kLeft) && ready(Side::kRight)) ||
-            phase_elapsed_s_ >=
-                static_cast<double>(kJumpPrecompressTimeoutMs) * 0.001) {
-            EnterPhase(JumpPhase::kThrust, input);
-        }
-    } else if (phase_ == JumpPhase::kThrust) {
-        output.control.bypass_gas_spring_compensation = true;
-        double actuator[kOutputCount] = {};
-        ComputeAttitudeControl(input, actuator);
-        output.control.physical_wheel_torque = {actuator[kLeftWheel],
-                                                actuator[kRightWheel]};
-        ComputeVmcLeg(input, Side::kLeft, input.leg.left.length, 0.0, 0.0,
-                      actuator[kLeftLegTorque], output.control);
-        ComputeVmcLeg(input, Side::kRight, input.leg.right.length, 0.0, 0.0,
-                      actuator[kRightLegTorque], output.control);
-        for (Side side : {Side::kLeft, Side::kRight}) {
-            JointPair<double> &torque = output.control.joint_torque.Get(side);
-            // 左右五连杆互为镜像，需在各自运动学分支应用配置的关节方向，
-            // 使正跳跃力矩伸展双腿，而非只伸展左腿。
-            const double mirror_sign = static_cast<double>(
-                config_.leg_hardware(side == Side::kRight).kinematic_branch);
-            torque.b = std::clamp(
-                torque.b + mirror_sign * kJumpJointBThrustSign *
-                               config_.jump_thrust_torque,
-                -config_.joint_torque_limit, config_.joint_torque_limit);
-            torque.d = std::clamp(
-                torque.d + mirror_sign * kJumpJointDThrustSign *
-                               config_.jump_thrust_torque,
-                -config_.joint_torque_limit, config_.joint_torque_limit);
-        }
-        if (input.leg.left.length >= kJumpThrustExitLegLength &&
-            input.leg.right.length >= kJumpThrustExitLegLength) {
-            EnterPhase(JumpPhase::kAirRetract, input);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kJumpThrustTimeoutMs) * 0.001) {
-            EnterPhase(JumpPhase::kFailed, input);
-        }
-    } else if (phase_ == JumpPhase::kAirRetract) {
-        double actuator[kOutputCount] = {};
-        ComputeAttitudeControl(input, actuator);
-        const double maximum_delta = kJumpAirRetractRate * dt;
-        retract_reference_.left = MoveToward(
-            retract_reference_.left, kJumpAirRetractLegLength, maximum_delta);
-        retract_reference_.right = MoveToward(
-            retract_reference_.right, kJumpAirRetractLegLength, maximum_delta);
-        const double left_rate =
-            retract_reference_.left > kJumpAirRetractLegLength
-                ? -kJumpAirRetractRate
-                : 0.0;
-        const double right_rate =
-            retract_reference_.right > kJumpAirRetractLegLength
-                ? -kJumpAirRetractRate
-                : 0.0;
-        ComputeVmcLeg(input, Side::kLeft, retract_reference_.left, left_rate,
-                      kJumpAirRetractGravityFeedforward,
-                      actuator[kLeftLegTorque], output.control);
-        ComputeVmcLeg(input, Side::kRight, retract_reference_.right, right_rate,
-                      kJumpAirRetractGravityFeedforward,
-                      actuator[kRightLegTorque], output.control);
-        const bool retracted =
-            std::abs(input.leg.left.length - kJumpAirRetractLegLength) <=
-                kJumpAirRetractLengthTolerance &&
-            std::abs(input.leg.right.length - kJumpAirRetractLegLength) <=
-                kJumpAirRetractLengthTolerance &&
-            std::abs(input.leg.left.length_rate) <=
-                kJumpPrecompressSpeedTolerance &&
-            std::abs(input.leg.right.length_rate) <=
-                kJumpPrecompressSpeedTolerance;
-        air_retract_hold_s_ = retracted ? air_retract_hold_s_ + dt : 0.0;
-        if (air_retract_hold_s_ >=
-            static_cast<double>(kJumpAirRetractHoldMs) * 0.001) {
-            EnterPhase(JumpPhase::kAir, input);
-        } else if (phase_elapsed_s_ >=
-                   static_cast<double>(kJumpAirRetractTimeoutMs) * 0.001) {
-            EnterPhase(JumpPhase::kFailed, input);
-        }
-    } else if (phase_ == JumpPhase::kAir) {
-        const FlightControllerOutput airborne =
-            airborne_controller_.Update(input);
-        output.control = airborne.control;
-        if (airborne.failed) {
-            EnterPhase(JumpPhase::kFailed, input);
-        } else if (airborne.finished) {
-            EnterPhase(JumpPhase::kReturn, input);
-        }
-    }
-
-    if (phase_ != JumpPhase::kReturn && phase_ != JumpPhase::kFailed &&
-        total_elapsed_s_ >= static_cast<double>(kJumpTotalTimeoutMs) * 0.001) {
-        EnterPhase(JumpPhase::kFailed, input);
-    }
-
-    output.phase = phase_;
-    output.finished = phase_ == JumpPhase::kReturn;
-    output.failed = phase_ == JumpPhase::kFailed;
-    return output;
-}
 }  // namespace dust_control::chassis

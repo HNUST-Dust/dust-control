@@ -43,7 +43,9 @@ class ClimbStairsController {
     };
 
     void EnterPhase(ClimbStairsPhase phase);
-    void UpdateReferences(const ChassisCycleInput &input);
+    void UpdatePhase(const ChassisCycleInput &input, double dt);
+    void UpdateMotion1(const ChassisCycleInput &input, double dt);
+    void UpdateMotion2(const ChassisCycleInput &input, double dt);
     bool UpdateJointTargets(const ChassisCycleInput &input);
     double ComputeJointTorque(Side side, Joint joint, double target,
                               double position, double velocity, double dt);

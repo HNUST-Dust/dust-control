@@ -22,6 +22,7 @@ struct JumpControllerOutput {
     ChassisControlOutput control;
     // 有值时由总控运行平衡预压缩；control 在该周期不提供动作输出。
     std::optional<double> precompress_leg_length;
+    // 阶段处理后的状态，不能据此推断本周期输出所属阶段。
     JumpPhase phase = JumpPhase::kInit;
     bool finished = false;
     bool failed = false;
@@ -40,6 +41,14 @@ class JumpController {
    private:
     const ChassisConfig config_;
     void EnterPhase(JumpPhase phase, const ChassisCycleInput &input);
+    void UpdatePhase(const ChassisCycleInput &input, double dt,
+                     JumpControllerOutput &output);
+    void UpdatePreCompress(const ChassisCycleInput &input,
+                           JumpControllerOutput &output);
+    void UpdateThrust(const ChassisCycleInput &input,
+                      ChassisControlOutput &output);
+    void UpdateAirRetract(const ChassisCycleInput &input, double dt,
+                          ChassisControlOutput &output);
     void ComputeAttitudeControl(const ChassisCycleInput &input,
                                 double actuator[4]) const;
     void ComputeVmcLeg(const ChassisCycleInput &input, Side side,
