@@ -1,19 +1,24 @@
+# 阅读主线：周期输入、状态选择、动作计算、输出策略。
 add_library(dust_chassis
-  chassis_config.cpp
-  balance_controller.cpp
-  body_motion_estimator.cpp
-  chassis_output_policy.cpp
   chassis_controller.cpp
   chassis_input_reader.cpp
   chassis_state_machine.cpp
-  climb_stairs_controller.cpp
+  chassis_output_policy.cpp
+
+  # 各动作独立拥有阶段、参考和控制状态。
+  balance_controller.cpp
+  recovery_controller.cpp
   flight_controller.cpp
   jump_controller.cpp
-  leg_kinematics.cc
+  climb_stairs_controller.cpp
+
+  # 共享运动学、估计和力矩算法。
+  leg_kinematics.cpp
   leg_vmc.cpp
-  recovery_controller.cpp
+  body_motion_estimator.cpp
   support_force_estimator.cpp
-  unified_lqr_schedule.cc
+  unified_lqr_schedule.cpp
+  chassis_config.cpp
 )
 target_link_libraries(dust_chassis PUBLIC dust_headers Eigen3::Eigen)
 target_include_directories(dust_chassis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")

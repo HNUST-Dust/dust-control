@@ -4,8 +4,11 @@
 
 #include "chassis_output_policy.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "chassis_config.h"
-#include "joint_output.h"
+#include "gas_spring.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -16,8 +19,57 @@ static_assert(kDmClearTicks < kDmArmTicks);
 }  // namespace
 
 namespace dust_control::chassis {
-namespace cfg = chassis_config;
 namespace {
+// 仅由 ChassisOutputPolicy 在选择控制器后、提交设备目标前调用一次。
+// 输入和输出均为电机坐标 N·m；先加弹簧补偿，再执行关节最终限幅。
+void PrepareJointOutput(ChassisControlState state,
+                        const ChassisCycleInput& input,
+                        ChassisControlOutput& output,
+                        const ChassisConfig& config) {
+    using namespace chassis_config;
+    bool active_state = false;
+    switch (state) {
+        case ChassisControlState::kBalance:
+        case ChassisControlState::kRecovery:
+        case ChassisControlState::kFlight:
+        case ChassisControlState::kJump:
+        case ChassisControlState::kClimbStairs:
+            active_state = true;
+            break;
+        default:
+            break;
+    }
+
+    if (!active_state || !output.joint_control_active ||
+        !input.feedback_valid || !input.imu_fresh || !input.dm_ready ||
+        !input.arm_complete || !input.requested_enable) {
+        output.joint_torque = {};
+        return;
+    }
+
+    const bool position_control = state == ChassisControlState::kRecovery ||
+                                  state == ChassisControlState::kClimbStairs;
+    const double limit =
+        position_control ? std::min(config.joint_torque_limit, kJointTorqueMax)
+                         : config.joint_torque_limit;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        const JointPair<double> compensation =
+            state == ChassisControlState::kJump &&
+                    output.bypass_gas_spring_compensation
+                ? JointPair<double>{}
+                : ConfiguredGasSpringCompensation(side, input, config);
+        JointPair<double>& command = output.joint_torque.Get(side);
+        for (Joint joint : {Joint::kB, Joint::kD}) {
+            double& torque = command.Get(joint);
+            // 控制器输出无效时，不能退化为只有弹簧补偿的命令。
+            const double sum = torque + compensation.Get(joint);
+            torque = std::isfinite(torque) && std::isfinite(sum)
+                         ? std::clamp(sum, -limit, limit)
+                         : 0.0;
+        }
+    }
+}
+
 // 目标槽位与反馈顺序一致；编码器从 YAML 加载的配置取得 CAN 总线及 ID。
 void SetJointTargets(dust_control::devices::MotorTargets& targets,
                      dust_control::devices::MotorMode mode,

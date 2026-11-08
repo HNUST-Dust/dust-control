@@ -4,6 +4,8 @@
 #include <array>
 #include <cmath>
 
+#include "chassis_types.h"
+#include "leg_joint_coordinates.h"
 #include "leg_kinematics.h"
 
 namespace dust_control::chassis {
@@ -13,7 +15,7 @@ namespace dust_control::chassis {
 // 伸长弹簧产生广义力矩 +F * d|Q-P|/dq。
 // 按原始运动学列顺序 [D, B] 返回方向相反的电机补偿力矩。
 inline std::array<double, 2> ComputeGasSpringCompensation(
-    const LegKinematics &leg, double phi_d, double ag, double gh, double offset,
+    const LegKinematics& leg, double phi_d, double ag, double gh, double offset,
     double b, double force) {
     if (!std::isfinite(phi_d) || !std::isfinite(ag) || !std::isfinite(gh) ||
         !std::isfinite(offset) || !std::isfinite(b) || !std::isfinite(force) ||
@@ -48,6 +50,25 @@ inline std::array<double, 2> ComputeGasSpringCompensation(
     }
 
     return torque;
+}
+
+// 共享几何参数映射；结果为 [B, D] 顺序的电机反向补偿力矩，
+// 使用原始运动学坐标，不使用估计器的传感器极性。
+inline JointPair<double> ConfiguredGasSpringCompensation(
+    Side side, const ChassisCycleInput& input,
+    const ChassisConfig& config = {}) {
+    using namespace chassis_config;
+    const double force = side == Side::kLeft ? config.gas_spring_left_force
+                                             : config.gas_spring_right_force;
+    const double offset = side == Side::kLeft
+                              ? config.gas_spring_left_upper_offset
+                              : config.gas_spring_right_upper_offset;
+    const auto torque = ComputeGasSpringCompensation(
+        input.leg.Get(side),
+        JointDLinkAngle(input.joint_position.Get(side).d, config),
+        config.length_ag, config.length_gh, offset,
+        config.gas_spring_lower_distance, force);
+    return {torque[1], torque[0]};
 }
 
 }  // namespace dust_control::chassis

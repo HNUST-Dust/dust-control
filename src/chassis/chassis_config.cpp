@@ -122,8 +122,8 @@ void ValidateChassisConfig(const ChassisConfig& config) {
         throw std::runtime_error(
             "Invalid chassis parameter: mechanics.leg_geometry_m.gh");
     }
-    if (!std::isfinite(config.stool_target_leg_length) ||
-        config.stool_target_leg_length <= 0.0) {
+    if (!std::isfinite(config.default_leg_length) ||
+        config.default_leg_length <= 0.0) {
         throw std::runtime_error(
             "Invalid chassis parameter: stool.target_leg_length_m");
     }
@@ -210,8 +210,8 @@ void ValidateChassisConfig(const ChassisConfig& config) {
             "Invalid chassis parameter: hardware.right.leg_angle_offset_rad");
     }
     if (config.min_commanded_leg_length >= config.max_commanded_leg_length ||
-        config.stool_target_leg_length < config.min_commanded_leg_length ||
-        config.stool_target_leg_length > config.max_commanded_leg_length ||
+        config.default_leg_length < config.min_commanded_leg_length ||
+        config.default_leg_length > config.max_commanded_leg_length ||
         config.gas_spring_lower_distance > config.length_gh ||
         !std::isfinite(config.max_yaw_rate()) ||
         !std::isfinite(config.yaw_acceleration_limit())) {

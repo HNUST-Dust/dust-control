@@ -77,7 +77,8 @@ struct ChassisConfig {
     double length_ad = 0.09;
     double length_ag = 0.21;
     double length_gh = 0.25;
-    double stool_target_leg_length = 0.15;
+    // 使能后的平衡默认腿长，配置键为 stool.target_leg_length_m。
+    double default_leg_length = 0.15;
     double joint_position_kp = 20.0;
     double joint_position_max_speed = 44.0;
     double joint_speed_kp = 4.0;

@@ -1,6 +1,7 @@
 # 文档索引
 
 - [架构与数据流](ARCHITECTURE.md)
+- [底盘代码导航](../src/chassis/README.md)
 - [装配与线程配置](DUST_CONTROL_CONFIGURATION.md)
 - [DTG1 PDO schema与布局](ETHERCAT_PDO_CONFIGURATION.md)
 - [DTG1运行与故障契约](ETHERCAT_RUNTIME.md)

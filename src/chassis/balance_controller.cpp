@@ -81,7 +81,7 @@ BalanceController::BalanceController(double wheel_torque_limit,
                                      ChassisConfig config)
     : config_(config),
       wheel_torque_limit_(wheel_torque_limit),
-      target_leg_length_(config_.stool_target_leg_length) {}
+      target_leg_length_(config_.default_leg_length) {}
 
 void BalanceController::Reset() {
     // target_leg_length_ 和三项姿态参考由交接入口管理，此处有意保留。
@@ -100,7 +100,7 @@ void BalanceController::Reset() {
 }
 
 void BalanceController::ResetForEnable() {
-    target_leg_length_ = config_.stool_target_leg_length;
+    target_leg_length_ = config_.default_leg_length;
     balance_theta_reference_ = config_.theta_balance_bias();
     balance_pitch_reference_ = 0.0;
     balance_roll_reference_ = 0.0;

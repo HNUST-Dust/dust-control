@@ -8,7 +8,7 @@
 #include <cmath>
 
 #include "chassis_config.h"
-#include "gas_spring_model.h"
+#include "gas_spring.h"
 #include "leg_joint_coordinates.h"
 
 namespace {

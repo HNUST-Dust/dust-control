@@ -88,7 +88,7 @@ void ResetContracts() {
         } else if (entry == Entry::kEnable) {
             warm.ResetForEnable();
             fresh.ResetForEnable();
-            assert(warm.target_leg_length() == config.stool_target_leg_length);
+            assert(warm.target_leg_length() == config.default_leg_length);
         } else {
             warm.SynchronizeReferences(input);
             fresh.SynchronizeReferences(input);
@@ -183,8 +183,7 @@ void Run(bool trace, double wheel_budget) {
         }
         if (tick == 0 || tick == 2400) {
             controller.ResetForEnable();
-            assert(controller.target_leg_length() ==
-                   config.stool_target_leg_length);
+            assert(controller.target_leg_length() == config.default_leg_length);
             assert(controller.target_yaw_rate() == 0);
             assert(controller.filtered_yaw_rate() == 0);
         } else if (tick == 1200) {

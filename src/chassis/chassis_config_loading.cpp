@@ -83,7 +83,7 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
     config.length_ad = root["mechanics"]["leg_geometry_m"]["ad"].as<double>();
     config.length_ag = root["mechanics"]["leg_geometry_m"]["ag"].as<double>();
     config.length_gh = root["mechanics"]["leg_geometry_m"]["gh"].as<double>();
-    config.stool_target_leg_length =
+    config.default_leg_length =
         root["stool"]["target_leg_length_m"].as<double>();
     config.joint_position_kp = root["stool"]["joint_position_kp"].as<double>();
     config.joint_position_max_speed =

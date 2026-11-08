@@ -44,6 +44,7 @@ cmake --build --preset production --parallel 2
 build/headless/dust_ethercat_layout config/dust_control.yaml --json
 ```
 
+- [底盘代码导航](src/chassis/README.md)
 - [架构与所有权](docs/ARCHITECTURE.md)
 - [配置与线程](docs/DUST_CONTROL_CONFIGURATION.md)
 - [PDO schema 与映射](docs/ETHERCAT_PDO_CONFIGURATION.md)
