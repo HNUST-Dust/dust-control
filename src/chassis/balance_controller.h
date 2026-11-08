@@ -14,8 +14,13 @@ class BalanceController {
     explicit BalanceController(
         double wheel_torque_limit = chassis_config::kWheelTorqueLimit,
         ChassisConfig config = {});
+    // 清空运动参考、估计、yaw 和腿长积分历史；保留腿长和姿态参考。
+    // 停止、使能握手或等待反馈期间可重复调用；不等同于重新使能初始化。
     void Reset();
+    // 使能边沿：恢复配置腿长、平衡腿角及零 pitch/roll，再清空历史。
     void ResetForEnable();
+    // 动作交接：从当前双腿平均长度、common_theta、pitch/roll 接续，再清空历史。
+    // yaw 参考不在这里采样，而是在下一次 Update 中初始化。
     void SynchronizeReferences(const ChassisCycleInput &input);
     void Update(const ChassisCycleInput &input, ChassisControlOutput &output,
                 const ExternalSupportForceCommand *external_support = nullptr);
@@ -41,7 +46,6 @@ class BalanceController {
     }
 
    private:
-    const ChassisConfig config_;
     struct SideState {
         double leg_length_integral_force = 0.0;
     };
@@ -74,19 +78,31 @@ class BalanceController {
                           const ExternalSupportForceCommand *external_support,
                           ChassisControlOutput &output);
 
+    // 构造后固定，不参与复位。
+    const ChassisConfig config_;
     const double wheel_torque_limit_;
-    BodyMotionEstimator body_motion_estimator_;
+
+    // 腿长与姿态参考：Reset 保留，使能/动作交接入口负责重新设置。
     double target_leg_length_ = 0.0;
     double balance_theta_reference_ = 0.0;
     double balance_pitch_reference_ = 0.0;
     double balance_roll_reference_ = 0.0;
+
+    // 运动估计与平移参考：Reset 同时清空估计位移及目标位移。
+    BodyMotionEstimator body_motion_estimator_;
     double target_body_speed_ = 0.0;
     double target_body_position_ = 0.0;
+
+    // yaw 参考：Reset 清空，下一次 Update 用新采样初始化目标角。
     double target_yaw_rate_ = 0.0;
     double target_yaw_angle_ = 0.0;
     bool yaw_reference_initialized_ = false;
+
+    // yaw 反馈滤波：与目标参考独立初始化，Reset 后首个采样直接赋值。
     double filtered_yaw_rate_ = 0.0;
     bool yaw_rate_filter_initialized_ = false;
+
+    // 每侧腿长积分：Reset 清空；外部支撑力启用时在单腿计算中清空。
     SidePair<SideState> side_state_;
 };
 

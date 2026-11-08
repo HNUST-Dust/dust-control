@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <iomanip>
@@ -9,6 +10,142 @@
 
 namespace chassis = dust_control::chassis;
 namespace {
+// 同时观察力矩、运动诊断和公开参考，避免为测试暴露私有状态。
+std::array<double, 24> Values(const chassis::BalanceController& controller,
+                              const chassis::ChassisControlOutput& output) {
+    return {output.physical_wheel_torque.left,
+            output.physical_wheel_torque.right,
+            output.requested_body_on_leg_torque.left,
+            output.requested_body_on_leg_torque.right,
+            output.body_on_leg_torque.left,
+            output.body_on_leg_torque.right,
+            output.leg_axial_force.left,
+            output.leg_axial_force.right,
+            output.joint_torque.left.b,
+            output.joint_torque.left.d,
+            output.joint_torque.right.b,
+            output.joint_torque.right.d,
+            output.raw_body_speed,
+            output.estimated_body_speed,
+            output.measured_turn_wheel_speed,
+            output.requested_turn_torque,
+            output.allocated_turn_torque,
+            output.differential_leg_torque,
+            output.roll_reference,
+            output.roll_compensation_force,
+            controller.target_leg_length(),
+            controller.target_yaw_rate(),
+            controller.target_yaw_angle(),
+            controller.filtered_yaw_rate()};
+}
+
+chassis::ChassisCycleInput ResetInput() {
+    chassis::ChassisCycleInput input{};
+    input.dt = 0.001;
+    input.requested_enable = input.remote.run = true;
+    input.remote.chassis_x = 0.6;
+    input.remote.chassis_rotate = -0.4;
+    input.imu.yaw_deg = 179;
+    input.imu.yaw_rate_rad_s = 0.3;
+    input.wheel_motor_speed_rpm = {120, -90};
+    input.leg.left.length = 0.19;
+    input.leg.right.length = 0.27;
+    input.theta = {0.04, -0.08};
+    input.common_theta = 0.12;
+    input.pitch = -0.09;
+    input.roll = 0.16;
+    for (auto side : {chassis::Side::kLeft, chassis::Side::kRight}) {
+        auto& leg = input.leg.Get(side);
+        leg.jacobian[0][0] = 0.08;
+        leg.jacobian[0][1] = -0.06;
+        leg.jacobian[1][0] = 0.04;
+        leg.jacobian[1][1] = 0.05;
+    }
+    return input;
+}
+
+void ResetContracts() {
+    // 从不同历史出发，三个入口都应清除估计、运动参考、yaw 和积分历史。
+    enum class Entry { kHistory, kEnable, kSynchronize };
+    for (auto entry : {Entry::kHistory, Entry::kEnable, Entry::kSynchronize}) {
+        chassis::ChassisConfig config;
+        config.leg_length_ki = 250;
+        chassis::BalanceController warm(2.0, config), fresh(2.0, config);
+        warm.ResetForEnable();
+        fresh.ResetForEnable();
+        warm.set_target_leg_length(0.24);
+        fresh.set_target_leg_length(0.24);
+        auto input = ResetInput();
+        for (unsigned i = 0; i < 300; ++i) {
+            chassis::ChassisControlOutput output{};
+            warm.Update(input, output);
+        }
+        assert(warm.target_yaw_rate() != 0);
+        assert(warm.filtered_yaw_rate() != 0);
+        if (entry == Entry::kHistory) {
+            warm.Reset();
+            assert(warm.target_leg_length() == 0.24);
+        } else if (entry == Entry::kEnable) {
+            warm.ResetForEnable();
+            fresh.ResetForEnable();
+            assert(warm.target_leg_length() == config.stool_target_leg_length);
+        } else {
+            warm.SynchronizeReferences(input);
+            fresh.SynchronizeReferences(input);
+            assert(warm.target_leg_length() ==
+                   0.5 * (input.leg.left.length + input.leg.right.length));
+        }
+        assert(warm.target_yaw_rate() == 0);
+        assert(warm.target_yaw_angle() == 0);
+        assert(warm.filtered_yaw_rate() == 0);
+        // 重复同一个入口不应改变结果，随后验证 yaw 从新采样初始化。
+        if (entry == Entry::kHistory) {
+            warm.Reset();
+        } else if (entry == Entry::kEnable) {
+            warm.ResetForEnable();
+        } else {
+            warm.SynchronizeReferences(input);
+        }
+        input.imu.yaw_deg = -175;
+        input.imu.yaw_rate_rad_s = -0.7;
+        input.remote.chassis_x = input.remote.chassis_rotate = 0;
+        for (unsigned i = 0; i < 20; ++i) {
+            chassis::ChassisControlOutput actual{}, expected{};
+            warm.Update(input, actual);
+            fresh.Update(input, expected);
+            assert(Values(warm, actual) == Values(fresh, expected));
+            if (i == 0) {
+                assert(warm.filtered_yaw_rate() == input.imu.yaw_rate_rad_s);
+                assert(std::abs(warm.target_yaw_angle() -
+                                input.imu.yaw_deg *
+                                    chassis::chassis_config::kDegToRad) <
+                       1e-12);
+            }
+        }
+    }
+    // 零时长探测让交接姿态不发生渐变，直接验证 Reset 保留非零姿态参考。
+    chassis::BalanceController controller;
+    auto pose = ResetInput();
+    pose.dt = 0;
+    pose.requested_enable = pose.remote.run = false;
+    controller.SynchronizeReferences(pose);
+    chassis::ChassisControlOutput before{};
+    controller.Update(pose, before);
+    const auto expected = Values(controller, before);
+    auto disturbed = pose;
+    disturbed.wheel_motor_speed_rpm = {-600, 420};
+    disturbed.imu.yaw_deg = -90;
+    for (unsigned i = 0; i < 30; ++i) {
+        chassis::ChassisControlOutput output{};
+        controller.Update(disturbed, output);
+    }
+    controller.Reset();
+    chassis::ChassisControlOutput after{};
+    controller.Update(pose, after);
+    assert(after.roll_reference == pose.roll);
+    assert(expected == Values(controller, after));
+}
+
 void Run(bool trace, double wheel_budget) {
     chassis::ChassisConfig config;
     config.leg_length_ki = 250.0;
@@ -91,30 +228,7 @@ void Run(bool trace, double wheel_budget) {
         if (trace) {
             std::cout << tick << ' ' << wheel_budget;
         }
-        for (double value : {output.physical_wheel_torque.left,
-                             output.physical_wheel_torque.right,
-                             output.requested_body_on_leg_torque.left,
-                             output.requested_body_on_leg_torque.right,
-                             output.body_on_leg_torque.left,
-                             output.body_on_leg_torque.right,
-                             output.leg_axial_force.left,
-                             output.leg_axial_force.right,
-                             output.joint_torque.left.b,
-                             output.joint_torque.left.d,
-                             output.joint_torque.right.b,
-                             output.joint_torque.right.d,
-                             output.raw_body_speed,
-                             output.estimated_body_speed,
-                             output.measured_turn_wheel_speed,
-                             output.requested_turn_torque,
-                             output.allocated_turn_torque,
-                             output.differential_leg_torque,
-                             output.roll_reference,
-                             output.roll_compensation_force,
-                             controller.target_leg_length(),
-                             controller.target_yaw_rate(),
-                             controller.target_yaw_angle(),
-                             controller.filtered_yaw_rate()}) {
+        for (double value : Values(controller, output)) {
             assert(std::isfinite(value));
             if (trace) {
                 std::cout << ' ' << value;
@@ -129,6 +243,7 @@ void Run(bool trace, double wheel_budget) {
 int main(int argc, char** argv) {
     const bool trace = argc == 2 && std::string_view(argv[1]) == "--trace";
     std::cout << std::setprecision(17);
+    ResetContracts();
     Run(trace, 0.0);
     Run(trace, 2.0);
 }

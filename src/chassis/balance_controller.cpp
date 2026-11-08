@@ -84,14 +84,18 @@ BalanceController::BalanceController(double wheel_torque_limit,
       target_leg_length_(config_.stool_target_leg_length) {}
 
 void BalanceController::Reset() {
+    // target_leg_length_ 和三项姿态参考由交接入口管理，此处有意保留。
     body_motion_estimator_.Reset();
     target_body_speed_ = 0.0;
     target_body_position_ = 0.0;
+
     target_yaw_rate_ = 0.0;
     target_yaw_angle_ = 0.0;
     yaw_reference_initialized_ = false;
+
     filtered_yaw_rate_ = 0.0;
     yaw_rate_filter_initialized_ = false;
+
     side_state_ = {};
 }
 
