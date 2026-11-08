@@ -31,8 +31,6 @@ class ChassisController {
     void UpdateControlState(const ChassisCycleInput &);
     void ComputeControlOutput(const ChassisCycleInput &,
                               ChassisControlOutput &);
-    void UpdateRecovery(const ChassisCycleInput &, ChassisControlOutput &);
-    void UpdateClimbStairs(const ChassisCycleInput &, ChassisControlOutput &);
     uint64_t last_us_ = 0;
     uint32_t loop_ticks_ = 0;
     RecoveryController recovery_controller_;

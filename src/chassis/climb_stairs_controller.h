@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include <array>
 #include <cstdint>
 
 #include "chassis_config.h"
-#include "leg_kinematics.h"
+#include "chassis_types.h"
 
 namespace dust_control::chassis {
 
@@ -18,17 +17,8 @@ enum class ClimbStairsPhase : uint8_t {
     kFailed,
 };
 
-struct ClimbStairsControllerInput {
-    double dt = 0.001;
-    double pitch = 0.0;
-    std::array<LegKinematics, 2> leg{};
-    std::array<double, 4> joint_position{};
-    std::array<double, 4> joint_velocity{};
-};
-
 struct ClimbStairsControllerOutput {
-    std::array<double, 4> joint_torque{};
-    bool joint_control_active = false;
+    ChassisControlOutput control;
     ClimbStairsPhase phase = ClimbStairsPhase::kInit;
     bool finished = false;
     bool failed = false;
@@ -40,7 +30,7 @@ class ClimbStairsController {
     explicit ClimbStairsController(ChassisConfig config = {})
         : config_(config) {}
     void Reset();
-    ClimbStairsControllerOutput Update(const ClimbStairsControllerInput &input);
+    ClimbStairsControllerOutput Update(const ChassisCycleInput &input);
     ClimbStairsPhase phase() const {
         return phase_;
     }
@@ -53,21 +43,21 @@ class ClimbStairsController {
     };
 
     void EnterPhase(ClimbStairsPhase phase);
-    void UpdateReferences(const ClimbStairsControllerInput &input);
-    bool UpdateJointTargets(const ClimbStairsControllerInput &input);
-    double ComputeJointTorque(uint8_t index, double target, double position,
-                              double velocity, double dt);
-    double RawKinematicAngle(uint8_t side, double normalized_angle);
+    void UpdateReferences(const ChassisCycleInput &input);
+    bool UpdateJointTargets(const ChassisCycleInput &input);
+    double ComputeJointTorque(Side side, Joint joint, double target,
+                              double position, double velocity, double dt);
+    double RawKinematicAngle(Side side, double normalized_angle);
 
     ClimbStairsPhase phase_ = ClimbStairsPhase::kInit;
     double phase_elapsed_s_ = 0.0;
     double ready_elapsed_s_ = 0.0;
     bool reference_initialized_ = false;
-    std::array<bool, 2> target_initialized_{};
-    std::array<double, 2> leg_length_reference_{};
-    std::array<double, 2> leg_angle_reference_{};
-    std::array<double, 4> joint_target_{};
-    std::array<JointPidState, 4> joint_pid_{};
+    SidePair<bool> target_initialized_{};
+    SidePair<double> leg_length_reference_{};
+    SidePair<double> leg_angle_reference_{};
+    SidePair<JointPair<double>> joint_target_{};
+    SidePair<JointPair<JointPidState>> joint_pid_{};
 };
 
 }  // namespace dust_control::chassis

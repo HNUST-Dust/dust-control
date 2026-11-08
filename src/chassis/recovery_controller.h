@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include <array>
 #include <cstdint>
 
 #include "chassis_config.h"
-#include "leg_kinematics.h"
+#include "chassis_types.h"
 
 namespace dust_control::chassis {
 
@@ -26,20 +25,8 @@ struct RecoveryGimbalStatus {
     bool aligned = true;
 };
 
-struct RecoveryControllerInput {
-    double dt = 0.001;
-    double pitch = 0.0;
-    double roll = 0.0;
-    double vertical_accel_g = 0.0;
-    std::array<LegKinematics, 2> leg{};
-    std::array<double, 4> joint_position{};
-    std::array<double, 4> joint_velocity{};
-    RecoveryGimbalStatus gimbal{};
-};
-
 struct RecoveryControllerOutput {
-    std::array<double, 4> joint_torque{};
-    bool joint_control_active = false;
+    ChassisControlOutput control;
     RecoveryPhase phase = RecoveryPhase::kInit;
     bool request_gimbal_disable = false;
     bool finished = false;
@@ -50,7 +37,8 @@ class RecoveryController {
    public:
     explicit RecoveryController(ChassisConfig config = {}) : config_(config) {}
     void Reset();
-    RecoveryControllerOutput Update(const RecoveryControllerInput &input);
+    RecoveryControllerOutput Update(const ChassisCycleInput &input,
+                                    RecoveryGimbalStatus gimbal = {});
     RecoveryPhase phase() const {
         return phase_;
     }
@@ -68,12 +56,13 @@ class RecoveryController {
         double speed_integral = 0.0;
     };
 
-    void EnterPhase(RecoveryPhase phase, const RecoveryControllerInput &input);
-    void UpdateReferences(const RecoveryControllerInput &input);
-    bool UpdateJointTargets(const RecoveryControllerInput &input);
-    double ComputeJointTorque(uint8_t index, double target, double position,
-                              double velocity, double dt);
-    double RawKinematicAngle(uint8_t side, double normalized_angle);
+    void EnterPhase(RecoveryPhase phase, const ChassisCycleInput &input);
+    void UpdateReferences(const ChassisCycleInput &input,
+                          const RecoveryGimbalStatus &gimbal);
+    bool UpdateJointTargets(const ChassisCycleInput &input);
+    double ComputeJointTorque(Side side, Joint joint, double target,
+                              double position, double velocity, double dt);
+    double RawKinematicAngle(Side side, double normalized_angle);
 
     RecoveryPhase phase_ = RecoveryPhase::kInit;
     double phase_elapsed_s_ = 0.0;
@@ -84,14 +73,14 @@ class RecoveryController {
     int turnover_direction_ = 1;
     uint32_t turnover_reversals_ = 0U;
     bool reference_initialized_ = false;
-    std::array<double, 2> phase_start_angle_{};
-    std::array<double, 2> leg_length_reference_{};
-    std::array<double, 2> leg_angle_reference_{};
-    std::array<double, 2> swing_stuck_elapsed_s_{};
-    std::array<SwingEscapePhase, 2> swing_escape_phase_{};
-    std::array<bool, 2> target_initialized_{};
-    std::array<double, 4> joint_target_{};
-    std::array<JointPidState, 4> joint_pid_{};
+    SidePair<double> phase_start_angle_{};
+    SidePair<double> leg_length_reference_{};
+    SidePair<double> leg_angle_reference_{};
+    SidePair<double> swing_stuck_elapsed_s_{};
+    SidePair<SwingEscapePhase> swing_escape_phase_{};
+    SidePair<bool> target_initialized_{};
+    SidePair<JointPair<double>> joint_target_{};
+    SidePair<JointPair<JointPidState>> joint_pid_{};
 };
 
 }  // namespace dust_control::chassis

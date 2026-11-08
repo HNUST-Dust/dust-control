@@ -33,7 +33,6 @@ constexpr uint32_t kRecoveryMaximumTurnoverReversals = 3;
 
 namespace {
 using namespace dust_control::chassis::chassis_config;
-constexpr int kBranch[2] = {kLeftKinematicBranch, kRightKinematicBranch};
 
 double MoveToward(double current, double target, double maximum_delta) {
     return current +
@@ -56,50 +55,54 @@ void RecoveryController::Reset() {
     turnover_direction_ = 1;
     turnover_reversals_ = 0U;
     reference_initialized_ = false;
-    phase_start_angle_.fill(0.0);
-    leg_length_reference_.fill(0.0);
-    leg_angle_reference_.fill(0.0);
-    swing_stuck_elapsed_s_.fill(0.0);
-    swing_escape_phase_.fill(SwingEscapePhase::kNone);
-    target_initialized_.fill(false);
-    joint_target_.fill(0.0);
-    joint_pid_.fill({});
+    phase_start_angle_ = {};
+    leg_length_reference_ = {};
+    leg_angle_reference_ = {};
+    swing_stuck_elapsed_s_ = {};
+    swing_escape_phase_ = {};
+    target_initialized_ = {};
+    joint_target_ = {};
+    joint_pid_ = {};
 }
 
 void RecoveryController::EnterPhase(RecoveryPhase phase,
-                                    const RecoveryControllerInput &input) {
+                                    const ChassisCycleInput &input) {
     phase_ = phase;
     phase_elapsed_s_ = ready_elapsed_s_ = 0.0;
-    for (size_t side = 0U; side < input.leg.size(); ++side) {
-        phase_start_angle_[side] = input.leg[side].angle;
+    for (Side side : {Side::kLeft, Side::kRight}) {
+        phase_start_angle_.Get(side) = input.leg.Get(side).angle;
     }
 }
 
 RecoveryControllerOutput RecoveryController::Update(
-    const RecoveryControllerInput &input) {
+    const ChassisCycleInput &input, RecoveryGimbalStatus gimbal) {
     const double dt = std::clamp(input.dt, 0.0005, 0.01);
     phase_elapsed_s_ += dt;
     if (!reference_initialized_) {
-        for (size_t side = 0U; side < input.leg.size(); ++side) {
-            leg_length_reference_[side] = input.leg[side].length;
-            leg_angle_reference_[side] = input.leg[side].angle;
+        for (Side side : {Side::kLeft, Side::kRight}) {
+            leg_length_reference_.Get(side) = input.leg.Get(side).length;
+            leg_angle_reference_.Get(side) = input.leg.Get(side).angle;
         }
         reference_initialized_ = true;
     }
 
-    UpdateReferences(input);
+    UpdateReferences(input, gimbal);
     const bool targets_valid = UpdateJointTargets(input);
     RecoveryControllerOutput output = {};
     output.phase = phase_;
-    output.joint_control_active = targets_valid &&
-                                  phase_ != RecoveryPhase::kFailed &&
-                                  phase_ != RecoveryPhase::kReturn;
+    output.control.joint_control_active = targets_valid &&
+                                          phase_ != RecoveryPhase::kFailed &&
+                                          phase_ != RecoveryPhase::kReturn;
     output.request_gimbal_disable = phase_ != RecoveryPhase::kReturn;
     if (targets_valid) {
-        for (uint8_t joint = 0U; joint < output.joint_torque.size(); ++joint) {
-            output.joint_torque[joint] = ComputeJointTorque(
-                joint, joint_target_[joint], input.joint_position[joint],
-                input.joint_velocity[joint], dt);
+        for (Side side : {Side::kLeft, Side::kRight}) {
+            for (Joint joint : {Joint::kB, Joint::kD}) {
+                output.control.joint_torque.Get(side).Get(joint) =
+                    ComputeJointTorque(
+                        side, joint, joint_target_.Get(side).Get(joint),
+                        input.joint_position.Get(side).Get(joint),
+                        input.joint_velocity.Get(side).Get(joint), dt);
+            }
         }
     }
 
@@ -108,8 +111,8 @@ RecoveryControllerOutput RecoveryController::Update(
     return output;
 }
 
-void RecoveryController::UpdateReferences(
-    const RecoveryControllerInput &input) {
+void RecoveryController::UpdateReferences(const ChassisCycleInput &input,
+                                          const RecoveryGimbalStatus &gimbal) {
     using namespace chassis_config;
     const double dt = std::clamp(input.dt, 0.0005, 0.01);
     const double ready_hold = static_cast<double>(kRecoveryReadyHoldMs) * 0.001;
@@ -117,11 +120,11 @@ void RecoveryController::UpdateReferences(
     const double roll_limit = 20.0 * kDegToRad;
     // 归一化 IMU 安装方向，使正值始终表示重力沿配置的机体直立方向。
     const double upright_accel_g =
-        kRecoveryUprightAccelSign * input.vertical_accel_g;
+        kRecoveryUprightAccelSign * input.imu.vertical_accel_g;
 
     if (phase_ == RecoveryPhase::kInit) {
-        if (!std::isfinite(input.vertical_accel_g) ||
-            std::abs(input.vertical_accel_g) < 0.05) {
+        if (!std::isfinite(input.imu.vertical_accel_g) ||
+            std::abs(input.imu.vertical_accel_g) < 0.05) {
             EnterPhase(RecoveryPhase::kFailed, input);
         } else if (upright_accel_g > kRecoveryUprightAccelThresholdG) {
             // 已经直立时只收腿并对齐；此时进入 Swing 会把普通使能
@@ -133,9 +136,9 @@ void RecoveryController::UpdateReferences(
     } else if (phase_ == RecoveryPhase::kTurnOver) {
         const bool upright_detected =
             upright_accel_g > kRecoveryUprightAccelThresholdG;
-        for (size_t side = 0U; side < input.leg.size(); ++side) {
-            leg_length_reference_[side] = MoveToward(
-                leg_length_reference_[side], kRecoveryMaximumLegLength,
+        for (Side side : {Side::kLeft, Side::kRight}) {
+            leg_length_reference_.Get(side) = MoveToward(
+                leg_length_reference_.Get(side), kRecoveryMaximumLegLength,
                 kRecoveryExtendLegRate * dt);
         }
         // 检测到直立后立即冻结摆动命令。短确认窗口用于排除单样本冲击尖峰，
@@ -145,16 +148,16 @@ void RecoveryController::UpdateReferences(
                                   kRecoveryTurnoverSweepRateDeg * kDegToRad *
                                   dt;
         }
-        for (size_t side = 0U; side < input.leg.size(); ++side) {
-            leg_angle_reference_[side] =
-                phase_start_angle_[side] + turnover_progress_;
+        for (Side side : {Side::kLeft, Side::kRight}) {
+            leg_angle_reference_.Get(side) =
+                phase_start_angle_.Get(side) + turnover_progress_;
         }
         const bool legs_extended =
-            input.leg[0].length > 0.30 && input.leg[1].length > 0.30;
+            input.leg.left.length > 0.30 && input.leg.right.length > 0.30;
         const bool stopped = !upright_detected && legs_extended &&
-                             (std::abs(input.leg[0].angle_rate) <
+                             (std::abs(input.leg.left.angle_rate) <
                                   kRecoveryTurnoverStuckSpeedDeg * kDegToRad ||
-                              std::abs(input.leg[1].angle_rate) <
+                              std::abs(input.leg.right.angle_rate) <
                                   kRecoveryTurnoverStuckSpeedDeg * kDegToRad);
         turnover_stuck_elapsed_s_ =
             stopped ? turnover_stuck_elapsed_s_ + dt : 0.0;
@@ -163,8 +166,8 @@ void RecoveryController::UpdateReferences(
             turnover_stuck_elapsed_s_ = 0.0;
             turnover_progress_ = 0.0;
             turnover_direction_ = -turnover_direction_;
-            for (size_t side = 0U; side < input.leg.size(); ++side) {
-                phase_start_angle_[side] = input.leg[side].angle;
+            for (Side side : {Side::kLeft, Side::kRight}) {
+                phase_start_angle_.Get(side) = input.leg.Get(side).angle;
             }
             if (++turnover_reversals_ > kRecoveryMaximumTurnoverReversals) {
                 EnterPhase(RecoveryPhase::kFailed, input);
@@ -175,59 +178,61 @@ void RecoveryController::UpdateReferences(
         if (upright_elapsed_s_ >=
             static_cast<double>(kRecoveryUprightHoldMs) * 0.001) {
             // 无云台时没有额外的朝向约束，立即收腿也能抑制残余翻转运动。
-            EnterPhase(input.gimbal.available ? RecoveryPhase::kYawFront
-                                              : RecoveryPhase::kDrawBack,
+            EnterPhase(gimbal.available ? RecoveryPhase::kYawFront
+                                        : RecoveryPhase::kDrawBack,
                        input);
         } else if (phase_elapsed_s_ >=
                    static_cast<double>(kRecoveryTurnoverTimeoutMs) * 0.001) {
             EnterPhase(RecoveryPhase::kFailed, input);
         }
     } else if (phase_ == RecoveryPhase::kYawFront) {
-        if (!input.gimbal.available ||
-            (input.gimbal.aligned && input.gimbal.safe_for_leg_motion)) {
+        if (!gimbal.available ||
+            (gimbal.aligned && gimbal.safe_for_leg_motion)) {
             EnterPhase(RecoveryPhase::kSwing, input);
         }
     } else if (phase_ == RecoveryPhase::kSwing) {
         bool all_ready = true;
-        for (size_t side = 0U; side < input.leg.size(); ++side) {
+        for (Side side : {Side::kLeft, Side::kRight}) {
             const double swing_target = input.pitch + kRecoverySwingTheta;
-            const bool stuck =
-                input.leg[side].length > 0.30 &&
-                std::abs(input.leg[side].angle_rate) <
-                    kRecoverySwingStuckSpeedDeg * kDegToRad &&
-                std::abs(std::remainder(input.leg[side].angle - swing_target,
-                                        kTwoPi)) > 10.0 * kDegToRad;
-            swing_stuck_elapsed_s_[side] =
-                stuck ? swing_stuck_elapsed_s_[side] + dt : 0.0;
-            if (swing_stuck_elapsed_s_[side] >=
+            const bool stuck = input.leg.Get(side).length > 0.30 &&
+                               std::abs(input.leg.Get(side).angle_rate) <
+                                   kRecoverySwingStuckSpeedDeg * kDegToRad &&
+                               std::abs(std::remainder(
+                                   input.leg.Get(side).angle - swing_target,
+                                   kTwoPi)) > 10.0 * kDegToRad;
+            swing_stuck_elapsed_s_.Get(side) =
+                stuck ? swing_stuck_elapsed_s_.Get(side) + dt : 0.0;
+            if (swing_stuck_elapsed_s_.Get(side) >=
                 static_cast<double>(kRecoveryStuckTimeoutMs) * 0.001) {
-                swing_escape_phase_[side] = SwingEscapePhase::kBackToVertical;
-                swing_stuck_elapsed_s_[side] = 0.0;
+                swing_escape_phase_.Get(side) =
+                    SwingEscapePhase::kBackToVertical;
+                swing_stuck_elapsed_s_.Get(side) = 0.0;
             }
-            if (swing_escape_phase_[side] ==
+            if (swing_escape_phase_.Get(side) ==
                 SwingEscapePhase::kBackToVertical) {
-                leg_length_reference_[side] = MoveToward(
-                    leg_length_reference_[side], kRecoveryMinimumLegLength,
+                leg_length_reference_.Get(side) = MoveToward(
+                    leg_length_reference_.Get(side), kRecoveryMinimumLegLength,
                     kRecoveryEscapeLegRate * dt);
-                leg_angle_reference_[side] = MoveTowardAngle(
-                    leg_angle_reference_[side], input.pitch + 0.5 * kTwoPi,
+                leg_angle_reference_.Get(side) = MoveTowardAngle(
+                    leg_angle_reference_.Get(side), input.pitch + 0.5 * kTwoPi,
                     kRecoverySwingAngleRateDeg * kDegToRad * dt);
                 if (std::abs(std::remainder(
-                        input.leg[side].angle - input.pitch - 0.5 * kTwoPi,
+                        input.leg.Get(side).angle - input.pitch - 0.5 * kTwoPi,
                         kTwoPi)) < 10.0 * kDegToRad) {
-                    swing_escape_phase_[side] = SwingEscapePhase::kToFinal;
+                    swing_escape_phase_.Get(side) = SwingEscapePhase::kToFinal;
                 }
             } else {
-                leg_length_reference_[side] = MoveToward(
-                    leg_length_reference_[side], kRecoveryMaximumLegLength,
+                leg_length_reference_.Get(side) = MoveToward(
+                    leg_length_reference_.Get(side), kRecoveryMaximumLegLength,
                     kRecoveryExtendLegRate * dt);
-                leg_angle_reference_[side] = MoveTowardAngle(
-                    leg_angle_reference_[side], swing_target,
+                leg_angle_reference_.Get(side) = MoveTowardAngle(
+                    leg_angle_reference_.Get(side), swing_target,
                     kRecoverySwingAngleRateDeg * kDegToRad * dt);
             }
             const bool side_ready =
-                std::abs(std::remainder(input.leg[side].angle - swing_target,
-                                        kTwoPi)) < 15.0 * kDegToRad;
+                std::abs(std::remainder(
+                    input.leg.Get(side).angle - swing_target, kTwoPi)) <
+                15.0 * kDegToRad;
             all_ready = all_ready && side_ready;
         }
         const bool pose_ready =
@@ -242,20 +247,22 @@ void RecoveryController::UpdateReferences(
             EnterPhase(RecoveryPhase::kFailed, input);
         }
     } else if (phase_ == RecoveryPhase::kDrawBack) {
-        for (size_t side = 0U; side < input.leg.size(); ++side) {
-            leg_length_reference_[side] = MoveToward(
-                leg_length_reference_[side], kRecoveryMinimumLegLength,
+        for (Side side : {Side::kLeft, Side::kRight}) {
+            leg_length_reference_.Get(side) = MoveToward(
+                leg_length_reference_.Get(side), kRecoveryMinimumLegLength,
                 kRecoveryDrawbackLegRate * dt);
-            leg_angle_reference_[side] =
-                MoveTowardAngle(leg_angle_reference_[side], input.pitch,
+            leg_angle_reference_.Get(side) =
+                MoveTowardAngle(leg_angle_reference_.Get(side), input.pitch,
                                 kRecoveryDrawbackAngleRateDeg * kDegToRad * dt);
         }
         const bool ready =
-            std::abs(input.leg[0].length - kRecoveryMinimumLegLength) < 0.05 &&
-            std::abs(input.leg[1].length - kRecoveryMinimumLegLength) < 0.05 &&
-            std::abs(input.leg[0].length - input.leg[1].length) < 0.04 &&
-            std::abs(input.leg[0].angle - input.pitch) < 15.0 * kDegToRad &&
-            std::abs(input.leg[1].angle - input.pitch) < 15.0 * kDegToRad &&
+            std::abs(input.leg.left.length - kRecoveryMinimumLegLength) <
+                0.05 &&
+            std::abs(input.leg.right.length - kRecoveryMinimumLegLength) <
+                0.05 &&
+            std::abs(input.leg.left.length - input.leg.right.length) < 0.04 &&
+            std::abs(input.leg.left.angle - input.pitch) < 15.0 * kDegToRad &&
+            std::abs(input.leg.right.angle - input.pitch) < 15.0 * kDegToRad &&
             std::abs(input.pitch) < pitch_limit &&
             std::abs(input.roll) < roll_limit;
         ready_elapsed_s_ = ready ? ready_elapsed_s_ + dt : 0.0;
@@ -268,52 +275,53 @@ void RecoveryController::UpdateReferences(
     }
 }
 
-bool RecoveryController::UpdateJointTargets(
-    const RecoveryControllerInput &input) {
+bool RecoveryController::UpdateJointTargets(const ChassisCycleInput &input) {
     bool all_valid = true;
-    for (uint8_t side = 0U; side < input.leg.size(); ++side) {
-        const size_t base = 2U * side;
+    for (Side side : {Side::kLeft, Side::kRight}) {
         const double raw_angle =
-            RawKinematicAngle(side, leg_angle_reference_[side]);
-        const double hx = leg_length_reference_[side] * std::sin(raw_angle);
-        const double hz = -leg_length_reference_[side] * std::cos(raw_angle);
-        const double seed1 = target_initialized_[side]
-                                 ? joint_target_[base + 1U]
-                                 : input.joint_position[base + 1U];
-        const double seed2 = target_initialized_[side]
-                                 ? joint_target_[base]
-                                 : input.joint_position[base];
+            RawKinematicAngle(side, leg_angle_reference_.Get(side));
+        const double hx = leg_length_reference_.Get(side) * std::sin(raw_angle);
+        const double hz =
+            -leg_length_reference_.Get(side) * std::cos(raw_angle);
+        const double seed1 = target_initialized_.Get(side)
+                                 ? joint_target_.Get(side).d
+                                 : input.joint_position.Get(side).d;
+        const double seed2 = target_initialized_.Get(side)
+                                 ? joint_target_.Get(side).b
+                                 : input.joint_position.Get(side).b;
         double phi1 = 0.0;
         double phi2 = 0.0;
-        if (!InverseKinematics(hx, hz, kBranch[side], seed1, seed2, phi1, phi2,
-                               config_)) {
+        if (!InverseKinematics(
+                hx, hz,
+                config_.leg_hardware(side == Side::kRight).kinematic_branch,
+                seed1, seed2, phi1, phi2, config_)) {
             all_valid = false;
             continue;
         }
-        joint_target_[base] = phi2;
-        joint_target_[base + 1U] = phi1;
-        target_initialized_[side] = true;
+        joint_target_.Get(side).b = phi2;
+        joint_target_.Get(side).d = phi1;
+        target_initialized_.Get(side) = true;
     }
 
-    return all_valid && target_initialized_[0] && target_initialized_[1];
+    return all_valid && target_initialized_.left && target_initialized_.right;
 }
 
-double RecoveryController::RawKinematicAngle(uint8_t side, double angle) {
-    return side == 0U
+double RecoveryController::RawKinematicAngle(Side side, double angle) {
+    return side == Side::kLeft
                ? std::remainder(config_.left_leg_angle_offset - angle, kTwoPi)
                : std::remainder(angle + config_.right_leg_angle_offset, kTwoPi);
 }
 
-double RecoveryController::ComputeJointTorque(uint8_t index, double target,
-                                              double position, double velocity,
-                                              double dt) {
+double RecoveryController::ComputeJointTorque(Side side, Joint joint,
+                                              double target, double position,
+                                              double velocity, double dt) {
     using namespace chassis_config;
-    if (index >= joint_pid_.size() || !std::isfinite(target) ||
-        !std::isfinite(position) || !std::isfinite(velocity)) {
+    if (!std::isfinite(target) || !std::isfinite(position) ||
+        !std::isfinite(velocity)) {
         return 0.0;
     }
 
-    JointPidState &pid = joint_pid_[index];
+    JointPidState &pid = joint_pid_.Get(side).Get(joint);
     const double error = std::remainder(target - position, kTwoPi);
     pid.position_integral = std::clamp(pid.position_integral + error * dt,
                                        -config_.joint_position_max_speed,

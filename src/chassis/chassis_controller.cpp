@@ -6,13 +6,6 @@
 #include "chassis_config.h"
 
 namespace dust_control::chassis {
-namespace {
-enum class ChassisJoint : uint8_t { kLeftB, kLeftD, kRightB, kRightD };
-template <typename Enum>
-constexpr size_t ToIndex(Enum value) {
-    return static_cast<size_t>(value);
-}
-}  // namespace
 using namespace chassis_config;
 ChassisController::ChassisController(InputDeadlines deadlines,
                                      double wheel_torque_limit,
@@ -130,9 +123,16 @@ void ChassisController::ComputeControlOutput(const ChassisCycleInput& input,
         case ChassisControlState::kActionFault:
         case ChassisControlState::kTiltFault:
             return;
-        case ChassisControlState::kRecovery:
-            UpdateRecovery(input, output);
+        case ChassisControlState::kRecovery: {
+            const auto recovery = recovery_controller_.Update(input);
+            output = recovery.control;
+            if (recovery.failed) {
+                state_machine_.MarkRecoveryFailed();
+            } else if (recovery.finished) {
+                state_machine_.MarkRecoveryCompleted();
+            }
             return;
+        }
         case ChassisControlState::kBalance:
             output.joint_control_active = true;
             balance_controller_.Update(input, output);
@@ -160,87 +160,16 @@ void ChassisController::ComputeControlOutput(const ChassisCycleInput& input,
             }
             return;
         }
-        case ChassisControlState::kClimbStairs:
-            UpdateClimbStairs(input, output);
+        case ChassisControlState::kClimbStairs: {
+            const auto climb = climb_stairs_controller_.Update(input);
+            output = climb.control;
+            if (climb.failed) {
+                state_machine_.MarkClimbFailed();
+            } else if (climb.finished) {
+                state_machine_.MarkClimbCompleted();
+            }
             return;
-    }
-}
-
-void ChassisController::UpdateRecovery(const ChassisCycleInput& input,
-                                       ChassisControlOutput& output) {
-    RecoveryControllerInput recovery_input = {};
-    recovery_input.dt = input.dt;
-    recovery_input.pitch = input.pitch;
-    recovery_input.roll = input.roll;
-    recovery_input.vertical_accel_g = input.imu.vertical_accel_g;
-    recovery_input.leg = {input.leg.left, input.leg.right};
-    recovery_input.joint_position = {
-        input.joint_position.left.b,
-        input.joint_position.left.d,
-        input.joint_position.right.b,
-        input.joint_position.right.d,
-    };
-    recovery_input.joint_velocity = {
-        input.joint_velocity.left.b,
-        input.joint_velocity.left.d,
-        input.joint_velocity.right.b,
-        input.joint_velocity.right.d,
-    };
-    // 当前云台模块没有业务反馈；回正使用原有的无云台约束。
-    recovery_input.gimbal.available = false;
-    recovery_input.gimbal.safe_for_leg_motion = true;
-    recovery_input.gimbal.aligned = true;
-    const RecoveryControllerOutput recovery =
-        recovery_controller_.Update(recovery_input);
-    output.joint_control_active = recovery.joint_control_active;
-    output.joint_torque.left.b =
-        recovery.joint_torque[ToIndex(ChassisJoint::kLeftB)];
-    output.joint_torque.left.d =
-        recovery.joint_torque[ToIndex(ChassisJoint::kLeftD)];
-    output.joint_torque.right.b =
-        recovery.joint_torque[ToIndex(ChassisJoint::kRightB)];
-    output.joint_torque.right.d =
-        recovery.joint_torque[ToIndex(ChassisJoint::kRightD)];
-    if (recovery.failed) {
-        state_machine_.MarkRecoveryFailed();
-    } else if (recovery.finished) {
-        state_machine_.MarkRecoveryCompleted();
-    }
-}
-
-void ChassisController::UpdateClimbStairs(const ChassisCycleInput& input,
-                                          ChassisControlOutput& output) {
-    ClimbStairsControllerInput climb_input = {};
-    climb_input.dt = input.dt;
-    climb_input.pitch = input.pitch;
-    climb_input.leg = {input.leg.left, input.leg.right};
-    climb_input.joint_position = {
-        input.joint_position.left.b,
-        input.joint_position.left.d,
-        input.joint_position.right.b,
-        input.joint_position.right.d,
-    };
-    climb_input.joint_velocity = {
-        input.joint_velocity.left.b,
-        input.joint_velocity.left.d,
-        input.joint_velocity.right.b,
-        input.joint_velocity.right.d,
-    };
-    const ClimbStairsControllerOutput climb =
-        climb_stairs_controller_.Update(climb_input);
-    output.joint_control_active = climb.joint_control_active;
-    output.joint_torque.left.b =
-        climb.joint_torque[ToIndex(ChassisJoint::kLeftB)];
-    output.joint_torque.left.d =
-        climb.joint_torque[ToIndex(ChassisJoint::kLeftD)];
-    output.joint_torque.right.b =
-        climb.joint_torque[ToIndex(ChassisJoint::kRightB)];
-    output.joint_torque.right.d =
-        climb.joint_torque[ToIndex(ChassisJoint::kRightD)];
-    if (climb.failed) {
-        state_machine_.MarkClimbFailed();
-    } else if (climb.finished) {
-        state_machine_.MarkClimbCompleted();
+        }
     }
 }
 
