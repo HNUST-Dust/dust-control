@@ -2,6 +2,7 @@
 
 #include "chassis_state_machine.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "chassis_config.h"
@@ -17,58 +18,15 @@ ChassisStateTransition ChassisStateMachine::Update(
     const ChassisCycleInput &input) {
     ChassisStateTransition transition;
     UpdateSafetyLatches(input);
-    climb_request_edge_ = input.remote.climb_stairs && !last_climb_request_;
-    last_climb_request_ = input.remote.climb_stairs;
-    jump_request_edge_ = input.remote.jump && !last_jump_request_;
-    last_jump_request_ = input.remote.jump;
-    jump_cooldown_remaining_s_ =
-        std::max(0.0, jump_cooldown_remaining_s_ - input.dt);
-
-    if (input.requested_enable != last_requested_enable_) {
-        transition.enable_changed = true;
-        transition.enabled = input.requested_enable;
-        if (input.requested_enable) {
-            recovery_required_ = true;
-            recovery_completed_ = false;
-            recovery_failed_ = false;
-            arm_reset_reason_ = DmArmResetReason::kRemoteEnableEdge;
-        }
-        last_requested_enable_ = input.requested_enable;
-    }
+    UpdateRequests(input, transition);
 
     transition.from = state_;
     transition.to = DetermineNextState(input, transition.reason);
     transition.changed = transition.to != transition.from;
     state_ = transition.to;
-    if (transition.changed &&
-        transition.to == ChassisControlState::kClimbStairs) {
-        climb_completed_ = false;
-        climb_failed_ = false;
-    }
+    ApplyTransition(transition);
 
-    if (transition.changed && transition.to == ChassisControlState::kFlight) {
-        flight_completed_ = false;
-        flight_failed_ = false;
-    }
-
-    if (transition.changed && transition.to == ChassisControlState::kJump) {
-        jump_completed_ = false;
-        jump_failed_ = false;
-    }
-
-    if (transition.changed && transition.from == ChassisControlState::kJump) {
-        jump_cooldown_remaining_s_ =
-            static_cast<double>(kJumpCooldownMs) * 0.001;
-    }
-
-    if (transition.changed &&
-        transition.from == ChassisControlState::kRecovery &&
-        transition.to == ChassisControlState::kBalance) {
-        recovery_required_ = false;
-        recovery_completed_ = false;
-        tilt_fault_latched_ = false;
-    }
-
+    // 转换判断后才锁存失败；不要提前到本周期的公共保护条件中。
     if (climb_failed_ || recovery_failed_ || flight_failed_ || jump_failed_) {
         action_fault_latched_ = true;
     }
@@ -83,8 +41,8 @@ ChassisStateTransition ChassisStateMachine::Update(
 }
 
 void ChassisStateMachine::UpdateSafetyLatches(const ChassisCycleInput &input) {
-    // 只有明确且新鲜的遥控禁用状态才能清除锁存。
-    // 链路超时不能使底盘在连接恢复时自动重新使能。
+    // 新鲜遥控的明确禁用统一清除锁存和动作反馈。
+    // 遥控超时或外部许可撤回不等同于明确禁用，不能据此清除故障。
     if (input.remote_fresh && !input.remote.robot_enable) {
         tilt_fault_latched_ = false;
         action_fault_latched_ = false;
@@ -110,9 +68,33 @@ void ChassisStateMachine::UpdateSafetyLatches(const ChassisCycleInput &input) {
     }
 }
 
+void ChassisStateMachine::UpdateRequests(const ChassisCycleInput &input,
+                                         ChassisStateTransition &transition) {
+    // 每周期消费请求边沿；禁用、冷却或被更高优先级规则挡住时都不排队。
+    climb_request_edge_ = input.remote.climb_stairs && !last_climb_request_;
+    last_climb_request_ = input.remote.climb_stairs;
+    jump_request_edge_ = input.remote.jump && !last_jump_request_;
+    last_jump_request_ = input.remote.jump;
+    jump_cooldown_remaining_s_ =
+        std::max(0.0, jump_cooldown_remaining_s_ - input.dt);
+
+    if (input.requested_enable != last_requested_enable_) {
+        transition.enable_changed = true;
+        transition.enabled = input.requested_enable;
+        if (input.requested_enable) {
+            recovery_required_ = true;
+            recovery_completed_ = false;
+            recovery_failed_ = false;
+            arm_reset_reason_ = DmArmResetReason::kRemoteEnableEdge;
+        }
+        last_requested_enable_ = input.requested_enable;
+    }
+}
+
 ChassisControlState ChassisStateMachine::DetermineNextState(
     const ChassisCycleInput &input, ChassisTransitionReason &reason) const {
-    // 先检查全局状态转换，再执行各状态的正常转换路径。
+    // 按代码顺序短路：禁用 > 已锁存动作故障 > IMU 丢失 > 倾倒锁存。
+    // 公共保护通过后，才检查握手/反馈和各状态的正常转换。
     if (!input.requested_enable) {
         reason = input.remote_fresh ? ChassisTransitionReason::kRemoteDisabled
                                     : ChassisTransitionReason::kRemoteTimeout;
@@ -120,13 +102,16 @@ ChassisControlState ChassisStateMachine::DetermineNextState(
     }
 
     if (action_fault_latched_) {
-        reason = recovery_failed_
-                     ? ChassisTransitionReason::kRecoveryFailed
-                     : (flight_failed_
-                            ? ChassisTransitionReason::kFlightFailed
-                            : (jump_failed_
-                                   ? ChassisTransitionReason::kJumpFailed
-                                   : ChassisTransitionReason::kClimbFailed));
+        // 多个失败标志并存时，诊断原因也有固定优先级。
+        if (recovery_failed_) {
+            reason = ChassisTransitionReason::kRecoveryFailed;
+        } else if (flight_failed_) {
+            reason = ChassisTransitionReason::kFlightFailed;
+        } else if (jump_failed_) {
+            reason = ChassisTransitionReason::kJumpFailed;
+        } else {
+            reason = ChassisTransitionReason::kClimbFailed;
+        }
         return ChassisControlState::kActionFault;
     }
 
@@ -189,55 +174,7 @@ ChassisControlState ChassisStateMachine::DetermineNextState(
                 reason = ChassisTransitionReason::kFeedbackLost;
                 return ChassisControlState::kWaitingFeedback;
             }
-            if (state_ == ChassisControlState::kRecovery && recovery_failed_) {
-                reason = ChassisTransitionReason::kRecoveryFailed;
-                return ChassisControlState::kActionFault;
-            }
-            if (state_ == ChassisControlState::kRecovery &&
-                recovery_completed_) {
-                reason = ChassisTransitionReason::kRecoveryCompleted;
-                return ChassisControlState::kBalance;
-            }
-            if (state_ == ChassisControlState::kBalance && flight_detected_) {
-                reason = ChassisTransitionReason::kFlightDetected;
-                return ChassisControlState::kFlight;
-            }
-            if (state_ == ChassisControlState::kFlight && flight_failed_) {
-                reason = ChassisTransitionReason::kFlightFailed;
-                return ChassisControlState::kActionFault;
-            }
-            if (state_ == ChassisControlState::kFlight && flight_completed_) {
-                reason = ChassisTransitionReason::kFlightLanded;
-                return ChassisControlState::kBalance;
-            }
-            if (state_ == ChassisControlState::kBalance && jump_request_edge_ &&
-                jump_cooldown_remaining_s_ <= 0.0) {
-                reason = ChassisTransitionReason::kJumpRequested;
-                return ChassisControlState::kJump;
-            }
-            if (state_ == ChassisControlState::kJump && jump_failed_) {
-                reason = ChassisTransitionReason::kJumpFailed;
-                return ChassisControlState::kActionFault;
-            }
-            if (state_ == ChassisControlState::kJump && jump_completed_) {
-                reason = ChassisTransitionReason::kJumpCompleted;
-                return ChassisControlState::kBalance;
-            }
-            if (state_ == ChassisControlState::kBalance &&
-                climb_request_edge_) {
-                reason = ChassisTransitionReason::kClimbRequested;
-                return ChassisControlState::kClimbStairs;
-            }
-            if (state_ == ChassisControlState::kClimbStairs && climb_failed_) {
-                reason = ChassisTransitionReason::kClimbFailed;
-                return ChassisControlState::kActionFault;
-            }
-            if (state_ == ChassisControlState::kClimbStairs &&
-                climb_completed_) {
-                reason = ChassisTransitionReason::kClimbCompleted;
-                return ChassisControlState::kBalance;
-            }
-            return state_;
+            return DetermineActionState(reason);
         case ChassisControlState::kActionFault:
         case ChassisControlState::kTiltFault:
             return state_;
@@ -245,6 +182,104 @@ ChassisControlState ChassisStateMachine::DetermineNextState(
 
     // 状态损坏或新增状态尚未处理时，默认进入安全停止。
     return ChassisControlState::kSafetyStop;
+}
+
+ChassisControlState ChassisStateMachine::DetermineActionState(
+    ChassisTransitionReason &reason) const {
+    switch (state_) {
+        case ChassisControlState::kRecovery:
+            if (recovery_failed_) {
+                reason = ChassisTransitionReason::kRecoveryFailed;
+                return ChassisControlState::kActionFault;
+            }
+            if (recovery_completed_) {
+                reason = ChassisTransitionReason::kRecoveryCompleted;
+                return ChassisControlState::kBalance;
+            }
+            break;
+        case ChassisControlState::kBalance:
+            // 同周期请求竞争：离地 > 可执行跳跃 > 爬楼。
+            if (flight_detected_) {
+                reason = ChassisTransitionReason::kFlightDetected;
+                return ChassisControlState::kFlight;
+            }
+            if (jump_request_edge_ && jump_cooldown_remaining_s_ <= 0.0) {
+                reason = ChassisTransitionReason::kJumpRequested;
+                return ChassisControlState::kJump;
+            }
+            if (climb_request_edge_) {
+                reason = ChassisTransitionReason::kClimbRequested;
+                return ChassisControlState::kClimbStairs;
+            }
+            break;
+        case ChassisControlState::kFlight:
+            if (flight_failed_) {
+                reason = ChassisTransitionReason::kFlightFailed;
+                return ChassisControlState::kActionFault;
+            }
+            if (flight_completed_) {
+                reason = ChassisTransitionReason::kFlightLanded;
+                return ChassisControlState::kBalance;
+            }
+            break;
+        case ChassisControlState::kJump:
+            if (jump_failed_) {
+                reason = ChassisTransitionReason::kJumpFailed;
+                return ChassisControlState::kActionFault;
+            }
+            if (jump_completed_) {
+                reason = ChassisTransitionReason::kJumpCompleted;
+                return ChassisControlState::kBalance;
+            }
+            break;
+        case ChassisControlState::kClimbStairs:
+            if (climb_failed_) {
+                reason = ChassisTransitionReason::kClimbFailed;
+                return ChassisControlState::kActionFault;
+            }
+            if (climb_completed_) {
+                reason = ChassisTransitionReason::kClimbCompleted;
+                return ChassisControlState::kBalance;
+            }
+            break;
+        default:
+            break;  // 调用方只在握手及反馈有效的运行态进入此处。
+    }
+    return state_;
+}
+
+void ChassisStateMachine::ApplyTransition(
+    const ChassisStateTransition &transition) {
+    if (!transition.changed) {
+        return;
+    }
+    if (transition.to == ChassisControlState::kClimbStairs) {
+        climb_completed_ = false;
+        climb_failed_ = false;
+    }
+
+    if (transition.to == ChassisControlState::kFlight) {
+        flight_completed_ = false;
+        flight_failed_ = false;
+    }
+
+    if (transition.to == ChassisControlState::kJump) {
+        jump_completed_ = false;
+        jump_failed_ = false;
+    }
+
+    if (transition.from == ChassisControlState::kJump) {
+        // 无论完成、失败还是中断，只要离开跳跃就开始冷却；禁用不清冷却。
+        jump_cooldown_remaining_s_ =
+            static_cast<double>(kJumpCooldownMs) * 0.001;
+    }
+
+    if (transition.from == ChassisControlState::kRecovery &&
+        transition.to == ChassisControlState::kBalance) {
+        recovery_required_ = false;
+        recovery_completed_ = false;
+        tilt_fault_latched_ = false;
+    }
 }
 
 }  // namespace dust_control::chassis

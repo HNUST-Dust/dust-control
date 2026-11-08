@@ -119,3 +119,8 @@ add_executable(chassis_balance_sequence chassis/balance_sequence.cpp)
 target_link_libraries(chassis_balance_sequence PRIVATE dust_chassis)
 target_compile_options(chassis_balance_sequence PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME chassis.balance_sequence COMMAND chassis_balance_sequence)
+
+add_executable(chassis_state_priorities chassis/state_priorities.cpp)
+target_link_libraries(chassis_state_priorities PRIVATE dust_chassis)
+target_compile_options(chassis_state_priorities PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME chassis.state_priorities COMMAND chassis_state_priorities)
