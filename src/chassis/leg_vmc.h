@@ -19,8 +19,8 @@ namespace dust_control::chassis {
 /** @brief 腿部虚拟力映射得到的关节力矩。 */
 struct LegVmcOutput {
     double axial_force = 0.0;  ///< 沿腿轴方向的控制力，单位为牛。
-    double phi1_torque = 0.0;  ///< 力矩，单位为牛·米。
-    double phi2_torque = 0.0;  ///< 力矩，单位为牛·米。
+    double phi1_torque = 0.0;  ///< D 电机坐标力矩，单位为牛·米。
+    double phi2_torque = 0.0;  ///< B 电机坐标力矩，单位为牛·米。
 };
 
 /**
@@ -38,10 +38,11 @@ double UpdateLegLengthIntegral(double integral_force, double length_error,
  * @param target_leg_length 目标腿长，单位为米。
  * @param support_feedforward 抵消机体重力的腿部支撑前馈力，单位为牛。
  * @param integral_force 上一周期累计的轴向力积分项。
- * @param leg_angle_torque 绕髋部作用的腿角控制力矩，单位为牛·米。
+ * @param leg_angle_torque 原始运动学腿角的力矩，单位为牛·米。
+ * 调用方先将机体对腿力矩乘以对应侧的 vmc_torque_sign。
  * @param filtered_leg_speed 经过滤波的实际腿长变化率，单位为米每秒。
  * @param target_leg_length_rate 目标腿长变化率，单位为米每秒。
- * @return 左右主动关节的目标力矩。
+ * @return 同一条腿的 D/B 电机力矩，不含弹簧补偿或关节力矩限幅。
  */
 LegVmcOutput ComputeLegVmc(const LegKinematics& leg, double target_leg_length,
                            double support_feedforward, double integral_force,

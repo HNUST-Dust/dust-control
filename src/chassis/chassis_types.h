@@ -74,18 +74,24 @@ enum class DmArmResetReason : uint8_t {
 
 /** 本控制周期冻结的输入、估计值与有效性状态。 */
 struct ChassisCycleInput {
+    // 设备样本保留角度 deg、角速度 rad/s、加速度 g；pitch/roll 在下方另转 rad。
     dust_control::devices::ImuSample imu;
     dust_control::input::RemoteInputState remote = {};
+    // 仅 angle/angle_rate 已统一左右方向；hx/hz/jacobian 保留原始几何坐标。
     SidePair<LegKinematics> leg;
+    // 电机端原始 rpm；平衡估计时再除减速比并处理安装方向。
     SidePair<double> wheel_motor_speed_rpm;
+    // 电机坐标 rad、rad/s、N·m；不预先叠加 B/D 安装零偏。
     SidePair<JointPair<double>> joint_position;
     SidePair<JointPair<double>> joint_velocity;
     SidePair<JointPair<double>> joint_torque_feedback;
-    double dt = 0.001;
+    double dt = 0.001;  // s
+    // 机体姿态 rad、角速度 rad/s。
     double pitch = 0.0;
     double pitch_rate = 0.0;
     double roll = 0.0;
     double roll_rate = 0.0;
+    // theta = 校准腿角 alpha - pitch，单位 rad；对应角速度为 rad/s。
     SidePair<double> theta;
     SidePair<double> theta_rate;
     double common_theta = 0.0;
@@ -114,10 +120,13 @@ struct ChassisControlOutput {
     bool joint_control_active = false;
     // 仅开环跳跃推力阶段绕过反向弹簧补偿。
     bool bypass_gas_spring_compensation = false;
+    // 机体坐标下的轮力矩 N·m；协议命令方向只在设备编码器应用。
     SidePair<double> physical_wheel_torque;
+    // 机体对腿的姿态力矩 N·m；进入 VMC 前应用 vmc_torque_sign。
     SidePair<double> requested_body_on_leg_torque;
     SidePair<double> body_on_leg_torque;
-    SidePair<double> leg_axial_force;
+    SidePair<double> leg_axial_force;  // 沿腿轴的力 N，不等同于竖直地面反力。
+    // 电机坐标 N·m，具名 [B,D]；输出策略在这里加一次弹簧补偿并最终限幅。
     SidePair<JointPair<double>> joint_torque;
     double raw_body_speed = 0.0;
     double estimated_body_speed = 0.0;

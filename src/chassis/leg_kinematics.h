@@ -16,9 +16,10 @@ struct LegKinematics {
     double hz = 0.0;  ///< 足端相对髋部的竖直坐标，单位为米。
     double length = 0.0;       ///< 等效腿长，单位为米。
     double length_rate = 0.0;  ///< 等效腿长变化率，单位为米每秒。
-    double angle = 0.0;        ///< 腿部或关节角度，单位为弧度。
-    double angle_rate = 0.0;   ///< 角速度，单位为弧度每秒。
-    /** @brief 关节角速度到足端平面速度的 2×2 雅可比矩阵。 */
+    // ComputeLegKinematics 返回 atan2(hx, -hz)；周期输入仅将 angle/rate 校准。
+    double angle = 0.0;       ///< 等效腿角，单位为弧度。
+    double angle_rate = 0.0;  ///< 角速度，单位为弧度每秒。
+    /** 原始几何速度 [vx,vz] = J * [D速度,B速度]，不应用腿角方向校准。 */
     double jacobian[2][2] = {};
 };
 

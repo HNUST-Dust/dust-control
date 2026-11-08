@@ -9,6 +9,7 @@
 
 #include "chassis_config.h"
 #include "gas_spring_model.h"
+#include "leg_joint_coordinates.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -121,10 +122,8 @@ ChassisSupportForceEstimate SupportForceEstimator::Update(
         const double tangential_force =
             hardware.leg_coordinate_sign *
             (-radial_z * endpoint_force.x() + radial_x * endpoint_force.y());
-        const double alpha = hardware.leg_coordinate_sign *
-                             std::remainder(std::atan2(leg.hx, -leg.hz) -
-                                                hardware.leg_angle_offset,
-                                            kTwoPi);
+        const double alpha =
+            CalibratedLegAngle(std::atan2(leg.hx, -leg.hz), hardware);
         const double body_force_x =
             radial_force * std::sin(alpha) + tangential_force * std::cos(alpha);
         const double body_force_z = -radial_force * std::cos(alpha) +

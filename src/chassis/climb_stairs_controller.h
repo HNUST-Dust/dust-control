@@ -49,7 +49,6 @@ class ClimbStairsController {
     bool UpdateJointTargets(const ChassisCycleInput &input);
     double ComputeJointTorque(Side side, Joint joint, double target,
                               double position, double velocity, double dt);
-    double RawKinematicAngle(Side side, double normalized_angle);
 
     ClimbStairsPhase phase_ = ClimbStairsPhase::kInit;
     double phase_elapsed_s_ = 0.0;

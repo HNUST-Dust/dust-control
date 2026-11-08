@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "chassis_config.h"
+#include "leg_joint_coordinates.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -176,8 +177,10 @@ void ClimbStairsController::UpdateMotion2(const ChassisCycleInput &input,
 bool ClimbStairsController::UpdateJointTargets(const ChassisCycleInput &input) {
     bool all_valid = true;
     for (Side side : {Side::kLeft, Side::kRight}) {
+        const LegHardwareMap hardware =
+            config_.leg_hardware(side == Side::kRight);
         const double raw_angle =
-            RawKinematicAngle(side, leg_angle_reference_.Get(side));
+            RawLegAngle(leg_angle_reference_.Get(side), hardware);
         const double target_hx =
             leg_length_reference_.Get(side) * std::sin(raw_angle);
         const double target_hz =
@@ -190,10 +193,9 @@ bool ClimbStairsController::UpdateJointTargets(const ChassisCycleInput &input) {
                                      : input.joint_position.Get(side).b;
         double target_phi1 = 0.0;
         double target_phi2 = 0.0;
-        if (!InverseKinematics(
-                target_hx, target_hz,
-                config_.leg_hardware(side == Side::kRight).kinematic_branch,
-                seed_phi1, seed_phi2, target_phi1, target_phi2, config_)) {
+        if (!InverseKinematics(target_hx, target_hz, hardware.kinematic_branch,
+                               seed_phi1, seed_phi2, target_phi1, target_phi2,
+                               config_)) {
             all_valid = false;
             continue;
         }
@@ -203,15 +205,6 @@ bool ClimbStairsController::UpdateJointTargets(const ChassisCycleInput &input) {
     }
 
     return all_valid && target_initialized_.left && target_initialized_.right;
-}
-
-double ClimbStairsController::RawKinematicAngle(Side side,
-                                                double normalized_angle) {
-    return side == Side::kLeft
-               ? std::remainder(
-                     config_.left_leg_angle_offset - normalized_angle, kTwoPi)
-               : std::remainder(
-                     normalized_angle + config_.right_leg_angle_offset, kTwoPi);
 }
 
 double ClimbStairsController::ComputeJointTorque(Side side, Joint joint,

@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "chassis_config.h"
+#include "leg_joint_coordinates.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -301,8 +302,10 @@ void RecoveryController::UpdateDrawBack(const ChassisCycleInput &input,
 bool RecoveryController::UpdateJointTargets(const ChassisCycleInput &input) {
     bool all_valid = true;
     for (Side side : {Side::kLeft, Side::kRight}) {
+        const LegHardwareMap hardware =
+            config_.leg_hardware(side == Side::kRight);
         const double raw_angle =
-            RawKinematicAngle(side, leg_angle_reference_.Get(side));
+            RawLegAngle(leg_angle_reference_.Get(side), hardware);
         const double hx = leg_length_reference_.Get(side) * std::sin(raw_angle);
         const double hz =
             -leg_length_reference_.Get(side) * std::cos(raw_angle);
@@ -314,10 +317,8 @@ bool RecoveryController::UpdateJointTargets(const ChassisCycleInput &input) {
                                  : input.joint_position.Get(side).b;
         double phi1 = 0.0;
         double phi2 = 0.0;
-        if (!InverseKinematics(
-                hx, hz,
-                config_.leg_hardware(side == Side::kRight).kinematic_branch,
-                seed1, seed2, phi1, phi2, config_)) {
+        if (!InverseKinematics(hx, hz, hardware.kinematic_branch, seed1, seed2,
+                               phi1, phi2, config_)) {
             all_valid = false;
             continue;
         }
@@ -327,12 +328,6 @@ bool RecoveryController::UpdateJointTargets(const ChassisCycleInput &input) {
     }
 
     return all_valid && target_initialized_.left && target_initialized_.right;
-}
-
-double RecoveryController::RawKinematicAngle(Side side, double angle) {
-    return side == Side::kLeft
-               ? std::remainder(config_.left_leg_angle_offset - angle, kTwoPi)
-               : std::remainder(angle + config_.right_leg_angle_offset, kTwoPi);
 }
 
 double RecoveryController::ComputeJointTorque(Side side, Joint joint,

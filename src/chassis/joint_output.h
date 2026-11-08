@@ -9,7 +9,8 @@
 
 namespace dust_control::chassis {
 
-// 由执行器在选择控制器后、提交设备目标前调用一次。
+// 仅由 ChassisOutputPolicy 在选择控制器后、提交设备目标前调用一次。
+// 输入和输出均为电机坐标 N·m；先加弹簧补偿，再执行关节最终限幅。
 inline void PrepareJointOutput(ChassisControlState state,
                                const ChassisCycleInput &input,
                                ChassisControlOutput &output,

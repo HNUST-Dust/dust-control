@@ -124,3 +124,8 @@ add_executable(chassis_state_priorities chassis/state_priorities.cpp)
 target_link_libraries(chassis_state_priorities PRIVATE dust_chassis)
 target_compile_options(chassis_state_priorities PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME chassis.state_priorities COMMAND chassis_state_priorities)
+
+add_executable(chassis_coordinate_boundaries chassis/coordinate_boundaries.cpp)
+target_link_libraries(chassis_coordinate_boundaries PRIVATE dust_chassis)
+target_compile_options(chassis_coordinate_boundaries PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME chassis.coordinate_boundaries COMMAND chassis_coordinate_boundaries)

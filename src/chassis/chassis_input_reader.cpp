@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "chassis_config.h"
+#include "leg_joint_coordinates.h"
 #include "leg_kinematics.h"
 
 namespace dust_control::chassis {
@@ -95,9 +96,7 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
             feedback.d.velocity_rad_s, feedback.b.velocity_rad_s,
             hardware.kinematic_branch, leg, config_);
         if (valid) {
-            leg.angle =
-                hardware.leg_coordinate_sign *
-                std::remainder(leg.angle - hardware.leg_angle_offset, kTwoPi);
+            leg.angle = CalibratedLegAngle(leg.angle, hardware);
             leg.angle_rate *= hardware.leg_coordinate_sign;
         }
     };
