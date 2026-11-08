@@ -18,7 +18,7 @@ TxPDO 包含六电机记录、偏移60的板载紧凑 IMU 页、偏移120的 HI9
 规划预算不代表 ESC 资源能力或实测实时性能。
 
 ```bash
-build/headless/src/hardware/ethercat/dust_ethercat_layout config/dust_control.yaml --json
+build/headless/dust_ethercat_layout config/dust_control.yaml --json
 ```
 
 工具复用应用配置加载器，输出映射、偏移、聚合字节和估算线时，不申请真实主站。

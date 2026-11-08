@@ -41,7 +41,7 @@ cmake --build --preset production --parallel 2
 布局预览只读取应用配置，不访问主站：
 
 ```bash
-build/headless/src/hardware/ethercat/dust_ethercat_layout config/dust_control.yaml --json
+build/headless/dust_ethercat_layout config/dust_control.yaml --json
 ```
 
 - [架构与所有权](docs/ARCHITECTURE.md)
