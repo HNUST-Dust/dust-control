@@ -30,3 +30,7 @@
 UnconfiguredHardware测试以零身份拒绝打开设备，不访问实际主站。
 可选原MCU平衡数值对照使用DUST_REFERENCE_CHASSIS_DIR；普通构建不依赖外部源码。
 离线验证不代表固件完成，也不代替本地保护及实机验收。
+
+`chassis.controller_sequence` 还覆盖跳跃预压缩就绪、200 ms 超时转入推力、
+遥控腿长增量屏蔽，以及预压缩中途禁用后的重新使能；通过 `--trace` 可逐周期
+对照阶段边界的控制标志和电机输出。

@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
 
-#include "balance_controller.h"
+#include <optional>
+
 #include "chassis_config.h"
 #include "chassis_types.h"
 #include "flight_controller.h"
@@ -19,6 +20,8 @@ enum class JumpPhase : uint8_t {
 
 struct JumpControllerOutput {
     ChassisControlOutput control;
+    // 有值时由总控运行平衡预压缩；control 在该周期不提供动作输出。
+    std::optional<double> precompress_leg_length;
     JumpPhase phase = JumpPhase::kInit;
     bool finished = false;
     bool failed = false;
@@ -29,8 +32,7 @@ class JumpController {
     explicit JumpController(ChassisConfig config = {})
         : config_(config), airborne_controller_(config) {}
     void Reset();
-    JumpControllerOutput Update(const ChassisCycleInput &input,
-                                BalanceController &balance);
+    JumpControllerOutput Update(const ChassisCycleInput &input);
     JumpPhase phase() const {
         return phase_;
     }

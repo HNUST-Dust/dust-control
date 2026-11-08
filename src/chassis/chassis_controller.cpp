@@ -149,9 +149,15 @@ void ChassisController::ComputeControlOutput(const ChassisCycleInput& input,
             return;
         }
         case ChassisControlState::kJump: {
-            const auto jump =
-                jump_controller_.Update(input, balance_controller_);
+            const auto jump = jump_controller_.Update(input);
             output = jump.control;
+            if (jump.precompress_leg_length) {
+                balance_controller_.set_target_leg_length(
+                    *jump.precompress_leg_length);
+                ChassisCycleInput precompress_input = input;
+                precompress_input.remote.leg_length_delta = 0.0;
+                balance_controller_.Update(precompress_input, output);
+            }
             output.joint_control_active = !jump.failed && !jump.finished;
             if (jump.failed) {
                 state_machine_.MarkJumpFailed();

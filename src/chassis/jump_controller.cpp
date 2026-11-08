@@ -128,8 +128,7 @@ void JumpController::ComputeVmcLeg(const ChassisCycleInput &input, Side side,
                           config_.joint_torque_limit);
 }
 
-JumpControllerOutput JumpController::Update(const ChassisCycleInput &input,
-                                            BalanceController &balance) {
+JumpControllerOutput JumpController::Update(const ChassisCycleInput &input) {
     const double dt = std::clamp(input.dt, 0.0005, 0.01);
     if (phase_ == JumpPhase::kInit) {
         theta_reference_ = {input.theta.left, input.theta.right};
@@ -146,10 +145,8 @@ JumpControllerOutput JumpController::Update(const ChassisCycleInput &input,
         const double precompress_length = std::clamp(
             kJumpPrecompressLegLength, config_.min_commanded_leg_length,
             config_.max_commanded_leg_length);
-        balance.set_target_leg_length(precompress_length);
-        ChassisCycleInput precompress_input = input;
-        precompress_input.remote.leg_length_delta = 0.0;
-        balance.Update(precompress_input, output.control);
+        // 即使本周期末切换到推力，也保留本周期的预压缩请求。
+        output.precompress_leg_length = precompress_length;
         const auto ready = [&](Side side) {
             const LegKinematics &leg = input.leg.Get(side);
             return std::abs(leg.length - precompress_length) <=

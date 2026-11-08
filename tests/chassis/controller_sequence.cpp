@@ -160,6 +160,36 @@ void ActionFailure(bool trace, bool jump) {
     sequence.Tick();
     assert(sequence.state() == State::kDisabled);
 }
+void JumpPrecompression(bool trace, bool ready, bool interrupt) {
+    Sequence sequence(trace);
+    sequence.EnableAndBalance();
+    sequence.SetPose(ready ? 0.15 : 0.22);
+    sequence.sources.remote.leg_length_delta = 0.8;
+    sequence.sources.remote.jump = true;
+    const unsigned compression_ticks = ready ? 1 : 200;
+    for (unsigned i = 0; i < compression_ticks; ++i) {
+        const auto output = sequence.Tick();
+        assert(sequence.state() == State::kJump);
+        assert(output.joint_control_active);
+        assert(!output.bypass_gas_spring_compensation);
+        if (interrupt && i == 5) {
+            sequence.sources.remote.robot_enable = false;
+            sequence.Tick();
+            assert(sequence.state() == State::kDisabled);
+            sequence.sources.remote.jump = false;
+            sequence.SetPose(0.15);
+            sequence.EnableAndBalance();
+            return;
+        }
+    }
+    // 阶段在上一周期末转为推力，输出从本周期才改变。
+    const auto thrust = sequence.Tick();
+    assert(sequence.state() == State::kJump);
+    assert(thrust.bypass_gas_spring_compensation);
+    sequence.sources.remote.robot_enable = false;
+    sequence.Tick();
+    assert(sequence.state() == State::kDisabled);
+}
 void RecoveryFailure(bool trace) {
     Sequence sequence(trace);
     sequence.sources.remote.robot_enable = true;
@@ -208,6 +238,9 @@ int main(int argc, char** argv) {
     SafetyAndReenable(trace);
     ActionFailure(trace, true);
     ActionFailure(trace, false);
+    JumpPrecompression(trace, true, false);
+    JumpPrecompression(trace, false, false);
+    JumpPrecompression(trace, false, true);
     RecoveryFailure(trace);
     FlightFailure(trace);
 }
