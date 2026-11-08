@@ -114,6 +114,20 @@ void BalanceController::SynchronizeReferences(const ChassisCycleInput &input) {
 void BalanceController::Update(
     const ChassisCycleInput &input, ChassisControlOutput &output,
     const ExternalSupportForceCommand *external_support) {
+    UpdateAttitudeReferences(input, external_support, output);
+    const BodyMotionState &motion = EstimateBodyMotion(input, output);
+    const MotionTracking tracking = UpdateMotionReferences(input, motion);
+    ComputeBalanceTorques(input, tracking, output);
+    ComputeLegOutput(input, Side::kLeft, tracking.target_leg_length_rate,
+                     external_support, output);
+    ComputeLegOutput(input, Side::kRight, tracking.target_leg_length_rate,
+                     external_support, output);
+}
+
+void BalanceController::UpdateAttitudeReferences(
+    const ChassisCycleInput &input,
+    const ExternalSupportForceCommand *external_support,
+    ChassisControlOutput &output) {
     // 从交接姿态以受限速率回到稳态目标，角速度反馈始终保持完整控制权。
     balance_theta_reference_ =
         MoveToward(balance_theta_reference_, config_.theta_balance_bias(),
@@ -134,8 +148,11 @@ void BalanceController::Update(
             0.5 *
             (external_support->left_force_n - external_support->right_force_n);
     }
+}
 
-    // 平衡控制第一步：结合轮速和腿部运动补偿估计机体前向速度。
+const BodyMotionState &BalanceController::EstimateBodyMotion(
+    const ChassisCycleInput &input, ChassisControlOutput &output) {
+    // 结合轮速和腿部运动补偿估计机体前向速度。
     const SidePair<double> sin_theta = {
         .left = std::sin(input.theta.left),
         .right = std::sin(input.theta.right),
@@ -184,6 +201,11 @@ void BalanceController::Update(
     const BodyMotionState &motion =
         body_motion_estimator_.Update(raw_common_x_speed, 0.0, input.dt);
     output.estimated_body_speed = motion.speed;
+    return motion;
+}
+
+BalanceController::MotionTracking BalanceController::UpdateMotionReferences(
+    const ChassisCycleInput &input, const BodyMotionState &motion) {
     const bool motion_command_enabled =
         input.remote.run && input.requested_enable;
     const double body_command =
@@ -247,19 +269,28 @@ void BalanceController::Update(
         std::clamp(motion.position - target_body_position_,
                    -kPositionErrorLimit, kPositionErrorLimit);
 
-    // 第二步：完整十状态、四输入 LQR 在左右物理坐标中一次生成四路力矩。
+    return {.position_error = position_error,
+            .speed_error = motion.speed - target_body_speed_,
+            .yaw_error = yaw_tracking_error,
+            .yaw_rate_error = yaw_rate_error,
+            .target_leg_length_rate = target_leg_length_rate};
+}
+
+void BalanceController::ComputeBalanceTorques(
+    const ChassisCycleInput &input, const MotionTracking &tracking,
+    ChassisControlOutput &output) const {
+    // 完整十状态、四输入 LQR 在左右物理坐标中一次生成四路力矩。
     const double common_leg_length =
         0.5 * (input.leg.left.length + input.leg.right.length);
     constexpr size_t kUnifiedStateCount = ToIndex(UnifiedLqrState::kCount);
     constexpr size_t kUnifiedOutputCount = ToIndex(UnifiedLqrOutput::kCount);
     double state_error[kUnifiedStateCount] = {};
     state_error[ToIndex(UnifiedLqrState::kPosition)] =
-        kHoldLqrTranslationErrorAtZero ? 0.0 : position_error;
+        kHoldLqrTranslationErrorAtZero ? 0.0 : tracking.position_error;
     state_error[ToIndex(UnifiedLqrState::kSpeed)] =
-        kHoldLqrTranslationErrorAtZero ? 0.0
-                                       : motion.speed - target_body_speed_;
-    state_error[ToIndex(UnifiedLqrState::kYaw)] = yaw_tracking_error;
-    state_error[ToIndex(UnifiedLqrState::kYawRate)] = yaw_rate_error;
+        kHoldLqrTranslationErrorAtZero ? 0.0 : tracking.speed_error;
+    state_error[ToIndex(UnifiedLqrState::kYaw)] = tracking.yaw_error;
+    state_error[ToIndex(UnifiedLqrState::kYawRate)] = tracking.yaw_rate_error;
     state_error[ToIndex(UnifiedLqrState::kLeftLegAngle)] =
         input.theta.left - balance_theta_reference_;
     state_error[ToIndex(UnifiedLqrState::kLeftLegAngularVelocity)] =
@@ -322,71 +353,66 @@ void BalanceController::Update(
     output.requested_body_on_leg_torque.right =
         common_leg_torque - output.differential_leg_torque;
     output.body_on_leg_torque = output.requested_body_on_leg_torque;
+}
 
-    // 第三步：VMC 将轴向力和腿部姿态力矩转换为四个关节力矩。
-    const auto calculate_vmc_output = [&](Side side) {
-        const LegHardwareMap &hardware =
-            config_.leg_hardware(side == Side::kRight);
-        const LegKinematics &leg = input.leg.Get(side);
-        SideState &state = side_state_.Get(side);
-        const bool external_force_active = external_support != nullptr;
-        const double length_error = target_leg_length_ - leg.length;
-        if (external_force_active) {
-            // 外部 MPC 负责高度和支撑力，此处禁用本地腿长环积分，
-            // 后续同时抑制 P、D 输入，避免对抗 MPC 的差动力瞬态。
-            state.leg_length_integral_force = 0.0;
-        } else {
-            state.leg_length_integral_force =
-                UpdateLegLengthIntegral(state.leg_length_integral_force,
-                                        length_error, input.dt, config_);
-        }
-        const double nominal_support_force = 0.5 * config_.robot_mass *
-                                             kGravity /
-                                             std::max(cos_theta.Get(side), 0.5);
-        const double roll_force = side == Side::kLeft
-                                      ? output.roll_compensation_force
-                                      : -output.roll_compensation_force;
-        double external_vertical_force = 0.0;
-        if (external_force_active) {
-            external_vertical_force = side == Side::kLeft
-                                          ? external_support->left_force_n
-                                          : external_support->right_force_n;
-        }
-        // MPC 和力估计器使用竖直地面反力，
-        // 此处转换为 VMC 映射所需的腿部轴向力。
-        const double support_force =
-            external_force_active
-                ? external_vertical_force / std::max(cos_theta.Get(side), 0.5)
-                : nominal_support_force + roll_force;
-        // 安装映射负责把“机体对腿”力矩转换成各侧 VMC 输入方向。
-        const double vmc_angle_torque =
-            hardware.vmc_torque_sign * output.body_on_leg_torque.Get(side);
-        const double vmc_target_length =
-            external_force_active ? leg.length : target_leg_length_;
-        const double vmc_target_length_rate =
-            external_force_active ? 0.0 : target_leg_length_rate;
-        const double vmc_leg_speed =
-            external_force_active ? 0.0 : leg.length_rate;
-        const LegVmcOutput vmc =
-            ComputeLegVmc(leg, vmc_target_length, support_force,
-                          state.leg_length_integral_force, vmc_angle_torque,
-                          vmc_leg_speed, vmc_target_length_rate, config_);
-        output.leg_axial_force.Get(side) = vmc.axial_force;
-        JointPair<double> &joint_torque = output.joint_torque.Get(side);
-        joint_torque.b =
-            std::isfinite(vmc.phi2_torque)
-                ? std::clamp(vmc.phi2_torque, -config_.joint_torque_limit,
-                             config_.joint_torque_limit)
-                : 0.0;
-        joint_torque.d =
-            std::isfinite(vmc.phi1_torque)
-                ? std::clamp(vmc.phi1_torque, -config_.joint_torque_limit,
-                             config_.joint_torque_limit)
-                : 0.0;
-    };
-
-    calculate_vmc_output(Side::kLeft);
-    calculate_vmc_output(Side::kRight);
+void BalanceController::ComputeLegOutput(
+    const ChassisCycleInput &input, Side side, double target_leg_length_rate,
+    const ExternalSupportForceCommand *external_support,
+    ChassisControlOutput &output) {
+    const double cos_theta = std::cos(input.theta.Get(side));
+    const LegHardwareMap &hardware = config_.leg_hardware(side == Side::kRight);
+    const LegKinematics &leg = input.leg.Get(side);
+    SideState &state = side_state_.Get(side);
+    const bool external_force_active = external_support != nullptr;
+    const double length_error = target_leg_length_ - leg.length;
+    if (external_force_active) {
+        // 外部 MPC 负责高度和支撑力，此处禁用本地腿长环积分，
+        // 后续同时抑制 P、D 输入，避免对抗 MPC 的差动力瞬态。
+        state.leg_length_integral_force = 0.0;
+    } else {
+        state.leg_length_integral_force = UpdateLegLengthIntegral(
+            state.leg_length_integral_force, length_error, input.dt, config_);
+    }
+    const double nominal_support_force =
+        0.5 * config_.robot_mass * kGravity / std::max(cos_theta, 0.5);
+    const double roll_force = side == Side::kLeft
+                                  ? output.roll_compensation_force
+                                  : -output.roll_compensation_force;
+    double external_vertical_force = 0.0;
+    if (external_force_active) {
+        external_vertical_force = side == Side::kLeft
+                                      ? external_support->left_force_n
+                                      : external_support->right_force_n;
+    }
+    // MPC 和力估计器使用竖直地面反力，
+    // 此处转换为 VMC 映射所需的腿部轴向力。
+    const double support_force =
+        external_force_active
+            ? external_vertical_force / std::max(cos_theta, 0.5)
+            : nominal_support_force + roll_force;
+    // 安装映射负责把“机体对腿”力矩转换成各侧 VMC 输入方向。
+    const double vmc_angle_torque =
+        hardware.vmc_torque_sign * output.body_on_leg_torque.Get(side);
+    const double vmc_target_length =
+        external_force_active ? leg.length : target_leg_length_;
+    const double vmc_target_length_rate =
+        external_force_active ? 0.0 : target_leg_length_rate;
+    const double vmc_leg_speed = external_force_active ? 0.0 : leg.length_rate;
+    const LegVmcOutput vmc = ComputeLegVmc(
+        leg, vmc_target_length, support_force, state.leg_length_integral_force,
+        vmc_angle_torque, vmc_leg_speed, vmc_target_length_rate, config_);
+    output.leg_axial_force.Get(side) = vmc.axial_force;
+    JointPair<double> &joint_torque = output.joint_torque.Get(side);
+    joint_torque.b =
+        std::isfinite(vmc.phi2_torque)
+            ? std::clamp(vmc.phi2_torque, -config_.joint_torque_limit,
+                         config_.joint_torque_limit)
+            : 0.0;
+    joint_torque.d =
+        std::isfinite(vmc.phi1_torque)
+            ? std::clamp(vmc.phi1_torque, -config_.joint_torque_limit,
+                         config_.joint_torque_limit)
+            : 0.0;
 }
 
 }  // namespace dust_control::chassis

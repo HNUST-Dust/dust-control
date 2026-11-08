@@ -46,6 +46,34 @@ class BalanceController {
         double leg_length_integral_force = 0.0;
     };
 
+    // 本周期运动跟踪误差和腿长参考速度，不保存为跨周期状态。
+    struct MotionTracking {
+        double position_error;
+        double speed_error;
+        double yaw_error;
+        double yaw_rate_error;
+        double target_leg_length_rate;
+    };
+
+    // 参考更新维护渐变姿态；运动估计维护滤波和位移。
+    void UpdateAttitudeReferences(
+        const ChassisCycleInput &input,
+        const ExternalSupportForceCommand *external_support,
+        ChassisControlOutput &output);
+    const BodyMotionState &EstimateBodyMotion(const ChassisCycleInput &input,
+                                              ChassisControlOutput &output);
+    // 更新遥控参考及 yaw 滤波，形成 LQR 所需的运动跟踪误差。
+    MotionTracking UpdateMotionReferences(const ChassisCycleInput &input,
+                                          const BodyMotionState &motion);
+    void ComputeBalanceTorques(const ChassisCycleInput &input,
+                               const MotionTracking &tracking,
+                               ChassisControlOutput &output) const;
+    // 每侧独立维护腿长积分，再将支撑力和姿态力矩映射为关节力矩。
+    void ComputeLegOutput(const ChassisCycleInput &input, Side side,
+                          double target_leg_length_rate,
+                          const ExternalSupportForceCommand *external_support,
+                          ChassisControlOutput &output);
+
     const double wheel_torque_limit_;
     BodyMotionEstimator body_motion_estimator_;
     double target_leg_length_ = 0.0;
