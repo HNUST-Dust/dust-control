@@ -18,6 +18,7 @@ struct ChassisObservation {
     uint64_t queue_drops = 0;
     dust_control::chassis::ChassisControlState state{};
     bool simulated = false;
+    MotionDiagnostics motion;
     Lqr14Diagnostics lqr14;
 };
 

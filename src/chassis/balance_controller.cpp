@@ -133,6 +133,17 @@ void BalanceController::Update(
     UpdateAttitudeReferences(input, external_support, output);
     const BodyMotionState &motion = EstimateBodyMotion(input, output);
     const MotionTracking tracking = UpdateMotionReferences(input, motion);
+    output.motion = {.valid = true,
+                     .raw_speed = output.raw_body_speed,
+                     .estimated_speed = motion.speed,
+                     .target_speed = target_body_speed_,
+                     .estimated_position = motion.position,
+                     .target_position = target_body_position_,
+                     .position_error = tracking.position_error,
+                     .speed_error = tracking.speed_error,
+                     .pitch_reference = balance_pitch_reference_,
+                     .theta_reference = balance_theta_reference_,
+                     .roll_reference = balance_roll_reference_};
     ComputeBalanceTorques(input, tracking, output);
     ComputeLegOutput(input, Side::kLeft, tracking.target_leg_length_rate,
                      external_support, output);

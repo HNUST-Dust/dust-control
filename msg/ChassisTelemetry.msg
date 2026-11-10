@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 2
+uint32 version 3
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -50,3 +50,17 @@ float64 lqr14_right_force_target_n
 # 轴向限幅后、关节限幅前的模型预测值，不是实际地面反力传感器测量。
 float64 lqr14_left_force_allocated_n
 float64 lqr14_right_force_allocated_n
+
+# 平衡计算诊断；失能、recover 或源过期时无效，数值为 NaN。
+bool motion_diagnostics_valid
+float64 raw_body_speed_mps
+float64 estimated_body_speed_mps
+float64 target_body_speed_mps
+float64 estimated_body_position_m
+float64 target_body_position_m
+float64 body_position_error_m
+float64 body_speed_error_mps
+float64 pitch_reference_deg
+float64 theta_reference_deg
+float64 roll_reference_deg
+float64 remote_chassis_x

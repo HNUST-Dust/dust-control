@@ -270,3 +270,18 @@ IMU roll 正向以及支撑估计准确度仍需实测确认；未验证前不�
 保留模型腿长、姿态、平地双支撑、反馈时效、过倾和执行器输出保护。
 运行腿长仍为 160–300 mm，目标 200 mm，未采用外推的 340 mm 参数。
 遥控失能仍立即禁止输出。部署不自动启动或自动使能机器人。
+
+## 单向漂移诊断（遥测 version 3）
+
+在 `motion_diagnostics_valid=true` 时对比 `raw_body_speed_mps`、
+`estimated_body_speed_mps`、`target_body_speed_mps`，并观察
+`estimated_body_position_m`、`target_body_position_m`、`body_position_error_m`
+（实际送入控制器的误差，限幅 ±0.15 m）。里程为恢复后局部积分，不是绝对定位。
+`remote_chassis_x` 为死区前输入；目标速度经过死区和加速度限制。
+`pitch_reference_deg`、`theta_reference_deg`、`roll_reference_deg` 为当前姿态参考。
+失能、未执行平衡计算或反馈无效时运动诊断数值为 NaN。
+
+先确认新控制器已完全接管，再在前进指令为零时观察单向漂移。
+若目标速度非零，查输入；若物理移动而速度近零，查轮速及腿部补偿；
+若速度正确而位置误差增大，查位置限幅、姿态平衡点及执行器余量。
+这次仅增加观测，不修改 Kalman、LQR 或参考更新算法。

@@ -8,6 +8,12 @@
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "roll_deg"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.roll_reference_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "roll_reference_deg"
         }
       ],
       "xAxisVal": "timestamp",
@@ -160,22 +166,133 @@
       "showYAxisLabels": true,
       "isSynced": true,
       "followingViewWidth": 15
+    },
+    "Plot!speed": {
+      "title": "前向速度 (m/s)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.raw_body_speed_mps",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "raw_body_speed_mps"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.estimated_body_speed_mps",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "estimated_body_speed_mps"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.target_body_speed_mps",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "target_body_speed_mps"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!position": {
+      "title": "位置及误差 (m)，误差限幅±0.15",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.estimated_body_position_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "estimated_body_position_m"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.target_body_position_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "target_body_position_m"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.body_position_error_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "body_position_error_m"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
+    },
+    "Plot!reference": {
+      "title": "姿态参考与遥控输入",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.pitch_reference_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pitch_reference_deg"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.theta_reference_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "theta_reference_deg"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.remote_chassis_x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "remote_chassis_x"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.motion_diagnostics_valid",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "motion_diagnostics_valid"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 15
     }
   },
   "layout": {
     "direction": "column",
     "first": {
-      "direction": "row",
-      "first": "Plot!roll",
-      "second": "Plot!height"
+      "direction": "column",
+      "first": {
+        "direction": "row",
+        "first": "Plot!roll",
+        "second": "Plot!height"
+      },
+      "second": {
+        "direction": "row",
+        "first": "Plot!mode",
+        "second": {
+          "direction": "column",
+          "first": "Plot!force",
+          "second": "Plot!contact"
+        }
+      }
     },
     "second": {
       "direction": "row",
-      "first": "Plot!mode",
+      "first": "Plot!speed",
       "second": {
         "direction": "column",
-        "first": "Plot!force",
-        "second": "Plot!contact"
+        "first": "Plot!position",
+        "second": "Plot!reference"
       }
     }
   }

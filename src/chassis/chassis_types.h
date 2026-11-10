@@ -143,6 +143,21 @@ struct ChassisCycleInput {
     bool arm_complete = false;
 };
 
+// 本周期平衡估计与参考；未执行平衡计算时 valid=false。
+struct MotionDiagnostics {
+    bool valid = false;
+    double raw_speed = 0.0;
+    double estimated_speed = 0.0;
+    double target_speed = 0.0;
+    double estimated_position = 0.0;
+    double target_position = 0.0;
+    double position_error = 0.0;  // 控制使用的限幅后误差 m
+    double speed_error = 0.0;
+    double pitch_reference = 0.0;
+    double theta_reference = 0.0;
+    double roll_reference = 0.0;
+};
+
 /** 本周期生成的执行器目标与估计状态，物理量单位由字段注明。 */
 struct ChassisControlOutput {
     dust_control::devices::MotorTargets motor_targets{};
@@ -171,6 +186,7 @@ struct ChassisControlOutput {
     SidePair<double> external_support_force_target;
     SidePair<double> support_force_feedback_correction;
     bool support_force_feedback_applied = false;
+    MotionDiagnostics motion;
     Lqr14Diagnostics lqr14;
 };
 

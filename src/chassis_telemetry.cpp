@@ -103,6 +103,20 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
         number(lqr14.allocated_vertical_force_n.left, force_valid);
     message.lqr14_right_force_allocated_n =
         number(lqr14.allocated_vertical_force_n.right, force_valid);
+    const auto& motion = sample.motion;
+    const bool motion_valid = message.feedback_valid && message.imu_fresh && motion.valid;
+    message.motion_diagnostics_valid = motion_valid;
+    message.raw_body_speed_mps = number(motion.raw_speed, motion_valid);
+    message.estimated_body_speed_mps = number(motion.estimated_speed, motion_valid);
+    message.target_body_speed_mps = number(motion.target_speed, motion_valid);
+    message.estimated_body_position_m = number(motion.estimated_position, motion_valid);
+    message.target_body_position_m = number(motion.target_position, motion_valid);
+    message.body_position_error_m = number(motion.position_error, motion_valid);
+    message.body_speed_error_mps = number(motion.speed_error, motion_valid);
+    message.pitch_reference_deg = number(motion.pitch_reference * (180.0 / 3.14159265358979323846), motion_valid);
+    message.theta_reference_deg = number(motion.theta_reference * (180.0 / 3.14159265358979323846), motion_valid);
+    message.roll_reference_deg = number(motion.roll_reference * (180.0 / 3.14159265358979323846), motion_valid);
+    message.remote_chassis_x = number(input.remote.chassis_x, message.remote_fresh);
     return message;
 }
 }  // namespace dust_control::ros
