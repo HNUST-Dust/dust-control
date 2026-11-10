@@ -41,3 +41,8 @@ sequence 跳变可能来自发布回调主动选择最新样本、队列丢样�
 
 原 `--foxglove`、`--foxglove-port`、节点 `foxglove_port` 参数及 SDK 构建选项已删除。
 原 UDP 调试输出和 `--telemetry-port` 已删除；观测与队列归底盘模块所有。
+
+裸 CMake 的 NUC 构建使用 `tools/run_foxglove.sh`。脚本将当前构建安装到
+`.cache/lqr14-ros-install` 并加载自定义遥测的 ament 索引和类型库；
+只 source 系统 ROS 会导致桥无法公布 `ChassisTelemetry` 话题。
+桥已运行时不要重复启动。14 状态观察布局为 `lqr14-layout.json`。
