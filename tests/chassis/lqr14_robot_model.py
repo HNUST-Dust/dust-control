@@ -33,6 +33,14 @@ class RobotModelTests(unittest.TestCase):
             r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?", text)]).reshape(4, 10, 4)
         np.testing.assert_allclose(coefficients, old, atol=1e-9, rtol=1e-8)
 
+    def test_committed_runtime_schedule(self):
+        text = (ROOT/"src/chassis/lqr14_gain_samples.h").read_text()
+        rows = re.findall(r"value\[\d+\]\.gain\s*<<([^;]+);", text)
+        self.assertEqual(len(rows), 12)
+        for row, result in zip(rows, self.designs):
+            coefficients = np.fromstring(row.replace("\n", " "), sep=",").reshape(6, 14)
+            np.testing.assert_allclose(coefficients, result["gain"], atol=1e-8, rtol=1e-8)
+
     def test_dimensions_physics_and_symmetry(self):
         robot = legacy.RobotParameters()
         total_mass = robot.body_mass_kg+2*robot.leg_mass_each_kg+2*robot.wheel_mass_each_kg

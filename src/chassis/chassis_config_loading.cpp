@@ -21,7 +21,12 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
          "max_leg_length_m", "max_turn_wheel_speed_mps", "min_leg_length_m",
          "remote_deadband", "roll_compensation_force_limit_n",
          "roll_compensation_kp_n_per_rad", "theta_bias_deg",
-         "turn_acceleration_limit_mps2", "turn_torque_limit_nm"});
+         "turn_acceleration_limit_mps2", "turn_torque_limit_nm"},
+        {"lqr14"});
+    if (root["balance"]["lqr14"]) {
+        ValidateKeys(root["balance"]["lqr14"],
+                     {"enabled", "shadow_only", "roll_sign"});
+    }
     ValidateKeys(root["stool"],
                  {"joint_position_kp", "joint_position_max_speed_rad_s",
                   "joint_speed_kp", "target_leg_length_m"});
@@ -56,6 +61,12 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
     config.robot_mass = root["mechanics"]["robot_mass_kg"].as<double>();
     config.theta_balance_bias_deg =
         root["balance"]["theta_bias_deg"].as<double>();
+    if (root["balance"]["lqr14"]) {
+        const auto node = root["balance"]["lqr14"];
+        config.lqr14_enabled = node["enabled"].as<bool>();
+        config.lqr14_shadow_only = node["shadow_only"].as<bool>();
+        config.lqr14_roll_sign = node["roll_sign"].as<double>();
+    }
     config.remote_deadband = root["balance"]["remote_deadband"].as<double>();
     config.min_commanded_leg_length =
         root["balance"]["min_leg_length_m"].as<double>();

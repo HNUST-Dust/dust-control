@@ -40,9 +40,16 @@ class UnifiedLqr14 {
         kLeftVerticalForce,
         kRightVerticalForce,
     };
-    using State = Eigen::Matrix<double, kStateCount, 1>;
-    using Input = Eigen::Matrix<double, kInputCount, 1>;
-    using Gain = Eigen::Matrix<double, kInputCount, kStateCount>;
+    // 公开对象跨库边界传递；显式禁用存储对齐，避免调用方的 Eigen
+    // 向量化编译选项改变控制器成员布局（实时库使用 EIGEN_DONT_VECTORIZE）。
+    using State = Eigen::Matrix<double, kStateCount, 1, Eigen::DontAlign>;
+    using Input = Eigen::Matrix<double, kInputCount, 1, Eigen::DontAlign>;
+    using Gain =
+        Eigen::Matrix<double, kInputCount, kStateCount, Eigen::DontAlign>;
+
+    static_assert(alignof(State) == alignof(double));
+    static_assert(alignof(Input) == alignof(double));
+    static_assert(alignof(Gain) == alignof(double));
 
     struct Design {
         Gain gain = Gain::Zero();

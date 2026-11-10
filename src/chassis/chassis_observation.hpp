@@ -18,6 +18,7 @@ struct ChassisObservation {
     uint64_t queue_drops = 0;
     dust_control::chassis::ChassisControlState state{};
     bool simulated = false;
+    Lqr14Diagnostics lqr14;
 };
 
 // 控制线程单生产者、非实时线程单消费者；入队和出队均不等待、不分配内存。

@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+#include "balance_lqr14.h"
 #include "chassis_config.h"
 #include "leg_joint_coordinates.h"
 #include "leg_kinematics.h"
@@ -154,6 +155,14 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
                 feedback.torque_nm;
         }
     }
+    const auto height = EstimateFlatGroundHipHeight(input, config_);
+    input.hip_height_valid = height.valid;
+    input.hip_height_m = height.height_m;
+    input.hip_height_rate_m_s = height.rate_m_s;
+    input.flat_ground_mismatch_m = height.ground_mismatch_m;
+    input.hip_height_side_m = {
+        config_.wheel_radius + height.vertical_projection.left,
+        config_.wheel_radius + height.vertical_projection.right};
 }
 
 }  // namespace dust_control::chassis

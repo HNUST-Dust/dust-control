@@ -18,13 +18,26 @@ int main() {
     const rclcpp::Time now(2000000000LL);
     auto message =
         dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
-    assert(message.sequence == 17 && message.version == 1);
+    assert(message.sequence == 17 && message.version == 2);
     assert(message.header.stamp.sec == 1 &&
            message.header.stamp.nanosec == 990000000);
     assert(message.pitch_deg == 12.5 && message.imu_age_us == 123);
     assert(message.left_length_m == .25 && message.left_height_m == .23);
     assert(message.transport_age_ms == 10 &&
            message.control_duration_us == 12.5);
+    sample.input.feedback_valid = true;
+    sample.input.support_force_valid = true;
+    sample.input.measured_support_force_n = {50, 60};
+    sample.lqr14.height_valid = true;
+    sample.lqr14.height_m = .3;
+    sample.input.hip_height_valid = true;
+    sample.input.hip_height_m = .3;
+    sample.lqr14.status = dust_control::chassis::Lqr14Status::kShadow;
+    sample.lqr14.requested_vertical_force_n = {55, 65};
+    message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
+    assert(message.hip_height_valid && message.hip_height_m == .3);
+    assert(message.lqr14_status == 1 && message.left_support_force_n == 50);
+    assert(message.lqr14_right_force_target_n == 65);
     sample.input.motor_stale_mask = 0x0c;
     sample.input.imu_fresh = false;
     message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
@@ -38,4 +51,6 @@ int main() {
     assert(!message.source_connected && !message.imu_fresh);
     assert(message.motor_stale_mask == 0x3f && std::isnan(message.imu_age_us));
     assert(!message.right_leg_fresh && !message.left_leg_fresh);
+    assert(!message.hip_height_valid && std::isnan(message.hip_height_m));
+    assert(std::isnan(message.lqr14_right_force_target_n));
 }

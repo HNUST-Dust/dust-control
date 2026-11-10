@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include <optional>
+
 #include "body_motion_estimator.h"
 #include "chassis_config.h"
 #include "chassis_types.h"
+#include "lqr14_schedule.h"
 
 namespace dust_control::chassis {
 
@@ -23,7 +26,8 @@ class BalanceController {
     // yaw 参考不在这里采样，而是在下一次 Update 中初始化。
     void SynchronizeReferences(const ChassisCycleInput &input);
     void Update(const ChassisCycleInput &input, ChassisControlOutput &output,
-                const ExternalSupportForceCommand *external_support = nullptr);
+                const ExternalSupportForceCommand *external_support = nullptr,
+                bool allow_lqr14 = true);
 
     void set_target_leg_length(double value) {
         target_leg_length_ = value;
@@ -72,6 +76,12 @@ class BalanceController {
     void ComputeBalanceTorques(const ChassisCycleInput &input,
                                const MotionTracking &tracking,
                                ChassisControlOutput &output) const;
+    void AllocateBalanceTorques(double left_wheel, double right_wheel,
+                                double left_leg, double right_leg,
+                                ChassisControlOutput &output) const;
+    bool ComputeLqr14Output(const ChassisCycleInput &input,
+                            const MotionTracking &tracking,
+                            ChassisControlOutput &candidate);
     // 每侧独立维护腿长积分，再将支撑力和姿态力矩映射为关节力矩。
     void ComputeLegOutput(const ChassisCycleInput &input, Side side,
                           double target_leg_length_rate,
@@ -101,6 +111,13 @@ class BalanceController {
     // yaw 反馈滤波：与目标参考独立初始化，Reset 后首个采样直接赋值。
     double filtered_yaw_rate_ = 0.0;
     bool yaw_rate_filter_initialized_ = false;
+
+    std::optional<Lqr14GainSchedule> lqr14_schedule_;
+    double lqr14_support_elapsed_s_ = 0.0;
+    double lqr14_blend_ = 0.0;
+    double lqr14_filtered_height_rate_ = 0.0;
+    bool lqr14_height_initialized_ = false;
+    double lqr14_previous_height_reference_ = 0.0;
 
     // 每侧腿长积分：Reset 清空；外部支撑力启用时在单腿计算中清空。
     SidePair<SideState> side_state_;

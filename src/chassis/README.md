@@ -28,7 +28,7 @@
 | 增益调度 | [unified_lqr_schedule.cpp](unified_lqr_schedule.cpp)、[系数表](unified_lqr_coefficients.inc) |
 | 参数 | [chassis_config.h](chassis_config.h) 定义值，[chassis_config.cpp](chassis_config.cpp) 校验，[chassis_config_loading.cpp](chassis_config_loading.cpp) 加载 YAML |
 | 运行与观测 | [chassis_runtime.cpp](chassis_runtime.cpp)、[chassis_observation.hpp](chassis_observation.hpp)：线程寿命和观测队列 |
-| 十四状态 LQR 研发 | [unified_lqr14.h](unified_lqr14.h)：14×6 跟踪算法、腿长增益调度和[离线设计说明](../../docs/LQR14.md)，尚未切换生产平衡控制 |
+| 十四状态 LQR 研发 | [unified_lqr14.h](unified_lqr14.h)：14×6 跟踪算法、腿长增益调度和[离线设计说明](../../docs/LQR14.md)，默认关闭，支持观察和显式接管平衡控制 |
 | MPC 研发 | [mpc/](mpc/)：可选独立库；不在当前 `Tick` 调用链中 |
 
 输入输出数据定义分别位于 [controller_inputs.h](controller_inputs.h) 和

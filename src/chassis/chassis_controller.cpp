@@ -34,6 +34,8 @@ ChassisControlOutput ChassisController::Tick(
                        output_policy_.arm_complete());
     input.requested_enable = input.requested_enable && operator_permission;
     const auto support = support_force_estimator_.Update(input);
+    input.support_force_valid = support.valid;
+    input.measured_support_force_n = support.filtered_force_n;
     state_machine_.SetFlightDetected(flight_controller_.UpdateLiftoffDetection(
         input, support,
         state_machine_.state() == ChassisControlState::kBalance));
@@ -156,7 +158,8 @@ void ChassisController::ComputeControlOutput(const ChassisCycleInput& input,
                     *jump.precompress_leg_length);
                 ChassisCycleInput precompress_input = input;
                 precompress_input.remote.leg_length_delta = 0.0;
-                balance_controller_.Update(precompress_input, output);
+                balance_controller_.Update(precompress_input, output, nullptr,
+                                           false);
             }
             output.joint_control_active = !jump.failed && !jump.finished;
             if (jump.failed) {

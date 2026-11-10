@@ -59,6 +59,10 @@ struct ChassisConfig {
     double half_wheel_track = 0.215;
     double robot_mass = 12.054;
     double theta_balance_bias_deg = 5.0;
+    // 新控制器显式启用；shadow_only 只观测，不改变原控制输出。
+    bool lqr14_enabled = false;
+    bool lqr14_shadow_only = true;
+    double lqr14_roll_sign = 1.0;
     double remote_deadband = 0.05;
     double min_commanded_leg_length = 0.15;
     double max_commanded_leg_length = 0.33;

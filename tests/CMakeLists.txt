@@ -171,3 +171,11 @@ if(DUST_LQR14_SCIPY_STATUS EQUAL 0)
   set_tests_properties(chassis.lqr14_robot_schedule PROPERTIES TIMEOUT 15)
   set_tests_properties(chassis.lqr14_robot_model PROPERTIES TIMEOUT 30)
 endif()
+
+add_executable(chassis_lqr14_integration chassis/lqr14_integration.cpp)
+target_link_libraries(chassis_lqr14_integration PRIVATE dust_chassis)
+target_compile_definitions(chassis_lqr14_integration PRIVATE EIGEN_RUNTIME_NO_MALLOC EIGEN_DONT_VECTORIZE)
+target_compile_options(chassis_lqr14_integration PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME chassis.lqr14_integration COMMAND chassis_lqr14_integration)
+add_test(NAME chassis.lqr14_profiles COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/chassis/lqr14_profiles.py" $<TARGET_FILE:ethercat_config_probe>)

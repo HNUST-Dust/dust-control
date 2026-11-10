@@ -72,6 +72,30 @@ enum class DmArmResetReason : uint8_t {
     kTiltFault,
 };
 
+enum class Lqr14Status : uint8_t {
+    kDisabled = 0,
+    kShadow,
+    kActive,
+    kWaitingSupport,
+    kInvalidFeedback,
+    kOutsideModel,
+    kExternalSupport,
+    kAction,
+    kNumericalFailure,
+};
+struct Lqr14Diagnostics {
+    Lqr14Status status = Lqr14Status::kDisabled;
+    bool height_valid = false;
+    double height_m = 0.0;
+    double height_rate_m_s = 0.0;
+    double height_reference_m = 0.0;
+    double height_rate_reference_m_s = 0.0;
+    double ground_mismatch_m = 0.0;
+    double blend = 0.0;
+    SidePair<double> requested_vertical_force_n;
+    SidePair<double> allocated_vertical_force_n;
+};
+
 /** 本控制周期冻结的输入、估计值与有效性状态。 */
 struct ChassisCycleInput {
     // 设备样本保留角度 deg、角速度 rad/s、加速度 g；pitch/roll 在下方另转 rad。
@@ -101,6 +125,14 @@ struct ChassisCycleInput {
     uint32_t remote_age_ms = UINT32_MAX;
     bool remote_fresh = false;
     bool feedback_valid = false;
+    // 由总控支撑力估计器在输入读取之后填入；不代表绝对可靠的接触测量。
+    bool hip_height_valid = false;
+    double hip_height_m = 0.0;
+    double hip_height_rate_m_s = 0.0;
+    double flat_ground_mismatch_m = 0.0;
+    SidePair<double> hip_height_side_m;
+    bool support_force_valid = false;
+    SidePair<double> measured_support_force_n;
     uint8_t feedback_invalid_mask = 0U;  ///< 安全位：电机超时、IMU 超时、
                                          ///< 左/右运动学无效。
     uint8_t motor_stale_mask =
@@ -139,6 +171,7 @@ struct ChassisControlOutput {
     SidePair<double> external_support_force_target;
     SidePair<double> support_force_feedback_correction;
     bool support_force_feedback_applied = false;
+    Lqr14Diagnostics lqr14;
 };
 
 struct ChassisSupportForceEstimate {

@@ -122,6 +122,7 @@ void ChassisRuntime::Run() {
             options_.enable_output && disabled_observed &&
                 (!options_.startup_ready || options_.startup_ready->load()),
             &sample.input);
+        sample.lqr14 = output.lqr14;
         SubmitMotorTargets(output, ++command_sequence, tick_start);
         PublishObservation(sample, tick_start, ++observation_sequence,
                            late_cycles, observation_drops);

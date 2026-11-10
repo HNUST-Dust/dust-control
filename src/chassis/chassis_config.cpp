@@ -37,6 +37,21 @@ void ValidateChassisConfig(const ChassisConfig& config) {
         throw std::runtime_error(
             "Invalid chassis parameter: balance.theta_bias_deg");
     }
+    if (config.lqr14_roll_sign != 1.0 && config.lqr14_roll_sign != -1.0) {
+        throw std::runtime_error("balance.lqr14.roll_sign must be +1 or -1");
+    }
+    // 增益对应固定质量/轮径/轮距及 CSV；不允许悄悄使用另一台机器的增益。
+    if (config.lqr14_enabled &&
+        (std::abs(config.robot_mass - 12.054) > 1e-8 ||
+         std::abs(config.wheel_radius - 0.058) > 1e-8 ||
+         std::abs(config.wheel_reduction - 15.764705882352942) > 1e-8 ||
+         std::abs(config.half_wheel_track - 0.215) > 1e-8 ||
+         std::abs(config.support_wheel_mass - 0.6) > 1e-8 ||
+         config.min_commanded_leg_length < 0.15362 ||
+         config.max_commanded_leg_length > 0.31101)) {
+        throw std::runtime_error(
+            "LQR14 configuration does not match generated model/range");
+    }
     if (!std::isfinite(config.remote_deadband) ||
         config.remote_deadband < 0.0 || config.remote_deadband > 0.99) {
         throw std::runtime_error(

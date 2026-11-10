@@ -7,6 +7,7 @@ add_library(dust_chassis
 
   # 各动作独立拥有阶段、参考和控制状态。
   balance_controller.cpp
+  balance_lqr14.cpp
   recovery_controller.cpp
   flight_controller.cpp
   jump_controller.cpp

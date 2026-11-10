@@ -2,7 +2,7 @@
 
 `UnifiedLqr14` 是独立的 1 kHz 离散反馈算法，已加入 `dust_chassis`。
 它接受离线生成的完整 6×14 增益，不在控制周期内求解 Riccati 方程。
-当前 `BalanceController` 仍使用十状态增益表；本次没有切换电机控制主链路。
+`BalanceController` 默认仍使用十状态增益表；可通过显式配置进入观察或十四状态控制，见末节。
 
 ## 坐标和输入
 
@@ -164,13 +164,90 @@ python3 tools/derive_lqr14.py --output-dir build/lqr14-development
 `Lqr14GainSchedule` 在构造时复制并验证这十二个工作点，按平均等效腿长作线性插值，
 不在周期内求解 Riccati 方程，也不分配内存。超出 CSV 的 0.15362–0.31101 m
 范围会夹紧并返回 `clamped=true`；这不代表对 0.15/0.33 m 已完成模型验证。
-生成表只由研发测试引用，不自动接入生产 `BalanceController`。
+生成表已以 `lqr14_gain_samples.h` 随源码保存，避免生产构建依赖 SciPy；仅在显式配置启用时使用。
 
 示例：在启动时取 `Lqr14DevelopmentSamples()` 构造调度器并设置物理限幅；
 每周期取 `Evaluate(mean_leg_length)` 的增益、当前高度参考和整机重量前馈，
 交给 `UnifiedLqr14` 计算。生成表的静态初始化应在启动时完成。
-本次没有增加高度估计器、MPC 或电机切换，也没有把旧腿长 PID 与新力反馈叠加。
+末节说明新增高度反馈与电机控制接管；本次未接入 MPC。
 
 新增 `chassis.lqr14_robot_model` 和 `chassis.lqr14_robot_schedule` 回归覆盖旧表复现、
 动量方程线性化、左右对称性、全部工作点及插值稳定性、受限小扰动恢复、
 C++ 反馈方向和无动态分配。需要 numpy/scipy 时才生成这些研发测试。
+
+## 平衡主链路接入与首次调试
+
+`balance.lqr14` 是可选 schema 2 配置块：
+
+```yaml
+balance:
+  lqr14: {enabled: false, shadow_only: true, roll_sign: 1.0}
+```
+
+`enabled=false` 保持原十状态控制；`enabled=true, shadow_only=true` 只计算并发布
+新控制结果，电机仍使用旧控制；`enabled=true, shadow_only=false` 才允许新控制接管。
+`roll_sign` 只接受 ±1，用于把 IMU roll 对齐“左髋抬高为正”的新模型坐标。
+默认配置没有开启新控制。启用时会校验整机质量、轮径、轮距、减速比和轮质量与生成模型一致，
+并要求指令腿长处于 CSV 范围内。
+
+高度反馈沿用“竖直虚拟腿长＋轮半径”。两侧 `hz` 是原始镜像机构坐标，不能直接取负号。
+设校准腿角为 alpha、IMU pitch=p、模型 roll=r，则向下投影系数为：
+
+```text
+q_i = sin(p)*sin(alpha_i) + cos(r)*cos(p)*cos(alpha_i)
+h_left  = wheel_radius + L_left*q_left
+h_right = wheel_radius + L_right*q_right
+h = (h_left+h_right)/2
+```
+
+这里沿用现有支撑力估计器的姿态投影约定。在零 roll 时 q=cos(theta)。
+高度速度由同一公式解析求导得到，进入反馈前作 20 Hz 低通；不是对位置数值差分。
+只有共同水平地面假设下，两侧平均值才是髋部中点的世界高度。
+同平地残差为 `L_left*q_left-L_right*q_right-2*b*sin(r)*cos(p)`。
+
+初次接入只覆盖低速双支撑域：左右支撑估计都大于每侧名义支撑的 20%，连续 50 ms；
+roll≤10°、pitch≤15°、左右 theta≤20°、同平地残差≤15 mm、
+实测 yaw-rate≤1 rad/s、估计前向速度≤0.3 m/s、周期为 0.5–2 ms、腿长调度不夹紧。
+支撑估计不是接触传感器，这些条件不能证明地面一定水平，也不能支持下台阶试验。
+满足条件后 250 ms 线性接管轮、腿输出；退出条件发生时立即退回旧平衡控制。
+跳跃预压缩、回正、腾空和爬楼仍用现有动作控制，外部支撑命令优先于 LQR14。
+
+新分支直接输出支撑力与姿态力矩，经 VMC 和同一个最终输出策略执行。
+它不会叠加原腿长 PID 或 roll 比例力；过渡期是两套完整输出的凸组合。
+接管期间清空被遮蔽的腿长积分，避免退出时释放积累量。
+
+支撑力映射计入轮重与切向力的竖直分量：
+
+```text
+t_z = -sin(p)*cos(alpha) + cos(r)*cos(p)*sin(alpha)
+F_axial = (F_ground - m_wheel*g + t_z*T_body_on_leg/L) / q
+```
+
+这与现有支撑力估计器的静态轮重关系一致；仍忽略轮竖直加速度与腿自重分布的高阶影响。
+最终关节限幅、弹簧补偿和电机协议映射只在原输出边界执行一次。
+遥测中的 allocated force 是轴向限幅后的模型值，不包含后续关节饱和及混合比例，
+不能当成实际地面反力测量。
+
+准备独立配置（不覆盖 config，也不启动程序）：
+
+```bash
+python3 tools/prepare_lqr14_config.py --mode observe --output .cache/lqr14-observe
+python3 tools/prepare_lqr14_config.py --mode shadow --output .cache/lqr14-shadow
+python3 tools/prepare_lqr14_config.py --mode active --output .cache/lqr14-active
+```
+
+调试范围为 160–300 mm、默认腿长 200 mm，平移/自旋指令上限相应降低。
+`observe` 明确关闭电机输出；`shadow` 允许旧控制输出；`active` 允许新控制接管。
+后两者仍受既有“先观察遥控失能姿态、再使能”的运行门控。
+不能把程序启动成功等同于新控制已接管。
+
+ROS `ChassisTelemetry` 升级为 version 2：新增左右髋高、平均髋高及速度、
+支撑力估计、新力目标、轴向分配值、状态和接管比例。接收端需要同步重编译消息。
+保留原 `left_height_m/right_height_m` 原始几何字段；控制和新观测应使用 `*_hip_height_m`。
+
+状态码：0 关闭，1 观察计算，2 接管中/已接管，3 等待双支撑，4 输入或周期无效，
+5 超出模型域，6 外部支撑覆盖，7 其他动作覆盖，8 数值失败。
+必须结合 `lqr14_blend` 判断实际占比，完整接管时为 1。
+
+输出关闭时也发布高度与支撑估计，可先核对传感器。机体 CAD 惯量的参考轴、
+IMU roll 正向以及支撑估计准确度仍需实测确认；未验证前不进行自旋或台阶测试。
