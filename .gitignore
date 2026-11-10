@@ -10,6 +10,7 @@
 *.so.*
 results/
 *.csv
+!tools/data/leg_mass_properties0820.csv
 *.log
 *.mcap
 .DS_Store

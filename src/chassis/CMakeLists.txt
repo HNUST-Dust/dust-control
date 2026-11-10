@@ -18,6 +18,8 @@ add_library(dust_chassis
   body_motion_estimator.cpp
   support_force_estimator.cpp
   unified_lqr_schedule.cpp
+  unified_lqr14.cpp
+  lqr14_schedule.cpp
   chassis_config.cpp
 )
 target_link_libraries(dust_chassis PUBLIC dust_headers Eigen3::Eigen)

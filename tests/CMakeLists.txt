@@ -129,3 +129,45 @@ add_executable(chassis_coordinate_boundaries chassis/coordinate_boundaries.cpp)
 target_link_libraries(chassis_coordinate_boundaries PRIVATE dust_chassis)
 target_compile_options(chassis_coordinate_boundaries PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME chassis.coordinate_boundaries COMMAND chassis_coordinate_boundaries)
+
+# LQR14 的实时端不依赖 Python 数值库；SciPy 仅用于离线设计回归。
+add_executable(chassis_lqr14 chassis/lqr14.cpp)
+target_link_libraries(chassis_lqr14 PRIVATE dust_chassis)
+target_compile_options(chassis_lqr14 PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic)
+target_compile_definitions(chassis_lqr14 PRIVATE EIGEN_RUNTIME_NO_MALLOC EIGEN_DONT_VECTORIZE)
+add_test(NAME chassis.lqr14 COMMAND chassis_lqr14)
+set_tests_properties(chassis.lqr14 PROPERTIES TIMEOUT 15)
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import numpy, scipy"
+  RESULT_VARIABLE DUST_LQR14_SCIPY_STATUS OUTPUT_QUIET ERROR_QUIET)
+if(DUST_LQR14_SCIPY_STATUS EQUAL 0)
+  add_test(NAME chassis.lqr14_design COMMAND ${Python3_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/chassis/lqr14_design.py")
+else()
+  message(STATUS "LQR14 design regression skipped: Python numpy/scipy unavailable")
+endif()
+
+if(DUST_LQR14_SCIPY_STATUS EQUAL 0)
+  set(DUST_LQR14_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/lqr14_generated")
+  add_custom_command(
+    OUTPUT "${DUST_LQR14_GENERATED_DIR}/lqr14_development.h"
+           "${DUST_LQR14_GENERATED_DIR}/lqr14_schedule.json"
+    COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/derive_lqr14.py"
+            --output-dir "${DUST_LQR14_GENERATED_DIR}"
+    DEPENDS "${PROJECT_SOURCE_DIR}/tools/derive_lqr14.py"
+            "${PROJECT_SOURCE_DIR}/tools/derive_lqr_schedule.py"
+            "${PROJECT_SOURCE_DIR}/tools/design_lqr14.py"
+            "${PROJECT_SOURCE_DIR}/tools/data/leg_mass_properties0820.csv"
+            "${PROJECT_SOURCE_DIR}/tools/data/lqr14_development.json"
+    VERBATIM)
+  add_executable(chassis_lqr14_robot_schedule chassis/lqr14_robot_schedule.cpp
+    "${DUST_LQR14_GENERATED_DIR}/lqr14_development.h")
+  target_include_directories(chassis_lqr14_robot_schedule PRIVATE "${DUST_LQR14_GENERATED_DIR}")
+  target_link_libraries(chassis_lqr14_robot_schedule PRIVATE dust_chassis)
+  target_compile_options(chassis_lqr14_robot_schedule PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic)
+  target_compile_definitions(chassis_lqr14_robot_schedule PRIVATE EIGEN_RUNTIME_NO_MALLOC EIGEN_DONT_VECTORIZE)
+  add_test(NAME chassis.lqr14_robot_schedule COMMAND chassis_lqr14_robot_schedule)
+  add_test(NAME chassis.lqr14_robot_model COMMAND ${Python3_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/chassis/lqr14_robot_model.py")
+  set_tests_properties(chassis.lqr14_robot_schedule PROPERTIES TIMEOUT 15)
+  set_tests_properties(chassis.lqr14_robot_model PROPERTIES TIMEOUT 30)
+endif()

@@ -1,0 +1,176 @@
+# 十四状态、六输入 LQR
+
+`UnifiedLqr14` 是独立的 1 kHz 离散反馈算法，已加入 `dust_chassis`。
+它接受离线生成的完整 6×14 增益，不在控制周期内求解 Riccati 方程。
+当前 `BalanceController` 仍使用十状态增益表；本次没有切换电机控制主链路。
+
+## 坐标和输入
+
+状态顺序固定为：
+
+```text
+[s, v, yaw, yaw_rate, theta_L, theta_rate_L, theta_R, theta_rate_R,
+ pitch, pitch_rate, roll, roll_rate, h, h_rate]
+```
+
+位置/高度使用 m，线速度使用 m/s，角度使用 rad，角速度使用 rad/s。
+`theta = alpha - pitch` 沿用现有统一腿角坐标，不能使用 FK 原始角。
+`h` 是明确机体参考点相对选定地面基准的竖直高度，不是平均腿长。
+调用方提供测量和参考，本算法没有从编码器推断未知台阶高度的能力。
+角速度必须与模型一致；gyro 机体轴角速度不能无条件视为欧拉角导数。
+
+输入顺序固定为：
+
+```text
+[T_wL, T_wR, T_body_on_leg_L, T_body_on_leg_R, F_vertical_L, F_vertical_R]
+```
+
+前四项单位 N·m，沿用现有物理轮力矩和机体对腿力矩方向。
+后两项单位 N，为向上的绝对竖直地面反力，不是 VMC 轴向力。
+左右安装符号仍在 VMC/设备编码边界应用，不进入统一反馈矩阵。
+roll 正向与力差的关系必须在实际 A/B 模型中明确，并与 IMU 标定一致。
+
+## 反馈与前馈
+
+```text
+error     = measured - reference.state       # 姿态角误差走短弧
+feedback  = -K * error
+requested = reference.feedforward + feedback
+command   = clamp(requested, lower, upper)
+```
+
+独立 LQR 使用平衡点参考和相应支撑前馈；MPC 接入后可使用当前时刻的预测参考
+和绝对输入前馈。零误差时输出前馈，不会重复加入 mg/2。
+任意参考不一定动力学可行，调用方负责生成一致的状态/输入参考。
+零误差跟踪也不意味着有积分抗偏能力。
+
+启动时构造器校验采样周期为 0.001 s、参数有限和限幅有序。
+`Compute` 无动态分配和阻塞，无效输入或运算溢出返回 `valid=false` 的零结果。
+调用方必须检查有效性并选择回退，不能直接把无效零结果发送给电机。
+`requested` 和 `command` 均保留，便于上层观察饱和与预测执行差异。
+
+独立分量限幅不是完整执行分配：轮腿力矩、摩擦、接触和机构可达约束需要额外处理。
+竖直支撑力变成 VMC 轴向力也需要明确映射，不能直接作为轴向力发送。
+本算法仅针对相应双侧支撑线性化工作点；单侧离地/腾空不能沿用其控制权限假设。
+
+## 离线生成增益
+
+原十状态动力学推导和 CSV 已从用户提供的附件恢复，见下方模型扩展说明。
+通用求解器仍要求显式 A/B，不会从旧 K 反推模型。研发调度包含明确近似，
+此版本不附带已通过实机验证的默认增益。
+
+使用 Python numpy/scipy，提供明确坐标、工作点、完整 A/B 和离散每步 Q/R：
+
+```bash
+python3 tools/design_lqr14.py /absolute/path/model.json \
+  --output /tmp/lqr14_design.json --header /tmp/lqr14_gain.h
+```
+
+模型 JSON 字段：
+
+| 字段 | 内容 |
+| --- | --- |
+| `state_order` / `input_order` | 与脚本 `STATES` / `INPUTS` 列表逐项一致 |
+| `contact_mode` | `double_support` |
+| `input_convention` | `physical_torques_upward_vertical_forces` |
+| `model_source` | 动力学推导来源和参数版本 |
+| `height_definition` | 机体参考点和地面基准 |
+| `operating_state` / `operating_input` | 14 维、6 维线性化工作点 |
+| `sample_time_s` | `0.001` |
+| `time_domain` | `continuous` 或 `discrete` |
+| `A` / `B` | 14×14、14×6 线性扰动动力学矩阵 |
+| `Q` / `R` | 14×14 半正定、6×6 正定的对称离散代价矩阵 |
+
+连续 A/B 经精确零阶保持离散化；Q/R 始终按离散每步代价解释，
+没有把连续代价自动换算成离散代价。脚本求解离散 DARE，并验证残差和
+`A_d - B_d K` 的谱半径小于 1；失败则不输出新设计。
+工作点信息是追溯信息，脚本无法证明非线性系统确实在该点平衡，必须由模型提供者验证。
+生成头文件提供 `MakeLqr14Design()`；JSON 保留工作点、离散矩阵、P 和验证指标。
+
+## 验证与接入边界
+
+`chassis.lqr14` 使用合成耦合系统验证 C++ 闭环扰动衰减、14 个状态通道、
+角度跨界、前馈、限幅、无效参数和无动态分配。
+`chassis.lqr14_design` 验证离散求解、连续离散一致性、不可稳定模型拒绝和 CLI。
+测试夹具位于 `tests/chassis/lqr14_test_design.h`，只供测试，不能用作机器人增益。
+其来源为 `lqr14_design.py`，可用 `--write-fixture` 重建。
+
+实际接入还需要：真实动力学与惯量参数、roll/IMU 符号标定、可靠高度反馈、
+工作点/腿长增益调度验证，以及支撑力到执行器的分配。
+接管后需移除重复的腿长 P/D 与 roll 比例补偿；积分和扰动补偿应单独设计。
+下面提供了明确假设下的机器人研发模型；不声明实机稳定或 1 ms 最坏耗时保证。
+
+## 恢复原推导后的机器人模型扩展
+
+已恢复用户提供的 `tools/derive_lqr_schedule.py` 与
+`tools/data/leg_mass_properties0820.csv`。原脚本仅修正默认 C++ 输出路径以适应当前目录。
+12 个样本的旧十状态系数能在浮点误差范围内复现当前生产系数表。
+原表由连续时间 CARE 得到，本扩展则以精确 ZOH 离散化后求解 1 ms DARE，
+因此即使旧 A/B 不变，重新求出的十状态子增益也不要求等于原连续增益。
+
+`tools/derive_lqr14.py` 生成近直立、静止、不自旋、左右对称、双侧平地支撑的
+十四状态模型。上述对称工作点下采用一阶解耦的 roll/heave 扩展；
+这不是包含高速自旋、非对称支撑和碰撞的完整三维动力学。
+旧十状态 A/B 原样保留，新通道的零交叉块是此近似的边界，不能外推到那些工况。
+
+### 高度与竖直动力学
+
+`h` 明确定义为髋部中点相对共同平地的世界竖直高度，不是底盘最低点离地间隙。
+直立时 `h0 = wheel_radius + L`。CSV 中 `c(L)` 为轮心到单腿重心的距离。
+近直立伸缩时，机体重心竖直速度为 `h_dot`，腿重心速度约为 `c'(L)*h_dot`，
+轮轴高度不变。由整机竖直动量平衡得到：
+
+```text
+M_total = m_body + 2*m_leg + 2*m_wheel
+M_heave = m_body + 2*m_leg*c'(L)
+M_heave*h_ddot = F_L + F_R - M_total*g - D_h*h_dot
+```
+
+因此静态支撑力仍为整机重量，动态等效质量却不同于整机总质量，
+也不是把高度直接改名为腿长。CSV 采用分段线性重心轨迹，内部样本节点采用左右斜率平均。
+忽略未测的机构形变与高阶耦合；这是局部模型，不预测未知台阶地面。
+
+### 横滚近似与 CAD 惯量
+
+用户确认 `0.113303628 kg·m²` 是**机体 CAD 惯量**。首版采用
+`body_only_quasistatic_legs`：忽略腿轮的横滚惯性和动态载荷传递，假设竖直力差
+准静态传递到机体；暂假定该 CAD 惯量绕机体 COM 的 roll 轴。
+它不能被称为整机有效惯量，也不能把 CSV 的矢状面单腿惯量加到 roll 轴上。
+
+令 `d=-0.05327 m` 为原模型沿用的机体 COM 相对髋部的有符号竖直偏移，
+`b=0.215 m`，roll 正向为左髋升高；该约定仍需与实机 IMU 对齐。
+在平衡工作点附近：
+
+```text
+I_body_roll*roll_ddot = b*(delta_F_L-delta_F_R)
+                     + m_body*g*d*roll - D_roll*roll_dot
+```
+
+`d<0` 对应此模型下的恢复力矩；roll 模型没有遗漏已知的重心偏移项。
+超出近直立范围、伸腿引起的腿轮惯性、轮胎侧向约束和大 yaw-rate 耦合需要后续扩展。
+当前参数文件明确标为 `unverified_development_only`，包括起始 Q/R 调参值，
+不能把数学稳定性当成模型精度或实机稳定性证明。
+
+### 生成与 C++ 调度
+
+```bash
+python3 tools/derive_lqr14.py --output-dir build/lqr14-development
+```
+
+输出 `lqr14_schedule.json`（完整 A/B、Q/R、工作点、K、P、来源哈希与诊断）和
+`lqr14_development.h`（12 个 6×14 增益）。先通过所有工作点和 401 个密集点、
+重心插值节点两侧的离散稳定性检查，再输出文件。
+
+`Lqr14GainSchedule` 在构造时复制并验证这十二个工作点，按平均等效腿长作线性插值，
+不在周期内求解 Riccati 方程，也不分配内存。超出 CSV 的 0.15362–0.31101 m
+范围会夹紧并返回 `clamped=true`；这不代表对 0.15/0.33 m 已完成模型验证。
+生成表只由研发测试引用，不自动接入生产 `BalanceController`。
+
+示例：在启动时取 `Lqr14DevelopmentSamples()` 构造调度器并设置物理限幅；
+每周期取 `Evaluate(mean_leg_length)` 的增益、当前高度参考和整机重量前馈，
+交给 `UnifiedLqr14` 计算。生成表的静态初始化应在启动时完成。
+本次没有增加高度估计器、MPC 或电机切换，也没有把旧腿长 PID 与新力反馈叠加。
+
+新增 `chassis.lqr14_robot_model` 和 `chassis.lqr14_robot_schedule` 回归覆盖旧表复现、
+动量方程线性化、左右对称性、全部工作点及插值稳定性、受限小扰动恢复、
+C++ 反馈方向和无动态分配。需要 numpy/scipy 时才生成这些研发测试。
