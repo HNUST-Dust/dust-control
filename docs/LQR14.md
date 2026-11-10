@@ -251,3 +251,9 @@ ROS `ChassisTelemetry` 升级为 version 2：新增左右髋高、平均髋高�
 
 输出关闭时也发布高度与支撑估计，可先核对传感器。机体 CAD 惯量的参考轴、
 IMU roll 正向以及支撑估计准确度仍需实测确认；未验证前不进行自旋或台阶测试。
+
+启动裸 CMake 构建可使用 `tools/run_lqr14.sh CONFIG_DIRECTORY [BUILD_DIRECTORY]`，
+脚本 source ROS 并设置当前构建的动态类型库路径，不修改配置、不自动提权。
+例如在 NUC 项目目录执行 `sudo ./tools/run_lqr14.sh .cache/lqr14-observe`，
+该配置明确关闭电机输出。实时启动所需的 sudo 密码在用户终端输入，不发给代理。
+调试路径默认 `build/lqr14-hardware`，原 `build/production` 保持不变。

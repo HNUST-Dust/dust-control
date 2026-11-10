@@ -21,6 +21,8 @@ with tempfile.TemporaryDirectory() as temporary:
         module['thread'] = {'cpu': None, 'priority': 0}
     config.write_text(yaml.safe_dump(app))
     env = dict(os.environ, ROS_LOCALHOST_ONLY='1', ROS_DOMAIN_ID='174', ROS_LOG_DIR=temporary)
+    # 裸 CMake 构建尚未安装 overlay；dlopen 应使用当前构建的消息库。
+    env['LD_LIBRARY_PATH'] = str(pathlib.Path(node).resolve().parent) + os.pathsep + env.get('LD_LIBRARY_PATH', '')
     process = subprocess.Popen([node, '--ros-args', '-p', f'config_directory:={directory}'],
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
     try:
