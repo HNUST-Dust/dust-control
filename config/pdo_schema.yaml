@@ -19,12 +19,12 @@ regions:
   hi91: {offset: 120, bytes: 60}
 hi91: {page_type: 0x44, fields_offset: 5, fields_bytes: 52}
 routes:
-  - {bus: 0, command: 0x200, feedback: 0x201}
-  - {bus: 0, command: 0x001, feedback: 0x011}
-  - {bus: 0, command: 0x002, feedback: 0x012}
+  - {bus: 2, command: 0x200, feedback: 0x201}
+  - {bus: 2, command: 0x001, feedback: 0x011}
+  - {bus: 2, command: 0x002, feedback: 0x012}
   - {bus: 3, command: 0x200, feedback: 0x201}
   - {bus: 3, command: 0x000, feedback: 0x010}
   - {bus: 3, command: 0x003, feedback: 0x013}
 # Fixed startup values at object 0x2100, subindices 4..22.
 # Byte-identical to the existing DTG1 startup contract.
-startup_values: [0, 0, 3, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+startup_values: [0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]

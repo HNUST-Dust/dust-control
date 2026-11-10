@@ -28,7 +28,7 @@ motors:
   freshness_deadline_us: 3000
 - name: right_wheel
   adapter: base
-  bus: 0
+  bus: 2
   protocol: dji
   command_id: 512
   feedback_ids:
@@ -38,7 +38,7 @@ motors:
   freshness_deadline_us: 3000
 - name: right_joint_b
   adapter: base
-  bus: 0
+  bus: 2
   protocol: dm
   command_id: 1
   feedback_ids:
@@ -46,7 +46,7 @@ motors:
   freshness_deadline_us: 3000
 - name: right_joint_d
   adapter: base
-  bus: 0
+  bus: 2
   protocol: dm
   command_id: 2
   feedback_ids:

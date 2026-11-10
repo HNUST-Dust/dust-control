@@ -77,7 +77,7 @@ def generate(schema, output):
     lines += ["struct CanRoute { uint8_t bus; uint16_t command; uint16_t feedback; };",
               "inline constexpr std::array<CanRoute, 6> kRoutes{{"]
     for route in routes:
-        if set(route) != {"bus", "command", "feedback"} or route["bus"] not in (0, 3) or any(type(route[k]) is not int or not 0 <= route[k] <= 0x7ff for k in ("command", "feedback")):
+        if set(route) != {"bus", "command", "feedback"} or route["bus"] not in (2, 3) or any(type(route[k]) is not int or not 0 <= route[k] <= 0x7ff for k in ("command", "feedback")):
             raise ValueError("Invalid motor route")
         key = route["bus"], route["command"]
         if key in seen:
@@ -88,6 +88,9 @@ def generate(schema, output):
     startup = data["startup_values"]
     if not isinstance(startup, list) or len(startup) != 19 or any(type(value) is not int or not 0 <= value <= 0xffffffff for value in startup):
         raise ValueError("Invalid DTG1 startup SDO values")
+    counts = [sum(route["bus"] == bus for route in routes) for bus in range(4)]
+    if startup != [0, 0, *counts, *([0] * 12), 1]:
+        raise ValueError("DTG1 startup CAN capacities must match fixed motor routes")
     lines.append("inline constexpr std::array<uint32_t, 19> kStartupValues{" + ", ".join(str(value) + "U" for value in startup) + "};")
     lines += ["}  // namespace dust_control::ethercat::pdo", ""]
     Path(output).parent.mkdir(parents=True, exist_ok=True)

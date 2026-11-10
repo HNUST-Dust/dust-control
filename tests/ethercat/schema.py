@@ -29,6 +29,9 @@ with tempfile.TemporaryDirectory() as directory:
         lambda d: d["tx"]["entries"].pop(),
         lambda d: d["regions"]["hi91"].update(offset=170),
         lambda d: d["routes"].__setitem__(5, d["routes"][0]),
+        lambda d: d["routes"][0].update(bus=0),
+        lambda d: d["startup_values"].__setitem__(2, 3),
+        lambda d: d["startup_values"].__setitem__(4, 0),
         lambda d: d.update(unrecognized=1),
     ):
         changed = copy.deepcopy(baseline)

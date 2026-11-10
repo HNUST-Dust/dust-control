@@ -27,3 +27,8 @@ build/headless/dust_ethercat_layout config/dust_control.yaml --json
 
 IgH 启动写入0x2100的签名、周期、20 ms看门狗和固定启动值，数值与清理前一致。
 同步方式仍为 FreeRun，映射注册与域交换继续由唯一主站线程拥有。
+
+2026-11-10 更换 adapter 板后，当前固定接线为左轮/左 B/D 使用 CAN3，
+右轮/右 B/D 使用 CAN2。反馈容量 `[CAN0,CAN1,CAN2,CAN3]=[0,0,3,3]`。
+电机 YAML、schema routes、启动 SDO 与 MCU 的白名单/固定路由必须一起更新。
+旧板 CAN2 故障记录不适用于新板，不通过放宽握手或禁用保护来迁就旧固件。
