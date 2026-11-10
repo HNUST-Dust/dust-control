@@ -12,11 +12,13 @@ probe = sys.argv[1]
 with tempfile.TemporaryDirectory() as directory:
     directory = Path(directory)
     original = (ROOT/"config/dust_control.yaml").read_bytes()
-    for mode in ("observe", "shadow", "active"):
+    for mode in ("observe", "shadow", "active", "deploy"):
         destination = directory/mode
         app, chassis = prepare(ROOT/"config", destination, mode)
         assert app["execution"]["enable_output"] == (mode != "observe")
-        assert chassis["balance"]["lqr14"]["shadow_only"] == (mode != "active")
+        assert chassis["balance"]["lqr14"]["shadow_only"] == (mode not in ("active", "deploy"))
+        assert chassis["balance"]["max_body_speed_mps"] == (1.6 if mode == "deploy" else .3)
+        assert chassis["balance"]["max_turn_wheel_speed_mps"] == (2.7 if mode == "deploy" else .215)
         subprocess.run([probe, str(destination)], check=True, capture_output=True)
         try:
             prepare(ROOT/"config", destination, mode)

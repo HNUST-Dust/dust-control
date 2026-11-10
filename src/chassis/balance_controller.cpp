@@ -459,9 +459,7 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
         input.leg.right.length < config_.min_commanded_leg_length ||
         input.leg.left.length > config_.max_commanded_leg_length ||
         input.leg.right.length > config_.max_commanded_leg_length ||
-        std::abs(height.ground_mismatch_m) > 0.015 ||
-        std::abs(input.imu.yaw_rate_rad_s) > 1.0 ||
-        std::abs(tracking.speed_error + target_body_speed_) > 0.3) {
+        std::abs(height.ground_mismatch_m) > 0.015) {
         diag.status = Lqr14Status::kOutsideModel;
         lqr14_support_elapsed_s_ = 0.0;
         lqr14_height_initialized_ = false;

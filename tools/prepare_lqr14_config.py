@@ -18,11 +18,12 @@ def prepare(source, output, mode, simulate=False, non_realtime=False):
     app["execution"]["simulate"] = simulate
     app["execution"]["realtime"] = not (simulate or non_realtime)
     app["execution"]["enable_output"] = mode != "observe"
-    chassis["balance"]["lqr14"] = {"enabled": True, "shadow_only": mode != "active", "roll_sign": 1.0}
+    chassis["balance"]["lqr14"] = {"enabled": True, "shadow_only": mode not in ("active", "deploy"), "roll_sign": 1.0}
     chassis["balance"]["min_leg_length_m"] = .16
     chassis["balance"]["max_leg_length_m"] = .30
-    chassis["balance"]["max_body_speed_mps"] = .3
-    chassis["balance"]["max_turn_wheel_speed_mps"] = .215
+    if mode != "deploy":
+        chassis["balance"]["max_body_speed_mps"] = .3
+        chassis["balance"]["max_turn_wheel_speed_mps"] = .215
     chassis["stool"]["target_leg_length_m"] = .20
     output.mkdir(parents=True, exist_ok=True)
     for path in source.glob("*.yaml"):
@@ -36,7 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=Path(__file__).resolve().parents[1]/"config")
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--mode", choices=("observe", "shadow", "active"), default="observe")
+    parser.add_argument("--mode", choices=("observe", "shadow", "active", "deploy"), default="observe")
     parser.add_argument("--simulate", action="store_true")
     parser.add_argument("--non-realtime", action="store_true")
     args = parser.parse_args()

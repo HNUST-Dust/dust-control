@@ -137,6 +137,10 @@ void Integration() {
     c::BalanceController other(4.7, other_config);
     other.ResetForEnable();
     SameActuators(out, Warm(other, input));
+    auto moving = input;
+    moving.imu.yaw_rate_rad_s = 2.0;
+    out = Warm(controller, moving);
+    assert(out.lqr14.status == c::Lqr14Status::kActive);
     auto unloaded = input;
     unloaded.measured_support_force_n.left = 0;
     out = Warm(controller, unloaded, 1);
