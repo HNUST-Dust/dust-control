@@ -58,3 +58,33 @@ NUC 的 `build/lqr14-hardware` 包含真实 IgH 和 ROS 2，28 项 CTest 全部�
 
 下一步需确认新板型号、板载 IMU 型号及 SPI3/CS=PC21/DRDY=PC18 接线，
 按真实硬件适配 BSP/驱动后重新做输出关闭的链路预检，随后再进行支撑条件下的控制验收。
+
+## 无板载 IMU 配置与预检通过
+
+用户随后确认新板没有焊接板载 IMU，并同意暂时跳过。上节为首次烧录的历史结果，
+其映射阻塞现已解决。固件提交 `3daaa95` 增加显式配置
+`config/no_onboard_imu.conf`，关闭板载采集和加热，并允许该硬件缺省板载 IMU。
+固定 PDO 的 28 字节板载 IMU 区域保留并填零；CAN 容量、签名和布局尺寸校验保留，
+不伪造 IMU 就绪状态。机体姿态继续使用外接 HI91。
+
+- 构建目录：`build/can23-noimu-20261110`，额外传入
+  `-DEXTRA_CONF_FILE=config/no_onboard_imu.conf`。
+- 已烧录并读回校验 191440 字节。
+- HEX SHA256：`bc419557f67d8acd0b7684b4ed173a825d0d75c86d4fb8cf2865560a890afeca`。
+- ELF SHA256：`31daec6f17f6bf86d6986a72e4e5482b584813ce50613d6c805d578cc92584ee`。
+- 严格配置仍拒绝缺少 IMU；可选配置允许缺省 IMU，但仍拒绝缺少 CAN2 能力、
+  错误宽度或签名。固件边界和文档链接检查通过。
+
+NUC 使用 `.cache/lqr14-observe-can23`，电机输出关闭，完成约 8 秒实时观测：
+
+- 收到 7825 个遥测样本，外接 HI91 和左右电机反馈均有效，电机过期掩码为 0。
+- 240 字节域数据中板载 IMU 区域全零，EtherCAT adapter 初始化成功。
+- 无控制周期遗漏，观测到最大控制执行时间约 31.6 us。
+- 主动 SIGINT 停止；既有停止路径报告 `EtherCAT master stopped` 并返回 1，
+  此处不是启动失败。日志和摘要位于 NUC 的
+  `.cache/lqr14-noimu-observe.log`、`.cache/lqr14-noimu-observe-summary.json`。
+
+用户确认机器人目前处于悬空或收纳姿态。观测腿长约 335–338 mm，超过模型最大
+311.01 mm，高度投影无效，尚不具备 LQR14 闭环验收条件。电机输出始终关闭，
+未验证实机平衡效果。下一步需在平地支撑好机器人、保持遥控失能，确认腿长、
+高度投影和姿态符号有效后，再进行闭环测试。
