@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <hardware/motors/motor_types.hpp>
 
-#include "leg_kinematics.h"
+#include "chassis/leg/leg_kinematics.h"
 
 namespace dust_control::chassis {
 

@@ -3,7 +3,7 @@
  */
 
 /**
- * @file src/chassis/body_motion_estimator.h
+ * @file src/chassis/estimation/body_motion_estimator.h
  * @ingroup wbr_modules
  * @brief 根据底盘传感器数据估计机体运动状态。
  * @details 由控制线程同步调用，不创建线程或执行设备 I/O。

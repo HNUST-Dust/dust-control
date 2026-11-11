@@ -1,15 +1,15 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
-#include "balance_controller.h"
+#include "chassis/balance/balance_controller.h"
 #include "chassis_config.h"
-#include "chassis_input_reader.h"
-#include "chassis_output_policy.h"
-#include "chassis_state_machine.h"
-#include "climb_stairs_controller.h"
-#include "flight_controller.h"
-#include "jump_controller.h"
-#include "recovery_controller.h"
-#include "support_force_estimator.h"
+#include "chassis/control/chassis_input_reader.h"
+#include "chassis/control/chassis_output_policy.h"
+#include "chassis/control/chassis_state_machine.h"
+#include "chassis/actions/climb_stairs_controller.h"
+#include "chassis/actions/flight_controller.h"
+#include "chassis/actions/jump_controller.h"
+#include "chassis/actions/recovery_controller.h"
+#include "chassis/estimation/support_force_estimator.h"
 
 namespace dust_control::chassis {
 // 控制周期的同步执行入口，不依赖线程、硬件传输、全局通道或遥测。

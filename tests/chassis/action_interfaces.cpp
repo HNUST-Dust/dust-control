@@ -8,9 +8,9 @@
 #include <string_view>
 
 #include "chassis/chassis_types.h"
-#include "chassis/climb_stairs_controller.h"
-#include "chassis/jump_controller.h"
-#include "chassis/recovery_controller.h"
+#include "chassis/actions/climb_stairs_controller.h"
+#include "chassis/actions/jump_controller.h"
+#include "chassis/actions/recovery_controller.h"
 
 namespace chassis = dust_control::chassis;
 namespace {

@@ -5,7 +5,7 @@
 
 #include "chassis_config.h"
 #include "chassis_types.h"
-#include "flight_controller.h"
+#include "chassis/actions/flight_controller.h"
 
 namespace dust_control::chassis {
 enum class JumpPhase : uint8_t {

@@ -31,7 +31,7 @@ balance:
 
 ```sh
 OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir .cache/lqr14-generated
-cp .cache/lqr14-generated/lqr14_development.h src/chassis/lqr14_gain_samples.h
+cp .cache/lqr14-generated/lqr14_development.h src/chassis/balance/generated/lqr14_gain_samples.h
 cmake --build build/lqr14-hardware -j4
 ctest --test-dir build/lqr14-hardware --output-on-failure
 tools/run_lqr14.sh .cache/lqr14-deployed

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "lqr14_schedule.h"
+#include "chassis/balance/lqr14_schedule.h"
 
 #include <algorithm>
 #include <cmath>

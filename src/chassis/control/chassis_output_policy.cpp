@@ -2,13 +2,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "chassis_output_policy.h"
+#include "chassis/control/chassis_output_policy.h"
 
 #include <algorithm>
 #include <cmath>
 
 #include "chassis_config.h"
-#include "gas_spring.h"
+#include "chassis/leg/gas_spring.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。

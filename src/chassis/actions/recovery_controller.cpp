@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include "recovery_controller.h"
+#include "chassis/actions/recovery_controller.h"
 
 #include <algorithm>
 #include <cmath>
 
 #include "chassis_config.h"
-#include "leg_joint_coordinates.h"
+#include "chassis/leg/leg_joint_coordinates.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "chassis/balance_controller.h"
+#include "chassis/balance/balance_controller.h"
 
 namespace chassis = dust_control::chassis;
 namespace {

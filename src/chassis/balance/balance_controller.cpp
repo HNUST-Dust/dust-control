@@ -1,15 +1,15 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include "balance_controller.h"
+#include "chassis/balance/balance_controller.h"
 
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
-#include "balance_lqr14.h"
+#include "chassis/balance/balance_lqr14.h"
 #include "chassis_config.h"
-#include "leg_vmc.h"
-#include "lqr14_gain_samples.h"
+#include "chassis/leg/leg_vmc.h"
+#include "chassis/balance/generated/lqr14_gain_samples.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。

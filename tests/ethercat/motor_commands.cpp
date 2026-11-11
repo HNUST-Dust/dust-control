@@ -3,7 +3,7 @@
 #include <cassert>
 
 #include "../support/motor_fixture.hpp"
-#include "chassis/chassis_output_policy.h"
+#include "chassis/control/chassis_output_policy.h"
 #include "concurrency/realtime_loop.hpp"
 #include "hardware/ethercat/device_pdo.hpp"
 #include "hardware/ethercat/session.hpp"

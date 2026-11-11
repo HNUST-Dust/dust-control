@@ -5,8 +5,8 @@
 #include <thread>
 #include <vector>
 
-#include "chassis_controller.h"
-#include "chassis_observation.hpp"
+#include "chassis/control/chassis_controller.h"
+#include "chassis/runtime/chassis_observation.hpp"
 #include "concurrency/thread.hpp"
 #include "hardware/motors/motor_config.hpp"
 

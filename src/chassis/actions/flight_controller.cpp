@@ -1,13 +1,13 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include "flight_controller.h"
+#include "chassis/actions/flight_controller.h"
 
 #include <algorithm>
 #include <cmath>
 
 #include "chassis_config.h"
-#include "leg_vmc.h"
-#include "lqr14_action_gain.h"
+#include "chassis/leg/leg_vmc.h"
+#include "chassis/balance/lqr14_action_gain.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。

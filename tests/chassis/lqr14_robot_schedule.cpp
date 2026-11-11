@@ -4,7 +4,7 @@
 #include <limits>
 #include <stdexcept>
 
-#include "chassis/lqr14_schedule.h"
+#include "chassis/balance/lqr14_schedule.h"
 #include "lqr14_development.h"
 
 namespace chassis = dust_control::chassis;

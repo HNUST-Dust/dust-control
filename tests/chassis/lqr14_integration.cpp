@@ -2,10 +2,10 @@
 #include <cassert>
 #include <cmath>
 
-#include "chassis/balance_controller.h"
-#include "chassis/balance_lqr14.h"
-#include "chassis/leg_joint_coordinates.h"
-#include "chassis/leg_vmc.h"
+#include "chassis/balance/balance_controller.h"
+#include "chassis/balance/balance_lqr14.h"
+#include "chassis/leg/leg_joint_coordinates.h"
+#include "chassis/leg/leg_vmc.h"
 
 namespace c = dust_control::chassis;
 namespace {

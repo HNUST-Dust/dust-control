@@ -3,8 +3,8 @@
 #include <cmath>
 
 #include "../support/motor_fixture.hpp"
-#include "chassis/balance_controller.h"
-#include "chassis/chassis_controller.h"
+#include "chassis/balance/balance_controller.h"
+#include "chassis/control/chassis_controller.h"
 #include "hardware/motors/motor_protocol.hpp"
 #define CHECK(condition) assert(condition)
 int main() {

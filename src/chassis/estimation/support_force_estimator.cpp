@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include "support_force_estimator.h"
+#include "chassis/estimation/support_force_estimator.h"
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
@@ -8,8 +8,8 @@
 #include <cmath>
 
 #include "chassis_config.h"
-#include "gas_spring.h"
-#include "leg_joint_coordinates.h"
+#include "chassis/leg/gas_spring.h"
+#include "chassis/leg/leg_joint_coordinates.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。

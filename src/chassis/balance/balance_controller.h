@@ -4,10 +4,10 @@
 
 #include <optional>
 
-#include "body_motion_estimator.h"
+#include "chassis/estimation/body_motion_estimator.h"
 #include "chassis_config.h"
 #include "chassis_types.h"
-#include "lqr14_schedule.h"
+#include "chassis/balance/lqr14_schedule.h"
 
 namespace dust_control::chassis {
 

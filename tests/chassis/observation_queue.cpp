@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <thread>
 
-#include "chassis/chassis_observation.hpp"
+#include "chassis/runtime/chassis_observation.hpp"
 using namespace dust_control::chassis;
 void Require(bool ok) {
     if (!ok) {

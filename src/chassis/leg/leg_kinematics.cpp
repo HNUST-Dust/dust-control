@@ -1,11 +1,11 @@
 /**
- * @file src/chassis/leg_kinematics.cpp
+ * @file src/chassis/leg/leg_kinematics.cpp
  * @ingroup wbr_modules
  * @brief 实现五连杆腿部的正逆运动学与雅可比计算。
  * @details 由主机控制线程按冻结输入调用；硬件采集和执行器输出通过显式接口提供。
  */
 
-#include "leg_kinematics.h"
+#include "chassis/leg/leg_kinematics.h"
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
@@ -13,7 +13,7 @@
 #include <cmath>
 
 #include "chassis_config.h"
-#include "leg_joint_coordinates.h"
+#include "chassis/leg/leg_joint_coordinates.h"
 
 namespace {
 

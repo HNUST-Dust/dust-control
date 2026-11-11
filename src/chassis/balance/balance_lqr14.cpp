@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "balance_lqr14.h"
+#include "chassis/balance/balance_lqr14.h"
 
 #include <algorithm>
 #include <cmath>

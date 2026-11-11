@@ -1,13 +1,13 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include "chassis_input_reader.h"
+#include "chassis/control/chassis_input_reader.h"
 
 #include <cmath>
 
-#include "balance_lqr14.h"
+#include "chassis/balance/balance_lqr14.h"
 #include "chassis_config.h"
-#include "leg_joint_coordinates.h"
-#include "leg_kinematics.h"
+#include "chassis/leg/leg_joint_coordinates.h"
+#include "chassis/leg/leg_kinematics.h"
 
 namespace dust_control::chassis {
 using namespace chassis_config;

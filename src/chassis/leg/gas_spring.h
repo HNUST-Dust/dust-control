@@ -5,8 +5,8 @@
 #include <cmath>
 
 #include "chassis_types.h"
-#include "leg_joint_coordinates.h"
-#include "leg_kinematics.h"
+#include "chassis/leg/leg_joint_coordinates.h"
+#include "chassis/leg/leg_kinematics.h"
 
 namespace dust_control::chassis {
 

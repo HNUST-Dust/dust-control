@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "chassis/chassis_state_machine.h"
+#include "chassis/control/chassis_state_machine.h"
 
 namespace chassis = dust_control::chassis;
 namespace {

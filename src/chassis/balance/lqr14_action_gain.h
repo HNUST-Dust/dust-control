@@ -2,7 +2,7 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
-#include "lqr14_gain_samples.h"
+#include "chassis/balance/generated/lqr14_gain_samples.h"
 namespace dust_control::chassis {
 // Actions use only the original state subset; all added state/input channels are masked.
 inline void EvaluateLqr14ActionGain(double length, double gain[4][10]) {

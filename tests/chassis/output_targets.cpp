@@ -3,7 +3,7 @@
 
 #include "../support/motor_fixture.hpp"
 #include "chassis_config.h"
-#include "chassis_output_policy.h"
+#include "chassis/control/chassis_output_policy.h"
 #include "hardware/motors/motor_protocol.hpp"
 
 int main() {

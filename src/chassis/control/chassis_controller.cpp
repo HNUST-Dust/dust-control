@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "chassis_controller.h"
+#include "chassis/control/chassis_controller.h"
 
 #include <algorithm>
 

@@ -3,7 +3,7 @@
 
 #include <array>
 
-#include "unified_lqr14.h"
+#include "chassis/balance/unified_lqr14.h"
 
 namespace dust_control::chassis {
 

@@ -2,8 +2,8 @@
 #include <cassert>
 #include <cmath>
 #include <limits>
-#include "chassis/lqr14_action_gain.h"
-#include "chassis/lqr14_schedule.h"
+#include "chassis/balance/lqr14_action_gain.h"
+#include "chassis/balance/lqr14_schedule.h"
 int main() {
     using namespace dust_control::chassis;
     const Lqr14GainSchedule schedule(Lqr14DevelopmentSamples());

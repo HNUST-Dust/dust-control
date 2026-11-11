@@ -3,13 +3,13 @@
  */
 
 /**
- * @file src/chassis/leg_vmc.cpp
+ * @file src/chassis/leg/leg_vmc.cpp
  * @ingroup wbr_modules
  * @brief 实现腿部虚拟模型控制的力矩映射。
  * @details 由主机控制线程按冻结输入调用；硬件采集和执行器输出通过显式接口提供。
  */
 
-#include "leg_vmc.h"
+#include "chassis/leg/leg_vmc.h"
 
 #include <Eigen/Core>
 #include <algorithm>

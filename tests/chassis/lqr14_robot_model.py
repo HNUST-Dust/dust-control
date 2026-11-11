@@ -24,7 +24,7 @@ class RobotModelTests(unittest.TestCase):
         cls.designs = [design.synthesize(m) for m in cls.models]
 
     def test_committed_runtime_schedule(self):
-        text = (ROOT/"src/chassis/lqr14_gain_samples.h").read_text()
+        text = (ROOT/"src/chassis/balance/generated/lqr14_gain_samples.h").read_text()
         rows = re.findall(r"value\[\d+\]\.gain\s*<<([^;]+);", text)
         self.assertEqual(len(rows), 12)
         for row, result in zip(rows, self.designs):

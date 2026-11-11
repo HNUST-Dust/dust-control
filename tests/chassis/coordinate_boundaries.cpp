@@ -7,11 +7,11 @@
 #include <limits>
 #include <string_view>
 
-#include "chassis/chassis_input_reader.h"
-#include "chassis/chassis_output_policy.h"
-#include "chassis/gas_spring.h"
-#include "chassis/leg_joint_coordinates.h"
-#include "chassis/leg_vmc.h"
+#include "chassis/control/chassis_input_reader.h"
+#include "chassis/control/chassis_output_policy.h"
+#include "chassis/leg/gas_spring.h"
+#include "chassis/leg/leg_joint_coordinates.h"
+#include "chassis/leg/leg_vmc.h"
 
 namespace chassis = dust_control::chassis;
 namespace {

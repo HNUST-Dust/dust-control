@@ -3,7 +3,7 @@
  */
 
 /**
- * @file src/chassis/leg_vmc.h
+ * @file src/chassis/leg/leg_vmc.h
  * @ingroup wbr_modules
  * @brief 实现腿部虚拟模型控制的力矩映射。
  * @details 由控制线程同步调用，不创建线程或执行设备 I/O。
@@ -12,7 +12,7 @@
 #pragma once
 
 #include "chassis_config.h"
-#include "leg_kinematics.h"
+#include "chassis/leg/leg_kinematics.h"
 
 namespace dust_control::chassis {
 

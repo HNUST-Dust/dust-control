@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <iostream>
 
-#include "balance_controller.h"
+#include "chassis/balance/balance_controller.h"
 int main() {
     dust_control::chassis::BalanceController controller;
     dust_control::chassis::ChassisCycleInput input{};

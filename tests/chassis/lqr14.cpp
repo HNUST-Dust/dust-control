@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 #include "chassis/chassis_config.h"
-#include "chassis/unified_lqr14.h"
+#include "chassis/balance/unified_lqr14.h"
 #include "lqr14_test_design.h"
 
 namespace chassis = dust_control::chassis;

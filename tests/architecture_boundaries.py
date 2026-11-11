@@ -7,8 +7,8 @@ root = Path(sys.argv[1])
 violations = []
 rules = {
     "src/chassis": ("hardware/", "runtime/"),
-    "src/gimbal": ("chassis/chassis_runtime.hpp", "ui/ui_runtime.hpp"),
-    "src/ui": ("chassis/chassis_runtime.hpp", "gimbal/gimbal_runtime.hpp"),
+    "src/gimbal": ("chassis/runtime/chassis_runtime.hpp", "ui/ui_runtime.hpp"),
+    "src/ui": ("chassis/runtime/chassis_runtime.hpp", "gimbal/gimbal_runtime.hpp"),
     "src/hardware/ethercat": ("chassis/",),
     **{f"src/hardware/{group}": ("hardware/ethercat/", "chassis/", "runtime/")
        for group in ("motors", "remote", "imu")},
@@ -35,7 +35,7 @@ for directory, forbidden in rules.items():
             ):
                 violations.append(f"{path.relative_to(root)}:{number}: chassis runtime owns startup dependency")
             if (directory == "src/chassis" and not is_chassis_runtime and match
-                    and match[1].endswith("chassis_runtime.hpp")):
+                    and match[1].endswith("chassis/runtime/chassis_runtime.hpp")):
                 violations.append(f"{path.relative_to(root)}:{number}: algorithm includes business runtime")
             if (not is_chassis_runtime and match and match[1].startswith(forbidden)
                     and not (directory == "src/chassis" and match[1] in chassis_data_headers)):

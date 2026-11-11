@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include "chassis/chassis_runtime.hpp"
+#include "chassis/runtime/chassis_runtime.hpp"
 #include "dust_control_config.hpp"
 #include "gimbal/gimbal_runtime.hpp"
 #include "hardware/ethercat/master.hpp"

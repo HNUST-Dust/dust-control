@@ -3,13 +3,13 @@
  */
 
 /**
- * @file src/chassis/body_motion_estimator.cpp
+ * @file src/chassis/estimation/body_motion_estimator.cpp
  * @ingroup wbr_modules
  * @brief 根据底盘传感器数据估计机体运动状态。
  * @details 由主机控制线程按冻结输入调用；硬件采集和执行器输出通过显式接口提供。
  */
 
-#include "body_motion_estimator.h"
+#include "chassis/estimation/body_motion_estimator.h"
 
 #include <Eigen/Core>
 

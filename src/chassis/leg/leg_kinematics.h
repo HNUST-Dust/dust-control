@@ -1,5 +1,5 @@
 /**
- * @file src/chassis/leg_kinematics.h
+ * @file src/chassis/leg/leg_kinematics.h
  * @ingroup wbr_modules
  * @brief 实现五连杆腿部的正逆运动学与雅可比计算。
  * @details 由控制线程同步调用，不创建线程或执行设备 I/O。
