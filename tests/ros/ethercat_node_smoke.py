@@ -36,4 +36,29 @@ with tempfile.TemporaryDirectory() as temporary:
         if process.poll() is None:
             process.kill()
             process.communicate()
-print('ROS node loads EtherCAT schema in offline mode and shuts down cleanly')
+    # Without an override, resolve config relative to the caller's working directory.
+    working = directory / 'working'
+    default_config = working / 'config'
+    default_config.mkdir(parents=True)
+    for path in directory.glob('*.yaml'):
+        shutil.copy(path, default_config / path.name)
+    process = subprocess.Popen([str(pathlib.Path(node).resolve())], cwd=working,
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+    try:
+        time.sleep(2)
+        assert process.poll() is None, process.communicate()[0]
+        process.send_signal(signal.SIGINT)
+        output, _ = process.communicate(timeout=10)
+        assert process.returncode == 0, output
+        assert str(default_config) in output and 'offline' in output, output
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+    missing = directory / 'missing'
+    missing.mkdir()
+    failure = subprocess.run([str(pathlib.Path(node).resolve())], cwd=missing,
+                             capture_output=True, text=True, env=env, timeout=10)
+    assert failure.returncode != 0
+    assert str(missing / 'config') in failure.stdout + failure.stderr
+print('Explicit/default configuration and missing-config failure passed; offline only')

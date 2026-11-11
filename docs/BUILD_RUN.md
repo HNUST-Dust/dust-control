@@ -69,11 +69,12 @@ Orb模拟应明确simulate:true、realtime:false、enable_output:false。
 ```bash
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 run dust_control dust_control_node --ros-args \
-  -p "config_directory:=$PWD/config"
+ros2 run dust_control dust_control_node
 ```
 
-显式使用源码config目录，避免与install中复制的模板混淆。
+默认使用当前工作目录下的config，因此应从项目根目录启动。
+需要其他配置时可显式覆盖：`--ros-args -p config_directory:=/其他配置目录`。
+默认配置不存在则明确报错，不回退到安装目录中的另一份配置。
 程序在前台持续运行，不返回提示符是正常的。
 通信就绪后，按原遥控流程操作；停止前先遥控失能，再Ctrl+C。
 本次不会自动复制旧.cache/lqr14-deployed中的现场参数；如需保留，请人工核对合入config。

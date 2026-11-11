@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <concurrency/realtime_loop.hpp>
 #include <stdexcept>
 
@@ -55,7 +56,8 @@ std::string DustControlNode::DeclareConfigurationDirectory() {
     descriptor.description =
         "Directory containing dust_control.yaml and module configuration";
     const auto directory =
-        declare_parameter<std::string>("config_directory", "", descriptor);
+        declare_parameter<std::string>(
+            "config_directory", (std::filesystem::current_path() / "config").string(), descriptor);
     if (directory.empty()) {
         throw std::invalid_argument("Missing config_directory");
     }

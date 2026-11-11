@@ -22,7 +22,7 @@ colcon build --paths . \
   --build-base build/ros --install-base install --merge-install \
   --cmake-args --preset ros-orb
 source install/setup.bash
-ros2 run dust_control dust_control_node --ros-args -p "config_directory:=$PWD/config"
+ros2 run dust_control dust_control_node
 ```
 
 上述是Orb离线构建；运行前明确设置模拟配置并保持输出关闭。
