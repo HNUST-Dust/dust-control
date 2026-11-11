@@ -18,7 +18,7 @@ schema 4 的 `config/dust_control.yaml`，只配置执行选项、主站、从�
 
 ```bash
 source /opt/ros/humble/setup.bash
-colcon --log-base logs/colcon build --paths . \
+colcon build --paths . \
   --build-base build/ros --install-base install --merge-install \
   --cmake-args -GNinja -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF -DBUILD_TESTING=ON
 source install/setup.bash

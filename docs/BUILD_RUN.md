@@ -8,7 +8,7 @@
 | config/ | 当前运行配置，随源码管理 |
 | build/ros/ | ROS编译中间产物 |
 | install/ | 程序、库、自定义消息和环境文件 |
-| logs/ | 编译日志及试验记录 |
+| log/ | 编译日志及试验记录 |
 
 从仓库根目录执行命令。依赖Linux、CMake≥3.21、C++20、Ninja、Eigen3、yaml-cpp、
 Python3/PyYAML、ROS2 Humble和colcon；增益生成还需NumPy/SciPy。
@@ -20,7 +20,7 @@ Orb离线开发：
 
 ```bash
 source /opt/ros/humble/setup.bash
-colcon --log-base logs/colcon build --paths . \
+colcon build --paths . \
   --build-base build/ros --install-base install --merge-install \
   --cmake-args -GNinja -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF \
     -DBUILD_TESTING=ON -DDUST_BUILD_MPC=OFF -DDUST_BUILD_TOOLS=OFF
@@ -38,9 +38,9 @@ NUC实机构建使用同一命令，将DUST_BUILD_IGH改为ON。
 
 ```bash
 source install/setup.bash
-colcon --log-base logs/colcon test --build-base build/ros --install-base install \
+colcon test --build-base build/ros --install-base install \
   --merge-install --packages-select dust_control --event-handlers console_direct+
-colcon --log-base logs/colcon test-result --test-result-base build/ros --verbose
+colcon test-result --test-result-base build/ros --verbose
 ```
 
 测试不申请真实主站或使能电机。测试通过不等于实机验收通过。

@@ -16,7 +16,6 @@ results/
 .DS_Store
 *~
 /install/
-/logs/
 
-# Colcon default logging fallback (daily commands use logs/colcon).
+# Colcon logs.
 /log/
