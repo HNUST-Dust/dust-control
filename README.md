@@ -17,17 +17,16 @@ schema 4 的 `config/dust_control.yaml`，只配置执行选项、主站、从�
 完整依赖、NUC硬件配置、运行配置迁移及启动停止命令见[编译与运行](docs/BUILD_RUN.md)。
 
 ```bash
-# Orb开发：自动加载ROS环境、编译并运行离线回归
-./scripts/test.sh development
-# 无ROS算法回归
-./scripts/test.sh headless
-# NUC硬件构建（首次需正确配置IgH路径）
-./scripts/build.sh hardware
+source /opt/ros/humble/setup.bash
+cmake --preset development
+cmake --build --preset development --parallel 4
+ctest --preset development
 ```
 
-控制与Foxglove统一由`./scripts/run.sh`和`./scripts/foxglove.sh`启动。
-使用`DUST_BUILD_DIR`选择同一套产物、`DUST_CONFIG_DIR`选择独立配置；
-默认模板保持输出关闭。headless没有控制节点，不能用于实机运行。
+NUC使用hardware/production预设，无ROS测试使用headless。
+控制直接执行`dust_control_node --ros-args -p config_directory:=...`，
+Foxglove显式安装消息包、设置环境再执行`ros2 launch`；完整命令见上述说明。
+日常编译与运行不依赖包装脚本，只有批量测试保留`scripts/test.sh`。
 
 - [底盘代码导航](src/chassis/README.md)
 - [架构与所有权](docs/ARCHITECTURE.md)

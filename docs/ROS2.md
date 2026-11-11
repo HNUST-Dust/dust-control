@@ -69,14 +69,15 @@ simulate、realtime、enable_output 统一由 dust_control.yaml 的 execution �
 
 ROS2 话题和 Foxglove 性能验收留到实机；OrbStack 用于构建与功能调试。
 
-仓库内启动使用 `./scripts/run.sh`，默认运行 build/production/dust_control_node，
-配置目录为仓库 config。选择其他目录时传原生 ROS 参数：
+裸CMake直接运行节点，完整环境设置与桥接命令见[编译与运行](BUILD_RUN.md)：
 
 ```bash
-./scripts/run.sh --ros-args -p config_directory:=/path/to/config
+source /opt/ros/humble/setup.bash
+export LD_LIBRARY_PATH="$PWD/build/production${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+./build/production/dust_control_node --ros-args -p "config_directory:=/实际配置目录"
 ```
 
-十四状态控制接入后 `ChassisTelemetry.version=2`，新增 `*_hip_height_m`、
+十四状态控制接入后 `ChassisTelemetry.version=6`，新增 `*_hip_height_m`、
 高度速度、左右支撑估计、LQR14 力目标及接管状态。需重编译发送与接收端消息。
 `lqr14_status=2` 且 `lqr14_blend=1` 才表示新控制完整接管；
 `left_height_m/right_height_m` 仍保留原始机构几何含义。

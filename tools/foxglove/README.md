@@ -1,7 +1,7 @@
 # 统一 Foxglove 接入
 
-日常启动以[编译与运行](../../docs/BUILD_RUN.md)为准。统一入口为`./scripts/foxglove.sh`，
-`DUST_BUILD_DIR`必须与控制程序一致；自定义消息安装到该构建目录的`ros-install`。
+日常使用显式install、环境变量和ros2 launch命令，见[编译与运行](../../docs/BUILD_RUN.md)。
+控制和桥使用同一构建目录的消息定义与类型库，不再提供启动包装脚本。
 
 每套 ROS 2 系统启动一个独立的 `foxglove_bridge`，所有业务节点通过 ROS 2
 话题提供数据。dust-control 不再内嵌 Foxglove SDK，不监听 WebSocket 端口。
@@ -45,7 +45,6 @@ sequence 跳变可能来自发布回调主动选择最新样本、队列丢样�
 原 `--foxglove`、`--foxglove-port`、节点 `foxglove_port` 参数及 SDK 构建选项已删除。
 原 UDP 调试输出和 `--telemetry-port` 已删除；观测与队列归底盘模块所有。
 
-裸 CMake 的 NUC 构建使用 `tools/run_foxglove.sh`。脚本将当前构建安装到
-`build/<所选构建>/ros-install` 并加载自定义遥测的 ament 索引和类型库；
-只 source 系统 ROS 会导致桥无法公布 `ChassisTelemetry` 话题。
-桥已运行时不要重复启动。14 状态观察布局为 `lqr14-layout.json`。
+裸CMake的消息包需先cmake --install，再显式设置AMENT_PREFIX_PATH和LD_LIBRARY_PATH。
+只source系统ROS会缺少ChassisTelemetry消息。桥已运行时不要重复启动。
+14状态观察布局为lqr14-layout.json，执行器布局为actuator-layout.json。

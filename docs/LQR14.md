@@ -30,14 +30,16 @@ balance:
 `tools/data/lqr14_development.json`。
 
 ```sh
+source /opt/ros/humble/setup.bash
 OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir .cache/lqr14-generated
 cp .cache/lqr14-generated/lqr14_development.h src/chassis/balance/generated/lqr14_gain_samples.h
 cmake --build build/lqr14-hardware -j4
 ctest --test-dir build/lqr14-hardware --output-on-failure
-tools/run_lqr14.sh .cache/lqr14-deployed
+export LD_LIBRARY_PATH="$PWD/build/lqr14-hardware${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+./build/lqr14-hardware/dust_control_node --ros-args -p "config_directory:=$PWD/.cache/lqr14-deployed"
 ```
 
-生成成功后才替换表。Foxglove另开终端运行`tools/run_foxglove.sh`。
+生成成功后才替换表。控制与Foxglove需要显式加载ROS及消息库路径，完整命令见[编译与运行](BUILD_RUN.md)。
 停止前先遥控失能，再退出控制进程。新版本不自动修改实机配置或启动电机。
 
 ## 降级与保护
