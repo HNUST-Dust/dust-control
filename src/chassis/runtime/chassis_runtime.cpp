@@ -147,9 +147,10 @@ bool ChassisRuntime::WaitForNextCycle(uint64_t& release,
         throw std::runtime_error(error);
     }
     const uint64_t now = dust_control::realtime::MonotonicTimeNs();
-    // 不补发错过的控制周期。停顿达到 20 ms 时已超过 MCU 看门狗期限，
-    // 必须建立新会话，不能自动重新 Arm。
-    if (now - release >= dust_control::host::kCommandTimeoutUs * 1000ULL) {
+    // 实机停顿20ms已超过MCU看门狗期限，必须建立新会话。
+    // 无硬件离线运行没有MCU会话，只统计漏周期，不因宿主机调度暂停退出。
+    if (!devices_.motor_adapters.empty() &&
+        now - release >= dust_control::host::kCommandTimeoutUs * 1000ULL) {
         throw std::runtime_error("Control deadline exceeded bridge watchdog");
     }
     if (now - release >= chassis_config::kControlPeriodNs) {

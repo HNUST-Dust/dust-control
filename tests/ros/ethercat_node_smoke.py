@@ -28,6 +28,13 @@ with tempfile.TemporaryDirectory() as temporary:
     try:
         time.sleep(2)
         assert process.poll() is None, process.communicate()[0]
+        # Offline mode has no MCU watchdog: host pauses must remain observable,
+        # but must not terminate the process or replay missed control cycles.
+        process.send_signal(signal.SIGSTOP)
+        time.sleep(.06)
+        process.send_signal(signal.SIGCONT)
+        time.sleep(.15)
+        assert process.poll() is None, process.communicate()[0]
         process.send_signal(signal.SIGINT)
         output, _ = process.communicate(timeout=10)
         assert process.returncode == 0, output
