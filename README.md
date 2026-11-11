@@ -20,13 +20,13 @@ schema 4 的 `config/dust_control.yaml`，只配置执行选项、主站、从�
 source /opt/ros/humble/setup.bash
 colcon build --paths . \
   --build-base build/ros --install-base install --merge-install \
-  --cmake-args -GNinja -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF -DBUILD_TESTING=ON
+  --cmake-args --preset ros-orb
 source install/setup.bash
 ros2 run dust_control dust_control_node --ros-args -p "config_directory:=$PWD/config"
 ```
 
 上述是Orb离线构建；运行前明确设置模拟配置并保持输出关闭。
-NUC构建将DUST_BUILD_IGH设为ON，并核对实机配置。
+NUC构建将预设改为ros-nuc，并核对实机配置。
 不需要手工设置库路径或依赖.cache目录。只有批量测试保留脚本。
 
 - [底盘代码导航](src/chassis/README.md)

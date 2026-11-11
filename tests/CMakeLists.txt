@@ -167,4 +167,5 @@ add_test(NAME chassis.lqr14_profiles COMMAND ${Python3_EXECUTABLE}
 
 add_executable(chassis_lqr14_action_gain chassis/lqr14_action_gain.cpp)
 target_link_libraries(chassis_lqr14_action_gain PRIVATE dust_chassis)
+target_compile_options(chassis_lqr14_action_gain PRIVATE -UNDEBUG)
 add_test(NAME chassis.lqr14_action_gain COMMAND chassis_lqr14_action_gain)

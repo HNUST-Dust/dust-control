@@ -55,6 +55,18 @@
         "BUILD_TESTING": "ON",
         "DUST_BUILD_IGH": "OFF"
       }
+    },
+    {
+      "name": "ros-orb",
+      "inherits": "ethercat-ci",
+      "displayName": "Colcon: Orb offline ROS",
+      "binaryDir": "${sourceDir}/build/ros/dust_control"
+    },
+    {
+      "name": "ros-nuc",
+      "inherits": "hardware",
+      "displayName": "Colcon: NUC hardware ROS",
+      "binaryDir": "${sourceDir}/build/ros/dust_control"
     }
   ],
   "buildPresets": [

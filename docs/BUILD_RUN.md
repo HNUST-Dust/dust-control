@@ -16,17 +16,22 @@ NUC硬件构建另外依赖IgH头文件/库、匹配内核的主站及设备权�
 
 ## 1. 编译安装
 
+CMake参数集中在CMakePresets.json：ros-orb关闭IgH，ros-nuc开启IgH，
+两者都启用ROS和测试、关闭MPC/工具。它们的binaryDir与colcon的
+build/ros/dust_control一致。不要在colcon命令中直接使用目录不同的普通预设。
+切换环境时重新配置；两种预设共享此安装流程，不同时在同一目录构建。
+
+
 Orb离线开发：
 
 ```bash
 source /opt/ros/humble/setup.bash
 colcon build --paths . \
   --build-base build/ros --install-base install --merge-install \
-  --cmake-args -GNinja -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF \
-    -DBUILD_TESTING=ON -DDUST_BUILD_MPC=OFF -DDUST_BUILD_TOOLS=OFF
+  --cmake-args --preset ros-orb
 ```
 
-NUC实机构建使用同一命令，将DUST_BUILD_IGH改为ON。
+NUC实机构建使用同一命令，将预设ros-orb改为ros-nuc。
 若IgH不在系统搜索路径，在cmake-args后追加实际的IGH_INCLUDE_DIR、IGH_LIBRARY。
 并行编译可在命令前设置CMAKE_BUILD_PARALLEL_LEVEL=4，它只控制编译并行数。
 
