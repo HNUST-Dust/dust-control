@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "calibration_status": "unverified_empirical_trim_candidate; not CAD identified",
+  "body_roll_inertia_kg_m2": 0.113303628,
+  "roll_model": "body_only_quasistatic_legs",
+  "roll_inertia_source": "user confirmed body CAD inertia; also present in experimental LegMpc defaults",
+  "roll_rate_damping_nm_s": 0.0,
+  "vertical_damping_n_s_per_m": 0.0,
+  "roll_state_weights": [
+    1200.0,
+    30.0
+  ],
+  "height_state_weights": [
+    12000.0,
+    80.0
+  ],
+  "vertical_force_weight": 0.025,
+  "pitch_trim": {
+    "method": "effective_com_from_empirical_lean",
+    "reference_theta_deg": 7.0,
+    "reference_length_m": 0.17158742177343514,
+    "source": "user manually selected 7deg during 2026-11-11 experiments; reference length from capture04; not a settled static calibration"
+  }
+}

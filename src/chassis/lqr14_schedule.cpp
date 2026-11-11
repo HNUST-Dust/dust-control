@@ -14,7 +14,12 @@ Lqr14GainSchedule::Lqr14GainSchedule(Samples samples)
     for (const auto& sample : samples_) {
         if (!std::isfinite(sample.leg_length_m) ||
             sample.leg_length_m <= previous_length ||
-            !sample.gain.allFinite() || sample.gain.isZero()) {
+            !sample.gain.allFinite() || sample.gain.isZero() ||
+            sample.has_pitch_trim != samples_.front().has_pitch_trim ||
+            !std::isfinite(sample.theta_equilibrium_rad) ||
+            !std::isfinite(sample.body_on_leg_feedforward_nm) ||
+            !std::isfinite(sample.trim_anchor_theta_deg) ||
+            sample.trim_anchor_theta_deg != samples_.front().trim_anchor_theta_deg) {
             throw std::invalid_argument("invalid LQR14 gain schedule");
         }
         previous_length = sample.leg_length_m;
@@ -39,6 +44,10 @@ Lqr14GainSchedule::Evaluation Lqr14GainSchedule::Evaluate(
                                     (right.leg_length_m - left.leg_length_m);
             result.design.gain =
                 (1.0 - fraction) * left.gain + fraction * right.gain;
+            result.has_pitch_trim = left.has_pitch_trim;
+            result.theta_equilibrium_rad = (1.0-fraction)*left.theta_equilibrium_rad + fraction*right.theta_equilibrium_rad;
+            result.body_on_leg_feedforward_nm = (1.0-fraction)*left.body_on_leg_feedforward_nm + fraction*right.body_on_leg_feedforward_nm;
+            result.trim_anchor_theta_deg = left.trim_anchor_theta_deg;
             result.valid = true;
             return result;
         }

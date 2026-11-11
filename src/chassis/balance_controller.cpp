@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 #include "balance_lqr14.h"
 #include "chassis_config.h"
@@ -87,6 +88,10 @@ BalanceController::BalanceController(double wheel_torque_limit,
     if (config_.lqr14_enabled) {
         ValidateChassisConfig(config_);
         lqr14_schedule_.emplace(Lqr14DevelopmentSamples());
+        const auto trim = lqr14_schedule_->Evaluate(config_.default_leg_length);
+        if (trim.has_pitch_trim && std::abs(trim.trim_anchor_theta_deg-config_.theta_balance_bias_deg) > 1e-8) {
+            throw std::invalid_argument("LQR14 trim anchor differs from configured theta bias");
+        }
     }
 }
 
@@ -208,8 +213,16 @@ void BalanceController::UpdateAttitudeReferences(
     const ExternalSupportForceCommand *external_support,
     ChassisControlOutput &output) {
     // 从交接姿态以受限速率回到稳态目标，角速度反馈始终保持完整控制权。
+    double theta_target = config_.theta_balance_bias();
+    if (lqr14_schedule_ && !config_.lqr14_shadow_only) {
+        const auto trim = lqr14_schedule_->Evaluate(
+            0.5*(input.leg.left.length+input.leg.right.length));
+        if (trim.valid && !trim.clamped && trim.has_pitch_trim) {
+            theta_target = trim.theta_equilibrium_rad;
+        }
+    }
     balance_theta_reference_ =
-        MoveToward(balance_theta_reference_, config_.theta_balance_bias(),
+        MoveToward(balance_theta_reference_, theta_target,
                    kBalanceThetaReferenceRate * input.dt);
     balance_pitch_reference_ = MoveToward(
         balance_pitch_reference_, 0.0, kBalancePitchReferenceRate * input.dt);
@@ -527,6 +540,11 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
     reference.state[Lqr::kRoll] = roll_ref;
     reference.state[Lqr::kHeight] = diag.height_reference_m;
     reference.state[Lqr::kHeightRate] = diag.height_rate_reference_m_s;
+    if (evaluation.has_pitch_trim) {
+        reference.feedforward[Lqr::kLeftBodyOnLegTorque] =
+            reference.feedforward[Lqr::kRightBodyOnLegTorque] =
+                evaluation.body_on_leg_feedforward_nm;
+    }
     reference.feedforward[Lqr::kLeftVerticalForce] =
         reference.feedforward[Lqr::kRightVerticalForce] =
             0.5 * config_.robot_mass * kGravity;

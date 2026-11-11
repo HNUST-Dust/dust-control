@@ -6,12 +6,37 @@ import math
 from pathlib import Path
 import time
 
-import rclpy
-from rclpy.qos import qos_profile_sensor_data
-from dust_control.msg import ChassisTelemetry
+def json_native(value):
+    """Convert ROS/Numpy fixed arrays and scalars without losing signed values."""
+    if isinstance(value, (str, bool, int, float)) or value is None:
+        return value
+    if isinstance(value, dict):
+        return {key: json_native(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_native(item) for item in value]
+    if hasattr(value, 'tolist'):
+        return json_native(value.tolist())
+    if hasattr(value, 'item'):
+        return json_native(value.item())
+    raise TypeError(f'Unsupported telemetry value {type(value).__name__}')
+
+
+def serialize_message(msg, eligible):
+    record = {}
+    for name in msg.get_fields_and_field_types():
+        if name == 'header':
+            record['stamp_ns'] = msg.header.stamp.sec*1000000000 + msg.header.stamp.nanosec
+        else:
+            record[name] = json_native(getattr(msg, name))
+    record['capture_eligible'] = eligible
+    return json.dumps(record, separators=(',', ':')) + '\n'
 
 
 def main():
+    import rclpy
+    from rclpy.qos import qos_profile_sensor_data
+    from dust_control.msg import ChassisTelemetry
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--duration', type=float, default=20.)
@@ -29,30 +54,26 @@ def main():
     eligible = 0
     last = None
     armed_time = time.monotonic()
+    schema_validated = False
+    failure = None
 
     def receive(msg):
-        nonlocal start, samples, eligible, last
+        nonlocal start, samples, eligible, last, schema_validated
         good = (msg.version >= args.min_version and msg.feedback_valid and msg.motion_diagnostics_valid and
                 msg.lqr14_status == 2 and msg.lqr14_blend >= .999 and
                 math.isfinite(msg.target_body_speed_mps) and
                 abs(msg.target_body_speed_mps) < .001 and
                 abs(msg.remote_chassis_x) < .05)
+        if not schema_validated:
+            serialize_message(msg, good)
+            schema_validated = True
+            print(f'SCHEMA_OK: live telemetry version {msg.version} serialized successfully.', flush=True)
         if start is None:
             if not good:
                 return
             start = time.monotonic()
             print(f'CAPTURING: {args.duration:g}-second window started; keep translation stick centered.', flush=True)
-        record = {}
-        for name in msg.get_fields_and_field_types():
-            if name == 'header':
-                record['stamp_ns'] = msg.header.stamp.sec * 1000000000 + msg.header.stamp.nanosec
-                continue
-            value = getattr(msg, name)
-            if not isinstance(value, (str, bool, int, float)):
-                value = list(value)
-            record[name] = value
-        record['capture_eligible'] = good
-        stream.write(json.dumps(record, separators=(',', ':')) + '\n')
+        stream.write(serialize_message(msg, good))
         samples += 1
         eligible += int(good)
         last = msg.state
@@ -68,6 +89,8 @@ def main():
             if start is None and now - armed_time >= args.wait:
                 break
             rclpy.spin_once(node, timeout_sec=.1)
+    except Exception as error:
+        failure = f'{type(error).__name__}: {error}'
     finally:
         stream.close()
         node.destroy_node()
@@ -75,9 +98,12 @@ def main():
     summary = {'samples': samples, 'eligible_samples': eligible, 'last_state': last,
                'duration_s': None if start is None else time.monotonic()-start,
                'output': str(args.output), 'wheel_actual_torque_available': False,
-               'required_telemetry_version': args.min_version}
+               'required_telemetry_version': args.min_version,
+               'schema_validated': schema_validated, 'error': failure}
     args.output.with_suffix('.summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     print(json.dumps(summary), flush=True)
+    if failure:
+        raise SystemExit(f'Capture failed: {failure}')
     if not samples:
         raise SystemExit('No eligible data: no diagnosis possible.')
 
