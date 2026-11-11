@@ -1,174 +1,7 @@
 {
   "configById": {
-    "Plot!roll": {
-      "title": "Roll 实测 (deg)，稳定后目标为0",
-      "paths": [
-        {
-          "value": "/dust_control/chassis/telemetry.roll_deg",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "roll_deg"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.roll_reference_deg",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "roll_reference_deg"
-        }
-      ],
-      "xAxisVal": "timestamp",
-      "showLegend": true,
-      "legendDisplay": "top",
-      "showPlotValuesInLegend": true,
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "isSynced": true,
-      "followingViewWidth": 15
-    },
-    "Plot!height": {
-      "title": "髋部高度目标 / 实测 (m)",
-      "paths": [
-        {
-          "value": "/dust_control/chassis/telemetry.hip_height_reference_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "hip_height_reference_m"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.hip_height_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "hip_height_m"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.left_hip_height_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "left_hip_height_m"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.right_hip_height_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "right_hip_height_m"
-        }
-      ],
-      "xAxisVal": "timestamp",
-      "showLegend": true,
-      "legendDisplay": "top",
-      "showPlotValuesInLegend": true,
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "isSynced": true,
-      "followingViewWidth": 15
-    },
-    "Plot!mode": {
-      "title": "控制接管 / 高度有效",
-      "paths": [
-        {
-          "value": "/dust_control/chassis/telemetry.lqr14_status",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "lqr14_status"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.lqr14_blend",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "lqr14_blend"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.hip_height_valid",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "hip_height_valid"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.state",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "state"
-        }
-      ],
-      "xAxisVal": "timestamp",
-      "showLegend": true,
-      "legendDisplay": "top",
-      "showPlotValuesInLegend": true,
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "isSynced": true,
-      "followingViewWidth": 15
-    },
-    "Plot!force": {
-      "title": "竖直力目标 / 分配 (N)",
-      "paths": [
-        {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_force_target_n",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "lqr14_left_force_target_n"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_force_target_n",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "lqr14_right_force_target_n"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_force_allocated_n",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "lqr14_left_force_allocated_n"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_force_allocated_n",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "lqr14_right_force_allocated_n"
-        }
-      ],
-      "xAxisVal": "timestamp",
-      "showLegend": true,
-      "legendDisplay": "top",
-      "showPlotValuesInLegend": true,
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "isSynced": true,
-      "followingViewWidth": 15
-    },
-    "Plot!contact": {
-      "title": "支撑力估计 / 平地残差",
-      "paths": [
-        {
-          "value": "/dust_control/chassis/telemetry.left_support_force_n",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "left_support_force_n"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.right_support_force_n",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "right_support_force_n"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.flat_ground_mismatch_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "flat_ground_mismatch_m"
-        }
-      ],
-      "xAxisVal": "timestamp",
-      "showLegend": true,
-      "legendDisplay": "top",
-      "showPlotValuesInLegend": true,
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "isSynced": true,
-      "followingViewWidth": 15
-    },
     "Plot!speed": {
-      "title": "前向速度 (m/s)",
+      "title": "前向速度 (m/s) / 摇杆输入（归一化）",
       "paths": [
         {
           "value": "/dust_control/chassis/telemetry.raw_body_speed_mps",
@@ -187,6 +20,12 @@
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "target_body_speed_mps"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.remote_chassis_x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "remote_chassis_x（归一化摇杆）"
         }
       ],
       "xAxisVal": "timestamp",
@@ -196,23 +35,11 @@
       "showXAxisLabels": true,
       "showYAxisLabels": true,
       "isSynced": true,
-      "followingViewWidth": 15
+      "followingViewWidth": 20
     },
     "Plot!position": {
-      "title": "位置及误差 (m)，误差限幅±0.15",
+      "title": "位置误差 (m)，限幅 ±0.15",
       "paths": [
-        {
-          "value": "/dust_control/chassis/telemetry.estimated_body_position_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "estimated_body_position_m"
-        },
-        {
-          "value": "/dust_control/chassis/telemetry.target_body_position_m",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "target_body_position_m"
-        },
         {
           "value": "/dust_control/chassis/telemetry.body_position_error_m",
           "enabled": true,
@@ -227,28 +54,47 @@
       "showXAxisLabels": true,
       "showYAxisLabels": true,
       "isSynced": true,
-      "followingViewWidth": 15
+      "followingViewWidth": 20
     },
-    "Plot!reference": {
-      "title": "姿态参考与遥控输入",
+    "Plot!pitch": {
+      "title": "Pitch 实测 / 参考 (deg)",
       "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.pitch_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pitch_deg"
+        },
         {
           "value": "/dust_control/chassis/telemetry.pitch_reference_deg",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "pitch_reference_deg"
-        },
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!mode": {
+      "title": "LQR14 接管与诊断有效性",
+      "paths": [
         {
-          "value": "/dust_control/chassis/telemetry.theta_reference_deg",
+          "value": "/dust_control/chassis/telemetry.lqr14_status",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "theta_reference_deg"
+          "label": "lqr14_status"
         },
         {
-          "value": "/dust_control/chassis/telemetry.remote_chassis_x",
+          "value": "/dust_control/chassis/telemetry.lqr14_blend",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "remote_chassis_x"
+          "label": "lqr14_blend"
         },
         {
           "value": "/dust_control/chassis/telemetry.motion_diagnostics_valid",
@@ -264,36 +110,20 @@
       "showXAxisLabels": true,
       "showYAxisLabels": true,
       "isSynced": true,
-      "followingViewWidth": 15
+      "followingViewWidth": 20
     }
   },
   "layout": {
     "direction": "column",
     "first": {
-      "direction": "column",
-      "first": {
-        "direction": "row",
-        "first": "Plot!roll",
-        "second": "Plot!height"
-      },
-      "second": {
-        "direction": "row",
-        "first": "Plot!mode",
-        "second": {
-          "direction": "column",
-          "first": "Plot!force",
-          "second": "Plot!contact"
-        }
-      }
+      "direction": "row",
+      "first": "Plot!speed",
+      "second": "Plot!position"
     },
     "second": {
       "direction": "row",
-      "first": "Plot!speed",
-      "second": {
-        "direction": "column",
-        "first": "Plot!position",
-        "second": "Plot!reference"
-      }
+      "first": "Plot!pitch",
+      "second": "Plot!mode"
     }
   }
 }
