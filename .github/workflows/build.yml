@@ -14,18 +14,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: [ethercat-ci, development, headless]
+        include:
+          - preset: ethercat-ci
+            image: ros:humble-ros-base-jammy
+          - preset: development
+            image: ros:humble-ros-base-jammy
+          - preset: headless
+            image: ubuntu:22.04
+    container: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@v4
       - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config libeigen3-dev libyaml-cpp-dev python3-yaml python3-venv
+          apt-get update
+          apt-get install -y build-essential cmake ninja-build pkg-config libeigen3-dev libyaml-cpp-dev python3-dev python3-yaml python3-venv
+          if [ "${{ matrix.preset }}" != headless ]; then
+            apt-get install -y ros-humble-rclcpp ros-humble-sensor-msgs ros-humble-diagnostic-msgs ros-humble-rosidl-default-generators
+          fi
           python3 -m venv --system-site-packages .cache/test-venv
           .cache/test-venv/bin/pip install -r tests/requirements.txt
-      - name: Configure
-        run: cmake --preset ${{ matrix.preset }} -DPython3_EXECUTABLE="$PWD/.cache/test-venv/bin/python"
-      - name: Build
-        run: cmake --build --preset ${{ matrix.preset }} --parallel 2
-      - name: Test
-        run: ctest --preset ${{ matrix.preset }}
+      - name: Configure, build and test
+        shell: bash
+        run: ./scripts/test.sh "${{ matrix.preset }}" -DPython3_EXECUTABLE="$PWD/.cache/test-venv/bin/python"

@@ -4,7 +4,9 @@
 控制算法与原设备协议保留，通信后端改为 IgH EtherCAT。`src/main.cpp` 是唯一应用入口，
 通过 `src/dust_control.*` 装配各模块，模拟模式也使用此入口。
 
-## 构建和离线启动
+裸CMake日常流程以[编译与运行](BUILD_RUN.md)为准；以下为可选colcon安装流程。
+
+## Colcon构建和离线启动
 
 ```bash
 source /opt/ros/humble/setup.bash

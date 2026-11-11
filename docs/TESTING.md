@@ -1,11 +1,14 @@
 # 构建与测试
 
+日常入口与预设区别见[编译与运行](BUILD_RUN.md)。`scripts/test.sh`负责配置、构建和测试，
+单独`ctest --preset <预设>`不重新编译。production没有测试，请使用hardware。
+
 ```bash
 ./scripts/test.sh ethercat-ci
 ./scripts/test.sh headless
 ```
 
-测试不申请真实主站，不启用电机输出。ethercat-ci默认IgH OFF；ROS可用时增加
+测试不申请真实主站，不启用电机输出。ethercat-ci默认IgH OFF，需要ROS并包含
 遥测语义与真实节点模拟启动/退出测试。headless关闭ROS，启用MPC开发数学回归。
 
 当前合约包括：
@@ -28,7 +31,6 @@
 
 有真实IgH头文件/库时，可显式开启DUST_BUILD_IGH做生产分支编译。
 UnconfiguredHardware测试以零身份拒绝打开设备，不访问实际主站。
-可选原MCU平衡数值对照使用DUST_REFERENCE_CHASSIS_DIR；普通构建不依赖外部源码。
 离线验证不代表固件完成，也不代替本地保护及实机验收。
 
 `chassis.controller_sequence` 还覆盖跳跃预压缩就绪、200 ms 超时转入推力、

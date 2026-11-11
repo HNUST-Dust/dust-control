@@ -15,7 +15,16 @@
         "BUILD_TESTING": "OFF",
         "DUST_BUILD_MPC": "OFF",
         "DUST_BUILD_TOOLS": "OFF",
-        "DUST_BUILD_IGH": "ON"
+        "DUST_BUILD_IGH": "ON",
+        "DUST_BUILD_ROS2": "ON"
+      }
+    },
+    {
+      "name": "hardware",
+      "inherits": "production",
+      "binaryDir": "${sourceDir}/build/hardware",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON"
       }
     },
     {
@@ -64,6 +73,10 @@
     {
       "name": "ethercat-ci",
       "configurePreset": "ethercat-ci"
+    },
+    {
+      "name": "hardware",
+      "configurePreset": "hardware"
     }
   ],
   "testPresets": [
@@ -84,6 +97,13 @@
     {
       "name": "ethercat-ci",
       "configurePreset": "ethercat-ci",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "hardware",
+      "configurePreset": "hardware",
       "output": {
         "outputOnFailure": true
       }

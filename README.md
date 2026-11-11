@@ -12,37 +12,22 @@ schema 4 的 `config/dust_control.yaml`，只配置执行选项、主站、从�
 默认 `execution.enable_output: false`。OP、握手和离线回归均不代表实机验收完成。
 使能仍受遥控、传感器新鲜度、状态机和启动许可约束。
 
-## 构建
+## 日常流程
 
-依赖 Linux、CMake >=3.21、C++20、Eigen3、yaml-cpp、Python3/PyYAML，
-生产应用还依赖 ROS2 Humble 和与内核匹配的 IgH 主站。
-
-```bash
-source /opt/ros/humble/setup.bash
-cmake --preset production \
-  -DIGH_INCLUDE_DIR=/path/to/ethercat/include \
-  -DIGH_LIBRARY=/path/to/libethercat.so
-cmake --build --preset production --parallel 2
-```
-
-离线运行前设置 `execution.simulate: true`、`realtime: false`，保持输出关闭：
+完整依赖、NUC硬件配置、运行配置迁移及启动停止命令见[编译与运行](docs/BUILD_RUN.md)。
 
 ```bash
-./scripts/run.sh
+# Orb开发：自动加载ROS环境、编译并运行离线回归
+./scripts/test.sh development
+# 无ROS算法回归
+./scripts/test.sh headless
+# NUC硬件构建（首次需正确配置IgH路径）
+./scripts/build.sh hardware
 ```
 
-## 验证
-
-```bash
-./scripts/test.sh ethercat-ci  # 原生模块；ROS 可用时包含节点离线测试
-./scripts/test.sh headless     # 无 ROS，包含 MPC 开发回归
-```
-
-布局预览只读取应用配置，不访问主站：
-
-```bash
-build/headless/dust_ethercat_layout config/dust_control.yaml --json
-```
+控制与Foxglove统一由`./scripts/run.sh`和`./scripts/foxglove.sh`启动。
+使用`DUST_BUILD_DIR`选择同一套产物、`DUST_CONFIG_DIR`选择独立配置；
+默认模板保持输出关闭。headless没有控制节点，不能用于实机运行。
 
 - [底盘代码导航](src/chassis/README.md)
 - [架构与所有权](docs/ARCHITECTURE.md)
