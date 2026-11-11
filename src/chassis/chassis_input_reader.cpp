@@ -110,6 +110,7 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
         (!leg_valid.left ? 4U : 0U) | (!leg_valid.right ? 8U : 0U));
     input.feedback_valid =
         motors_fresh && input.imu_fresh && leg_valid.left && leg_valid.right;
+    input.wheel_current_feedback_raw = {double(motors[0].raw_current), double(motors[1].raw_current)};
     input.wheel_motor_speed_rpm.left = motors[0].speed_rpm;
     input.wheel_motor_speed_rpm.right = motors[1].speed_rpm;
     input.dm_ready = motors[2].enabled && motors[3].enabled &&

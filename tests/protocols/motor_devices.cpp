@@ -94,6 +94,9 @@ int main() {
     assert(feedback.enabled == (decoded.control_status == 1));
     const auto wheel = DecodeMotorFeedback(0, raw, 8, 100, config);
     assert(wheel.valid && wheel.speed_rpm == 0x123);
+    assert(wheel.raw_current == 0x4567);
+    const uint8_t negative_current[8] = {0, 0, 0, 0, 0xff, 0x9c, 0, 0};
+    assert(DecodeMotorFeedback(0, negative_current, 8, 100, config).raw_current == -100);
     assert(!DecodeMotorFeedback(6, raw, 8, 0, config).valid);
     assert(!DecodeMotorFeedback(0, raw, 7, 0, config).valid);
     assert(!DecodeMotorFeedback(0, nullptr, 8, 0, config).valid);

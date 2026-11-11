@@ -109,7 +109,31 @@ def main():
             'equivalent_filter_delay_ms': None if phase is None else -phase/(2*np.pi*fitted_f)*1000,
             'position_clipped_fraction': float(np.mean(np.abs(column('body_position_error_m')[mask]-column('body_position_error_unclamped_m')[mask]) > 1e-7)),
             'note': 'Single-sinusoid fit in 0.15-0.45Hz band; not system identification or proof of cause'}
-    report['limitations'] = ['No measured wheel torque/current in this telemetry',
+    actuator_feedback = 'wheel_current_feedback_raw' in rows[0]
+    report['actuator_feedback_available'] = actuator_feedback
+    if actuator_feedback:
+        report['actuator_comparison'] = {}
+        def compare(command, feedback):
+            good = valid & np.isfinite(command) & np.isfinite(feedback) & (time_s >= 4.)
+            if np.count_nonzero(good) < 100:
+                return {'usable_samples': int(np.count_nonzero(good))}
+            c, f = command[good], feedback[good]
+            gain, offset = np.linalg.lstsq(np.column_stack([c, np.ones(len(c))]), f, rcond=None)[0]
+            varying = float(np.std(c)) > 1e-6 and float(np.std(f)) > 1e-6
+            return {'usable_samples': int(len(c)), 'command': stats(c), 'feedback': stats(f),
+                    'feedback_minus_command': stats(f-c),
+                    'zero_lag_correlation': float(np.corrcoef(c, f)[0,1]) if varying else None,
+                    'empirical_feedback_per_command_slope': float(gain) if varying else None,
+                    'empirical_feedback_offset': float(offset) if varying else None,
+                    'fit_residual': stats(f-gain*c-offset),
+                    'note': 'Slope is empirical, not a calibrated torque gain or causal identification'}
+        for i, side in enumerate(('left','right')):
+            report['actuator_comparison'][side+'_wheel_raw_current'] = compare(
+                column('wheel_current_command_raw')[:,i], column('wheel_current_feedback_raw')[:,i])
+        for i, name in enumerate(('left_B','left_D','right_B','right_D')):
+            report['actuator_comparison'][name+'_motor_torque_nm'] = compare(
+                column('joint_final_command_nm')[:,i], column('joint_torque_feedback_nm')[:,i])
+    report['limitations'] = [('Wheel current is raw protocol feedback; no calibrated wheel torque' if actuator_feedback else 'No measured wheel torque/current in this telemetry'),
                              'Allocation changes may be yaw allocation rather than saturation',
                              'Correlation and periodicity do not establish causal gain errors',
                              'Small requests alone cannot prove motor deadzone or friction']
@@ -145,6 +169,24 @@ def main():
     fig.tight_layout()
     fig.savefig(args.output_dir/'balance-diagnostics.png', dpi=160)
     plt.close(fig)
+    if actuator_feedback:
+        fig, axes = plt.subplots(3, 2, figsize=(16, 10), sharex=True)
+        for i, side in enumerate(('left', 'right')):
+            for field, label in [('wheel_current_command_raw','command'),('wheel_current_feedback_raw','feedback')]:
+                axes[0,i].plot(time_s, column(field)[:,i], label=label, lw=.8)
+            axes[0,i].set_title(side+' C620 raw protocol current (NOT calibrated wheel torque)')
+        for i, name in enumerate(('left B','left D','right B','right D')):
+            ax = axes[1+i//2,i%2]
+            for field, label in [('joint_final_command_nm','command incl. gas compensation'),('joint_torque_feedback_nm','motor feedback')]:
+                ax.plot(time_s, column(field)[:,i], label=label, lw=.8)
+            ax.set_title(name+' motor torque (Nm)')
+        for ax in axes.flat:
+            ax.grid(alpha=.3)
+            ax.legend(fontsize=8)
+            ax.set_xlabel('source time since capture start (s)')
+        fig.tight_layout()
+        fig.savefig(args.output_dir/'actuator-diagnostics.png', dpi=160)
+        plt.close(fig)
     print(json.dumps(report, indent=2, allow_nan=False))
 
 

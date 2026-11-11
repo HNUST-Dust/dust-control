@@ -10,6 +10,11 @@ int main() {
     sample.monotonic_ns = 1000000000;
     sample.control_duration_ns = 12500;
     sample.input.imu_fresh = true;
+    sample.input.wheel_current_feedback_raw = {-80, 90};
+    sample.wheel_command_sign = {-1, 1};
+    sample.motor_targets[0] = {dust_control::devices::MotorMode::kTorque, .1};
+    sample.motor_targets[2] = {dust_control::devices::MotorMode::kTorque, 3.};
+    sample.input.joint_torque_feedback.left.b = 2.8;
     sample.input.imu.pitch_deg = 12.5;
     sample.input.imu_age_us = 123;
     sample.input.leg.left.length = .25;
@@ -18,10 +23,15 @@ int main() {
     const rclcpp::Time now(2000000000LL);
     auto message =
         dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
-    assert(message.sequence == 17 && message.version == 4);
+    assert(message.sequence == 17 && message.version == 5);
     assert(message.header.stamp.sec == 1 &&
            message.header.stamp.nanosec == 990000000);
     assert(message.pitch_deg == 12.5 && message.imu_age_us == 123);
+    assert(message.wheel_current_feedback_raw[0] == -80);
+    assert(message.wheel_current_command_raw[0] == -345);
+    assert(message.joint_final_command_nm[0] == 3.);
+    assert(message.joint_torque_feedback_nm[0] == 2.8);
+    assert(std::isnan(message.wheel_final_command_nm[1]));
     assert(message.left_length_m == .25 && message.left_height_m == .23);
     assert(message.transport_age_ms == 10 &&
            message.control_duration_us == 12.5);
@@ -68,4 +78,6 @@ int main() {
     assert(!message.right_leg_fresh && !message.left_leg_fresh);
     assert(!message.hip_height_valid && std::isnan(message.hip_height_m));
     assert(std::isnan(message.lqr14_right_force_target_n));
+    assert(std::isnan(message.wheel_current_feedback_raw[0]));
+    assert(std::isnan(message.joint_final_command_nm[0]));
 }

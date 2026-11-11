@@ -21,6 +21,7 @@ ChassisRuntime::ChassisRuntime(ChassisRuntimeOptions options,
                                dust_control::chassis::ChassisConfig config)
     : options_(options),
       devices_(std::move(devices)),
+      wheel_command_sign_(motors.wheel_command_sign),
       controller_(deadlines, motors.wheel_torque_limit_nm(), config) {
     concurrency::ValidateThreadOptions(options_.thread);
     const bool any =
@@ -122,6 +123,8 @@ void ChassisRuntime::Run() {
             options_.enable_output && disabled_observed &&
                 (!options_.startup_ready || options_.startup_ready->load()),
             &sample.input);
+        sample.motor_targets = output.motor_targets;
+        sample.wheel_command_sign = wheel_command_sign_;
         sample.motion = output.motion;
         sample.lqr14 = output.lqr14;
         sample.lqr14.output_wheel_torque = output.physical_wheel_torque;

@@ -30,6 +30,7 @@ struct MotorFeedback {
     double velocity_rad_s = 0.0;
     double torque_nm = 0.0;
     double speed_rpm = 0.0;
+    int16_t raw_current = 0;  // DJI协议有符号电流原值，不假定单位为A。
     bool enabled = false;
 };
 

@@ -300,3 +300,27 @@ pitch 项，其余速率和状态项仍在数组中，不能忽略它们后断�
 `output_command` 为新旧控制混合后的轮力矩命令，均不是电机实测反馈。
 在 active/shadow 且高度有效时发布分项和候选值，仅 active 发布输出命令。
 启动/失能/恢复状态数值无效时为 NaN。7° 为实机对照值，不代表已标定最优平衡点。
+
+## 执行器诊断（遥测 version 5，M3508+C620）
+
+新增 `wheel_current_feedback_raw[2]`、`wheel_speed_feedback_rpm[2]`，保留左右电机
+协议方向；DJI反馈DATA[4:6]的有符号16位电流原值不再在设备层丢弃。
+不修改原有轮速或任何控制所用反馈，也不把该值自动换算为轮端力矩。
+C620说明书：
+https://cdn-hz.robomaster.com/robomasters/public/document/RoboMaster%20C620%20Brushless%20DC%20Motor%20Speed%20Controller%20V1.01.pdf
+手册标出命令±16384对应±20A、反馈DATA[4/5]为实际转矩电流；诊断保留原值，
+不凭这两条描述假定反馈电流到轮端力矩的完整标定。
+
+`wheel_current_command_raw[2]` 从最终目标和实际配置command_sign，按现有编码器的
+3450 count/Nm、±16384限幅及int16截断重建，表示主机提交的协议电流命令，
+不是下位机接收确认。`wheel_final_command_nm[2]` 为输出安全策略后的机体坐标目标。
+非Torque模式命令为NaN；模式见 `motor_target_mode[6]`。
+
+四关节数组顺序左B、左D、右B、右D，全部为电机坐标。`joint_final_command_nm`
+包含气弹簧补偿及最终限幅，和`joint_torque_feedback_nm`比较；反馈仍是电机协议估计，
+不是关节外部力矩传感器。同步提供电机位置/速度和6路反馈年龄。
+
+`tools/foxglove/actuator-layout.json` 是独立执行器布局，避免把原振荡面板进一步挤压。
+新版采集器默认要求version>=5，满足完全接管和零前向指令后记录20秒。
+`tools/analyze_balance_diagnostics.py` 另外输出 `actuator-diagnostics.png` 和命令/反馈
+相关性、经验比例及偏置。经验比例并不等于实际力矩标定，更不能单独证明因果。

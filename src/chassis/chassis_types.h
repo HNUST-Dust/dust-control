@@ -111,6 +111,7 @@ struct ChassisCycleInput {
     SidePair<LegKinematics> leg;
     // 电机端原始 rpm；平衡估计时再除减速比并处理安装方向。
     SidePair<double> wheel_motor_speed_rpm;
+    SidePair<double> wheel_current_feedback_raw;
     // 电机坐标 rad、rad/s、N·m；不预先叠加 B/D 安装零偏。
     SidePair<JointPair<double>> joint_position;
     SidePair<JointPair<double>> joint_velocity;

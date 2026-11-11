@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 4
+uint32 version 5
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -81,3 +81,23 @@ float64 lqr14_right_wheel_allocated_nm
 # 混合后控制命令，不是电机力矩实测；仅在LQR14 active时发布。
 float64 left_wheel_output_command_nm
 float64 right_wheel_output_command_nm
+
+# 执行器诊断。数组顺序：左轮、右轮、左B、左D、右B、右D。
+# mode=0 None,1 Torque,2 Disable,3 ClearError,4 Enable；非Torque的命令数值为NaN。
+uint8[6] motor_target_mode
+float64[6] motor_feedback_age_us
+# C620原始电流数值和原始rpm；保留电机协议符号，不直接等同于A或轮端力矩。
+float64[2] wheel_current_feedback_raw
+float64[2] wheel_speed_feedback_rpm
+# 已应用安装方向、3450 count/Nm、±16384限幅及int16截断，与编码值一致。
+# 是提交时协议命令的重建值，不是下位机接收确认。
+float64[2] wheel_current_command_raw
+# 最终安全策略之后、协议编码之前的机体坐标轮力矩命令。
+float64[2] wheel_final_command_nm
+# 四关节顺序：左B、左D、右B、右D；电机坐标；命令包含弹簧补偿及最终限幅。
+float64[4] joint_final_command_nm
+float64[4] joint_torque_feedback_nm
+float64[4] joint_position_feedback_rad
+float64[4] joint_velocity_feedback_rad_s
+float64[2] theta_rate_rad_s
+float64 pitch_rate_rad_s

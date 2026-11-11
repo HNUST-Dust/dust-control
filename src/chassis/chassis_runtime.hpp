@@ -78,6 +78,7 @@ class ChassisRuntime {
                             uint64_t& observation_drops);
     ChassisRuntimeOptions options_;
     ChassisDevices devices_;
+    const std::array<double, 2> wheel_command_sign_;
     dust_control::chassis::ChassisController controller_;
     ChassisObservationQueue observations_;
     std::atomic<bool> stop_{false};

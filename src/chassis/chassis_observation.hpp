@@ -18,6 +18,8 @@ struct ChassisObservation {
     uint64_t queue_drops = 0;
     dust_control::chassis::ChassisControlState state{};
     bool simulated = false;
+    devices::MotorTargets motor_targets{};  // 最终安全策略后的提交目标。
+    std::array<double, 2> wheel_command_sign{1., 1.};
     MotionDiagnostics motion;
     Lqr14Diagnostics lqr14;
 };

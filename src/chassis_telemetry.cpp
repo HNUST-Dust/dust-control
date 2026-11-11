@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "chassis_telemetry.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include "hardware/motors/motor_config.hpp"
 #include <limits>
 
 namespace dust_control::ros {
@@ -130,6 +132,37 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     message.lqr14_right_wheel_requested_nm = number(lqr14.requested_wheel_torque.right, force_valid);
     message.lqr14_right_wheel_allocated_nm = number(lqr14.allocated_wheel_torque.right, force_valid);
     message.right_wheel_output_command_nm = number(lqr14.output_wheel_torque.right, force_valid && lqr14.status == chassis::Lqr14Status::kActive);
+    for (size_t i = 0; i < 6; ++i) {
+        message.motor_target_mode[i] = connected ? static_cast<uint8_t>(sample.motor_targets[i].mode) : 0;
+        message.motor_feedback_age_us[i] = number(double(input.motor_feedback_age_us[i]),
+            connected && input.motor_feedback_age_us[i] != UINT32_MAX);
+    }
+    for (size_t i = 0; i < 2; ++i) {
+        const auto side = i == 0 ? chassis::Side::kLeft : chassis::Side::kRight;
+        const bool fresh = connected && !(input.motor_stale_mask & (1U << i));
+        const auto& target = sample.motor_targets[i];
+        const bool torque_mode = connected && target.mode == devices::MotorMode::kTorque;
+        message.wheel_current_feedback_raw[i] = number(input.wheel_current_feedback_raw.Get(side), fresh);
+        message.wheel_speed_feedback_rpm[i] = number(input.wheel_motor_speed_rpm.Get(side), fresh);
+        message.wheel_final_command_nm[i] = number(target.torque_nm, torque_mode);
+        const double current = sample.wheel_command_sign[i] * target.torque_nm * devices::MotorConfig::dji_current_per_nm;
+        const double quantized = std::isfinite(current) ? double(static_cast<int16_t>(std::clamp(current,
+            -double(devices::MotorConfig::dji_protocol_current_limit), double(devices::MotorConfig::dji_protocol_current_limit)))) : 0.;
+        message.wheel_current_command_raw[i] = number(quantized, torque_mode);
+        message.theta_rate_rad_s[i] = number(input.theta_rate.Get(side), motion_valid);
+        for (size_t j = 0; j < 2; ++j) {
+            const auto joint = j == 0 ? chassis::Joint::kB : chassis::Joint::kD;
+            const size_t slot = 2 + i*2 + j, index = i*2+j;
+            const auto& command = sample.motor_targets[slot];
+            const bool joint_fresh = connected && !(input.motor_stale_mask & (1U << slot));
+            message.joint_final_command_nm[index] = number(command.torque_nm,
+                connected && command.mode == devices::MotorMode::kTorque);
+            message.joint_torque_feedback_nm[index] = number(input.joint_torque_feedback.Get(side).Get(joint), joint_fresh);
+            message.joint_position_feedback_rad[index] = number(input.joint_position.Get(side).Get(joint), joint_fresh);
+            message.joint_velocity_feedback_rad_s[index] = number(input.joint_velocity.Get(side).Get(joint), joint_fresh);
+        }
+    }
+    message.pitch_rate_rad_s = number(input.pitch_rate, message.imu_fresh);
     return message;
 }
 }  // namespace dust_control::ros

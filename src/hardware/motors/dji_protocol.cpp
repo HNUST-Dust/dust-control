@@ -124,6 +124,7 @@ dust_control::devices::MotorFeedback DecodeDjiMotorState(const uint8_t* bytes,
     }
     DjiMotorFeedback decoded{};
     sample.valid = DecodeDjiFeedback(bytes, size, &decoded) == 0;
+    sample.raw_current = decoded.current;
     sample.speed_rpm = static_cast<double>(decoded.omega);
     sample.velocity_rad_s = sample.speed_rpm * 0.10471975511965977;
     return sample;

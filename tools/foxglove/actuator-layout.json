@@ -1,0 +1,175 @@
+{
+  "configById": {
+    "Plot!leftwheel": {
+      "title": "left C620 原始电流命令 / 反馈（协议单位）",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.wheel_current_command_raw[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "协议电流命令"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.wheel_current_feedback_raw[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "电流反馈原值"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!rightwheel": {
+      "title": "right C620 原始电流命令 / 反馈（协议单位）",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.wheel_current_command_raw[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "协议电流命令"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.wheel_current_feedback_raw[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "电流反馈原值"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!joint0": {
+      "title": "left B 电机坐标力矩 (N·m)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.joint_final_command_nm[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "最终命令（含弹簧补偿）"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.joint_torque_feedback_nm[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "电机反馈"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!joint1": {
+      "title": "left D 电机坐标力矩 (N·m)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.joint_final_command_nm[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "最终命令（含弹簧补偿）"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.joint_torque_feedback_nm[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "电机反馈"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!joint2": {
+      "title": "right B 电机坐标力矩 (N·m)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.joint_final_command_nm[2]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "最终命令（含弹簧补偿）"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.joint_torque_feedback_nm[2]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "电机反馈"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!joint3": {
+      "title": "right D 电机坐标力矩 (N·m)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.joint_final_command_nm[3]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "最终命令（含弹簧补偿）"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.joint_torque_feedback_nm[3]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "电机反馈"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    }
+  },
+  "layout": {
+    "direction": "column",
+    "first": {
+      "direction": "row",
+      "first": "Plot!leftwheel",
+      "second": "Plot!rightwheel"
+    },
+    "second": {
+      "direction": "column",
+      "first": {
+        "direction": "row",
+        "first": "Plot!joint0",
+        "second": "Plot!joint1"
+      },
+      "second": {
+        "direction": "row",
+        "first": "Plot!joint2",
+        "second": "Plot!joint3"
+      }
+    }
+  }
+}
