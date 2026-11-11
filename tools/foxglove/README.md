@@ -1,6 +1,6 @@
 # 统一 Foxglove 接入
 
-日常使用显式install、环境变量和ros2 launch命令，见[编译与运行](../../docs/BUILD_RUN.md)。
+日常使用colcon安装、source install/setup.bash和ros2 launch命令，见[编译与运行](../../docs/BUILD_RUN.md)。
 控制和桥使用同一构建目录的消息定义与类型库，不再提供启动包装脚本。
 
 每套 ROS 2 系统启动一个独立的 `foxglove_bridge`，所有业务节点通过 ROS 2
@@ -45,6 +45,5 @@ sequence 跳变可能来自发布回调主动选择最新样本、队列丢样�
 原 `--foxglove`、`--foxglove-port`、节点 `foxglove_port` 参数及 SDK 构建选项已删除。
 原 UDP 调试输出和 `--telemetry-port` 已删除；观测与队列归底盘模块所有。
 
-裸CMake的消息包需先cmake --install，再显式设置AMENT_PREFIX_PATH和LD_LIBRARY_PATH。
-只source系统ROS会缺少ChassisTelemetry消息。桥已运行时不要重复启动。
-14状态观察布局为lqr14-layout.json，执行器布局为actuator-layout.json。
+自定义消息由标准安装环境加载，不需要手工设置库或包搜索路径。
+桥已运行时不要重复启动。14状态观察布局为lqr14-layout.json，执行器布局为actuator-layout.json。

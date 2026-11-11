@@ -1,170 +1,115 @@
 # 编译与运行
 
-日常操作直接使用CMake、控制可执行文件和ROS命令，不经过启动包装脚本。
-只有自动化测试保留`scripts/test.sh`。所有命令从仓库根目录执行。
+日常采用标准ROS2安装流程：colcon编译安装，source安装环境，再用ros2运行。
+不需要手工设置LD_LIBRARY_PATH，也不使用.cache存放日常运行配置。
 
-## 依赖与构建预设
+| 目录 | 用途 |
+| --- | --- |
+| config/ | 当前运行配置，随源码管理 |
+| build/ros/ | ROS编译中间产物 |
+| install/ | 程序、库、自定义消息和环境文件 |
+| logs/ | 编译日志及试验记录 |
 
-Linux（Orb Ubuntu或NUC）、CMake≥3.21、Ninja、C++20工具链、Eigen3、yaml-cpp、
-Python3/PyYAML。增益生成需NumPy/SciPy；ROS应用需ROS2 Humble，实机需与内核
-匹配的IgH主站、头文件/库和设备权限。以下命令不会安装依赖或配置系统权限。
+从仓库根目录执行命令。依赖Linux、CMake≥3.21、C++20、Ninja、Eigen3、yaml-cpp、
+Python3/PyYAML、ROS2 Humble和colcon；增益生成还需NumPy/SciPy。
+NUC硬件构建另外依赖IgH头文件/库、匹配内核的主站及设备权限。
 
-`CMakePresets.json`是可直接审阅的配置参数集合；不同预设写入独立构建目录。
+## 1. 编译安装
 
-| 预设 | ROS | IgH | MPC/工具 | 测试 |
-| --- | --- | --- | --- | --- |
-| production | 开 | 开 | 关 | 关 |
-| hardware | 开 | 开 | 关 | 开 |
-| development | 开 | 关 | 开 | 开 |
-| headless | 关 | 关 | 开 | 开 |
-| ethercat-ci | 开 | 关 | 关 | 开 |
-
-## 配置、编译、测试是三个步骤
-
-Orb开发环境：
+Orb离线开发：
 
 ```bash
 source /opt/ros/humble/setup.bash
-cmake --preset development
-cmake --build --preset development --parallel 4
-ctest --preset development
+colcon --log-base logs/colcon build --paths . \
+  --build-base build/ros --install-base install --merge-install \
+  --cmake-args -GNinja -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF \
+    -DBUILD_TESTING=ON -DDUST_BUILD_MPC=OFF -DDUST_BUILD_TOOLS=OFF
 ```
 
-无ROS模块验证（不生成控制节点）：
+NUC实机构建使用同一命令，将DUST_BUILD_IGH改为ON。
+若IgH不在系统搜索路径，在cmake-args后追加实际的IGH_INCLUDE_DIR、IGH_LIBRARY。
+并行编译可在命令前设置CMAKE_BUILD_PARALLEL_LEVEL=4，它只控制编译并行数。
+
+--paths .只选择仓库根包，避免递归发现旧构建目录中的包。
+后续源码修改后重新执行该命令即可完成增量编译和安装。
+不要同时运行同一构建目录的旧程序；Orb和NUC各自保留自己的构建产物，不复制二进制。
+
+## 2. 测试
 
 ```bash
-cmake --preset headless
-cmake --build --preset headless --parallel 4
-ctest --preset headless
+source install/setup.bash
+colcon --log-base logs/colcon test --build-base build/ros --install-base install \
+  --merge-install --packages-select dust_control --event-handlers console_direct+
+colcon --log-base logs/colcon test-result --test-result-base build/ros --verbose
 ```
 
-NUC实机开发构建：
+测试不申请真实主站或使能电机。测试通过不等于实机验收通过。
+批量CI仍可使用scripts/test.sh；无ROS的算法验证仍可使用headless CMake预设。
+这些测试构建与build/ros独立，不作为日常控制启动目录。
 
-```bash
-source /opt/ros/humble/setup.bash
-cmake --preset hardware
-cmake --build --preset hardware --parallel 4
-ctest --preset hardware
-```
+## 3. 核对配置
 
-IgH不在默认搜索路径时，首次配置显式传路径：
+直接编辑config/dust_control.yaml和config/chassis_params.yaml。
+NUC execution为simulate:false、realtime:true；默认enable_output:false。
+明确允许电机输出时才改为true，仍需原遥控失能确认、使能和recover流程。
+Orb模拟应明确simulate:true、realtime:false、enable_output:false。
+不因构建关闭IgH就自动进入模拟。
 
-```bash
-cmake --preset hardware \
-  -DIGH_INCLUDE_DIR=/实际路径/ethercat/include \
-  -DIGH_LIBRARY=/实际路径/libethercat.so
-```
+旧配置balance.lqr14仅保留roll_sign；删除enabled和shadow_only。
+当前使用7°经验腿角参考、速度Q权重1，候选非零工作点尚未启用。
+配置启动时加载，修改后重启生效，本身不需要重新编译。
 
-之后CMake缓存保留路径。production同理，但没有测试。纯源码修改后通常只需重新
-build；切换构建选项、依赖或预设需要configure。编译不会启动控制程序。
-编译前先停止使用该构建目录的旧控制程序，保持现场版本明确。
-
-CI或批量验证可用`./scripts/test.sh development`或`./scripts/test.sh headless`，
-它仅自动化执行上述三步；支持额外CMake参数，默认并行数为2，可设DUST_BUILD_JOBS。
-CI的ROS作业使用ROS Humble容器，headless作业使用无ROS的Ubuntu容器。
-
-## 运行配置独立于编译产物
-
-首次复制模板到一个新的运行目录，之后直接编辑、复用该目录：
-
-```bash
-mkdir -p .cache
-cp -r config .cache/runtime-hardware
-nano .cache/runtime-hardware/dust_control.yaml
-nano .cache/runtime-hardware/chassis_params.yaml
-```
-
-不要重复cp到已有目录。实机execution配置为：
-
-```yaml
-execution:
-  simulate: false
-  realtime: true
-  enable_output: true
-```
-
-Orb离线运行应使用另一份配置，将simulate设为true、realtime设为false，
-enable_output保持false。不要仅靠“无IgH构建”代替明确的模拟配置。
-
-`enable_output:true`仍须满足原遥控失能确认、使能、反馈与状态机门控。
-默认源码模板输出关闭。旧配置`balance.lqr14`仅保留`roll_sign`，删除enabled及
-shadow_only，尤其NUC已有`.cache/lqr14-deployed`目录必须迁移。
-机械参数、腿长目标、限值与运行许可来自YAML，CMake预设不会修改它们。
-配置在启动时加载，修改后重启；改配置本身无需重新编译。
-
-## 直接启动控制程序
-
-NUC上先保持遥控失能，在控制终端执行：
+## 4. 启动控制程序
 
 ```bash
 source /opt/ros/humble/setup.bash
-export LD_LIBRARY_PATH="$PWD/build/hardware${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-./build/hardware/dust_control_node --ros-args \
-  -p "config_directory:=$PWD/.cache/runtime-hardware"
+source install/setup.bash
+ros2 run dust_control dust_control_node --ros-args \
+  -p "config_directory:=$PWD/config"
 ```
 
-LD_LIBRARY_PATH的构建根目录用于查找本次构建的ROS动态类型库。
-出现`EtherCAT adapter base ready`表示通信初始化完成，不代表闭环已验收。
-程序在前台持续运行，不返回提示符是正常的；之后按原遥控流程使能、recover。
+显式使用源码config目录，避免与install中复制的模板混淆。
+程序在前台持续运行，不返回提示符是正常的。
+通信就绪后，按原遥控流程操作；停止前先遥控失能，再Ctrl+C。
+本次不会自动复制旧.cache/lqr14-deployed中的现场参数；如需保留，请人工核对合入config。
 
-Orb模拟使用build/development的节点和独立模拟配置，同时把LD_LIBRARY_PATH中的
-构建目录换为build/development。production运行则使用build/production。
-不要混用不同构建目录的可执行文件和消息库。
+## 5. 启动Foxglove桥
 
-停止：先遥控失能，再在控制终端Ctrl+C。后台旧进程应查明PID后停止，勿重复运行。
-
-## 直接启动Foxglove桥
-
-另开终端，从同一仓库根目录执行：
+另开终端，同样从仓库根目录执行：
 
 ```bash
 source /opt/ros/humble/setup.bash
-cmake --install build/hardware --prefix "$PWD/build/hardware/ros-install"
-export AMENT_PREFIX_PATH="$PWD/build/hardware/ros-install${AMENT_PREFIX_PATH:+:$AMENT_PREFIX_PATH}"
-export LD_LIBRARY_PATH="$PWD/build/hardware/ros-install/lib:$PWD/build/hardware${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-ros2 launch "$PWD/launch/foxglove.launch.py" address:=0.0.0.0 port:=8765
+source install/setup.bash
+ros2 launch dust_control foxglove.launch.py address:=0.0.0.0 port:=8765
 ```
 
-install把本次编译的消息定义、ament索引及类型支持库放到明确的位置；
-AMENT_PREFIX_PATH让桥找到消息包，LD_LIBRARY_PATH让它加载匹配的动态库。
-只source系统ROS会缺少本工程自定义消息，这正是之前“主题不存在”的原因。
-消息定义修改后，重新编译、install并重启桥；不要复用旧目录中的消息。
+本机查看可以address:=127.0.0.1。Foxglove连接ws://NUC实际IP:8765，
+导入tools/foxglove中的布局。只启动一个桥，Ctrl+C独立停止。
 
-确认类型可发现（不访问电机）：
+source install/setup.bash会加载本次安装的程序、消息与动态库路径，
+不需要手写AMENT_PREFIX_PATH或LD_LIBRARY_PATH。
+消息修改后重新编译安装，并重启控制和桥。
+如提示主题不存在，先检查：
 
 ```bash
+ros2 pkg prefix dust_control
 ros2 interface show dust_control/msg/ChassisTelemetry
+ros2 topic list
 ```
 
-Foxglove连接`ws://NUC实际IP:8765`，导入tools/foxglove中的布局。
-本机查看可以用address:=127.0.0.1；桥只启动一个，Ctrl+C独立停止。
-本节选择的构建目录必须与控制程序一致；development/production同样替换全部路径。
+包路径应指向本仓库install，而不是其他旧工作区。
 
-## 修改Q/R或模型
-
-只在明确修改权重、动力学或工作点时生成增益：
+## 6. 调整Q/R或模型
 
 ```bash
-OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir .cache/lqr14-generated \
-  && cp .cache/lqr14-generated/lqr14_development.h \
+OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir build/lqr14-generated \
+  && cp build/lqr14-generated/lqr14_development.h \
         src/chassis/balance/generated/lqr14_gain_samples.h
-cmake --build --preset hardware --parallel 4
-ctest --preset hardware
 ```
 
-可以用已安装NumPy/SciPy的`.cache/lqr14-venv/bin/python`替换python3。
-生成失败不要替换表；重新编译并重启控制后才生效。详见[LQR14](LQR14.md)。
-模型推导、协议生成和数据分析工具仍保留，它们承担实际计算，不是隐藏编译步骤的包装。
+生成成功后重新执行编译安装、测试和启动步骤。仅改Python或生成头文件而不重新
+编译安装，实机增益不会改变。生成、协议和分析工具承担实际计算，继续保留。
+设计与工况边界见[LQR14](LQR14.md)。
 
-## 已有旧构建目录与Colcon
-
-旧build/lqr14-hardware无需删除。可继续显式操作：
-
-```bash
-cmake --build build/lqr14-hardware --parallel 4
-ctest --test-dir build/lqr14-hardware --output-on-failure
-```
-
-运行和桥接时将上面的build/hardware全部换成build/lqr14-hardware，
-配置目录可选已迁移的.cache/lqr14-deployed。旧run_lqr14/run_foxglove脚本已删除。
-Colcon安装运行见[ROS接口说明](ROS2.md)，不要与裸CMake共用构建目录。
+历史.cache中的配置、采集和调参产物暂不删除，避免丢失试验记录；
+它们不是新流程的依赖。旧build/lqr14-hardware也不自动删除，但日常不再从它运行。

@@ -18,15 +18,16 @@ schema 4 的 `config/dust_control.yaml`，只配置执行选项、主站、从�
 
 ```bash
 source /opt/ros/humble/setup.bash
-cmake --preset development
-cmake --build --preset development --parallel 4
-ctest --preset development
+colcon --log-base logs/colcon build --paths . \
+  --build-base build/ros --install-base install --merge-install \
+  --cmake-args -GNinja -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF -DBUILD_TESTING=ON
+source install/setup.bash
+ros2 run dust_control dust_control_node --ros-args -p "config_directory:=$PWD/config"
 ```
 
-NUC使用hardware/production预设，无ROS测试使用headless。
-控制直接执行`dust_control_node --ros-args -p config_directory:=...`，
-Foxglove显式安装消息包、设置环境再执行`ros2 launch`；完整命令见上述说明。
-日常编译与运行不依赖包装脚本，只有批量测试保留`scripts/test.sh`。
+上述是Orb离线构建；运行前明确设置模拟配置并保持输出关闭。
+NUC构建将DUST_BUILD_IGH设为ON，并核对实机配置。
+不需要手工设置库路径或依赖.cache目录。只有批量测试保留脚本。
 
 - [底盘代码导航](src/chassis/README.md)
 - [架构与所有权](docs/ARCHITECTURE.md)

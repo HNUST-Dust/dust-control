@@ -29,18 +29,9 @@ balance:
 在`derive_lqr14.py`中覆盖Q/R，只作用于14状态生成；roll/高度权重来自
 `tools/data/lqr14_development.json`。
 
-```sh
-source /opt/ros/humble/setup.bash
-OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir .cache/lqr14-generated
-cp .cache/lqr14-generated/lqr14_development.h src/chassis/balance/generated/lqr14_gain_samples.h
-cmake --build build/lqr14-hardware -j4
-ctest --test-dir build/lqr14-hardware --output-on-failure
-export LD_LIBRARY_PATH="$PWD/build/lqr14-hardware${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-./build/lqr14-hardware/dust_control_node --ros-args -p "config_directory:=$PWD/.cache/lqr14-deployed"
-```
-
-生成成功后才替换表。控制与Foxglove需要显式加载ROS及消息库路径，完整命令见[编译与运行](BUILD_RUN.md)。
-停止前先遥控失能，再退出控制进程。新版本不自动修改实机配置或启动电机。
+生成、编译安装、测试、控制与Foxglove的完整命令统一见[编译与运行](BUILD_RUN.md)。
+使用colcon安装到install，source install/setup.bash后直接ros2 run/launch；
+不从临时构建目录运行，也不要求手工设置动态库路径。
 
 ## 降级与保护
 

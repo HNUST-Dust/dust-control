@@ -1,7 +1,8 @@
 # 构建与测试
 
-日常入口与预设区别见[编译与运行](BUILD_RUN.md)。`scripts/test.sh`负责配置、构建和测试，
-单独`ctest --preset <预设>`不重新编译。production没有测试，请使用hardware。
+日常colcon安装构建的测试命令见[编译与运行](BUILD_RUN.md)。
+以下CMake预设和测试脚本用于CI、批量回归及无ROS验证，不作为日常运行入口。
+`ctest --preset <预设>`不重新编译。
 
 ```bash
 ./scripts/test.sh ethercat-ci

@@ -4,27 +4,9 @@
 控制算法与原设备协议保留，通信后端改为 IgH EtherCAT。`src/main.cpp` 是唯一应用入口，
 通过 `src/dust_control.*` 装配各模块，模拟模式也使用此入口。
 
-裸CMake日常流程以[编译与运行](BUILD_RUN.md)为准；以下为可选colcon安装流程。
-
-## Colcon构建和离线启动
-
-```bash
-source /opt/ros/humble/setup.bash
-colcon --log-base build/colcon-log build --base-paths . \
-  --build-base build/colcon --install-base build/ros-install \
-  --cmake-args -DDUST_BUILD_ROS2=ON -DDUST_BUILD_IGH=OFF \
-    -DPython3_EXECUTABLE=/usr/bin/python3 -DPYTHON_EXECUTABLE=/usr/bin/python3
-source build/ros-install/setup.bash
-# 先在配置目录的 dust_control.yaml 中设置 simulate: true、realtime: false
-ros2 launch dust_control dust_control.launch.py
-```
-
-simulate:true 时该命令不申请 EtherCAT 主站。Ctrl+C 停止并回收控制线程。真实运行时默认禁止输出；
-YAML `execution.enable_output: true` 仍须满足物理遥控失能姿态确认、遥控使能、
-传感器新鲜度及原状态机门控。无运行期使能服务，不自动重新 Arm。
-
-已 source ROS 时 CMake 默认构建节点；纯 C++ 构建可显式设置
-`-DDUST_BUILD_ROS2=OFF -DBUILD_TESTING=ON`，只构建库和模块测试，无生产应用入口。ROS 模式需系统 Python 可导入 ament/rosidl。
+日常编译安装、配置、测试和启动命令以[编译与运行](BUILD_RUN.md)为准。
+使用colcon安装到install，source install/setup.bash后运行程序和桥接。
+模拟与实机共用该入口，区别由构建的IgH选项和运行配置明确决定。
 
 ## 执行方式
 
@@ -68,14 +50,6 @@ simulate、realtime、enable_output 统一由 dust_control.yaml 的 execution �
 线程、Adapter、EtherCAT 身份及 CPU 配置见 [装配文档](DUST_CONTROL_CONFIGURATION.md)。
 
 ROS2 话题和 Foxglove 性能验收留到实机；OrbStack 用于构建与功能调试。
-
-裸CMake直接运行节点，完整环境设置与桥接命令见[编译与运行](BUILD_RUN.md)：
-
-```bash
-source /opt/ros/humble/setup.bash
-export LD_LIBRARY_PATH="$PWD/build/production${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-./build/production/dust_control_node --ros-args -p "config_directory:=/实际配置目录"
-```
 
 十四状态控制接入后 `ChassisTelemetry.version=6`，新增 `*_hip_height_m`、
 高度速度、左右支撑估计、LQR14 力目标及接管状态。需重编译发送与接收端消息。
