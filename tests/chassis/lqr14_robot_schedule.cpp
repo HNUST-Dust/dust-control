@@ -60,6 +60,23 @@ int main() {
     assert(!schedule.Evaluate(std::numeric_limits<double>::quiet_NaN()).valid);
     assert(!schedule.Evaluate(std::numeric_limits<double>::infinity()).valid);
     Eigen::internal::set_is_malloc_allowed(true);
+    auto trimmed = samples;
+    for (int i = 0; i < chassis::Lqr14GainSchedule::kSampleCount; ++i) {
+        trimmed[i].has_pitch_trim = true;
+        trimmed[i].trim_anchor_theta_deg = 7.0;
+        trimmed[i].theta_equilibrium_rad = .1 + .001*i;
+        trimmed[i].body_on_leg_feedforward_nm = -1.0;
+    }
+    const chassis::Lqr14GainSchedule trim_schedule(trimmed);
+    const auto trim_mid = trim_schedule.Evaluate(.5*(trimmed[0].leg_length_m+trimmed[1].leg_length_m));
+    assert(trim_mid.has_pitch_trim && trim_mid.trim_anchor_theta_deg == 7.0);
+    assert(std::abs(trim_mid.theta_equilibrium_rad-.1005) < 1e-12);
+    assert(trim_mid.body_on_leg_feedforward_nm == -1.0);
+    trimmed[1].trim_anchor_theta_deg = 5.0;
+    bool trim_rejected = false;
+    try { const chassis::Lqr14GainSchedule bad_trim(trimmed); }
+    catch (const std::invalid_argument&) { trim_rejected = true; }
+    assert(trim_rejected);
     auto invalid = samples;
     invalid[1].leg_length_m = invalid[0].leg_length_m;
     bool rejected = false;
