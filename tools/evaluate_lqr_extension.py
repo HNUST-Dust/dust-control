@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-import derive_lqr14 as model
-import design_lqr14 as design
+import derive_lqr as model
+import design_lqr as design
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     endpoint = args.max_length_m
     if not np.isfinite(endpoint) or not lengths[-1] < endpoint <= .36:
         parser.error('analysis endpoint must exceed CSV maximum and be <= 0.36 m')
-    parameters = model.read_parameters(model.ROOT / 'tools/data/lqr14_development.json')
+    parameters = model.read_parameters(model.ROOT / 'tools/data/lqr_development.json')
     parameters['calibration_status'] = 'OFFLINE ONLY: extrapolated geometry, not CAD validated'
     grid = np.unique(np.r_[np.arange(lengths[-1] + .005, endpoint, .005), endpoint])
     variants, diagnostics = {}, {}

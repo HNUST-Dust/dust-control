@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "chassis/balance/balance_lqr14.h"
+#include "chassis/balance/balance_lqr.h"
 
 #include <algorithm>
 #include <cmath>
@@ -30,8 +30,8 @@ FlatGroundHipHeight EstimateFlatGroundHipHeight(const ChassisCycleInput& input,
     if (!input.feedback_valid || !input.imu_fresh) {
         return result;
     }
-    const double roll = config.lqr14_roll_sign * input.roll;
-    const double roll_rate = config.lqr14_roll_sign * input.roll_rate;
+    const double roll = config.lqr_roll_sign * input.roll;
+    const double roll_rate = config.lqr_roll_sign * input.roll_rate;
     double projection_rate_sum = 0.0;
     for (Side side : {Side::kLeft, Side::kRight}) {
         const auto& leg = input.leg.Get(side);
@@ -71,7 +71,7 @@ VerticalForceMapping MapVerticalForceToAxial(const ChassisCycleInput& input,
         return {};
     }
     const auto p = Project(leg.angle, 0.0, input.pitch, 0.0,
-                           config.lqr14_roll_sign * input.roll, 0.0);
+                           config.lqr_roll_sign * input.roll, 0.0);
     if (!std::isfinite(p.down) || !std::isfinite(p.tangent_up) ||
         p.down < 0.5) {
         return {};

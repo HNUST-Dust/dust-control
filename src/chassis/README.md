@@ -45,10 +45,10 @@ chassis/
 | 运动学与坐标 | [leg_kinematics.cpp](leg/leg_kinematics.cpp)、[leg_joint_coordinates.h](leg/leg_joint_coordinates.h)：FK/IK、雅可比和角度转换 |
 | 力矩与弹簧 | [leg_vmc.cpp](leg/leg_vmc.cpp)、[gas_spring.h](leg/gas_spring.h)：轴向力映射、弹簧几何及配置入口 |
 | 状态估计 | [body_motion_estimator.cpp](estimation/body_motion_estimator.cpp)、[support_force_estimator.cpp](estimation/support_force_estimator.cpp) |
-| 增益调度 | [lqr14_schedule.cpp](balance/lqr14_schedule.cpp)、[系数表](balance/generated/lqr14_gain_samples.h) |
+| 增益调度 | [lqr_schedule.cpp](balance/lqr_schedule.cpp)、[系数表](balance/generated/lqr_gain_samples.h) |
 | 参数 | [chassis_config.h](chassis_config.h) 定义值，[chassis_config.cpp](chassis_config.cpp) 校验，[chassis_config_loading.cpp](chassis_config_loading.cpp) 加载 YAML |
 | 运行与观测 | [chassis_runtime.cpp](runtime/chassis_runtime.cpp)、[chassis_observation.hpp](runtime/chassis_observation.hpp)：线程寿命和观测队列 |
-| 十四状态 LQR 研发 | [unified_lqr14.h](balance/unified_lqr14.h)：14×6 跟踪算法、腿长增益调度和[离线设计说明](../../docs/LQR14.md)，唯一平衡控制器，动作模式使用同一增益表的状态子集 |
+| LQR控制 | [unified_lqr.h](balance/unified_lqr.h)：14×6 跟踪算法、腿长增益调度和[离线设计说明](../../docs/LQR.md)，唯一平衡控制器，动作模式使用同一增益表的状态子集 |
 | MPC 研发 | [mpc/](mpc/)：可选独立库；不在当前 `Tick` 调用链中 |
 
 输入输出数据定义分别位于 [controller_inputs.h](controller_inputs.h) 和

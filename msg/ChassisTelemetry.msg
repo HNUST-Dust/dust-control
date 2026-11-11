@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 6
+uint32 version 7
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -32,9 +32,9 @@ float64 right_angle_rad
 float64 left_length_rate_m_s
 float64 right_length_rate_m_s
 
-# 14 状态控制诊断；status 与 Lqr14Status 对应，blend 是实际混合接管比例。
-uint8 lqr14_status
-float64 lqr14_blend
+# 14 状态控制诊断；status 与 LqrStatus 对应，blend 是实际混合接管比例。
+uint8 lqr_status
+float64 lqr_blend
 bool hip_height_valid
 float64 hip_height_m
 float64 left_hip_height_m
@@ -45,11 +45,11 @@ float64 hip_height_rate_reference_m_s
 float64 flat_ground_mismatch_m
 float64 left_support_force_n
 float64 right_support_force_n
-float64 lqr14_left_force_target_n
-float64 lqr14_right_force_target_n
+float64 lqr_left_force_target_n
+float64 lqr_right_force_target_n
 # 轴向限幅后、关节限幅前的模型预测值，不是实际地面反力传感器测量。
-float64 lqr14_left_force_allocated_n
-float64 lqr14_right_force_allocated_n
+float64 lqr_left_force_allocated_n
+float64 lqr_right_force_allocated_n
 
 # 平衡计算诊断；失能、recover 或源过期时无效，数值为 NaN。
 bool motion_diagnostics_valid
@@ -72,13 +72,13 @@ float64 right_theta_deg
 # 单位 N*m，数组按14状态顺序，-K*error 的分项，未分配/限幅。
 # position,speed,yaw,yaw_rate,left_theta,left_theta_rate,right_theta,
 # right_theta_rate,pitch,pitch_rate,roll,roll_rate,height,height_rate
-float64[14] lqr14_left_wheel_contribution_nm
-float64[14] lqr14_right_wheel_contribution_nm
-float64 lqr14_left_wheel_requested_nm
-float64 lqr14_right_wheel_requested_nm
-float64 lqr14_left_wheel_allocated_nm
-float64 lqr14_right_wheel_allocated_nm
-# 混合后控制命令，不是电机力矩实测；仅在LQR14 active时发布。
+float64[14] lqr_left_wheel_contribution_nm
+float64[14] lqr_right_wheel_contribution_nm
+float64 lqr_left_wheel_requested_nm
+float64 lqr_right_wheel_requested_nm
+float64 lqr_left_wheel_allocated_nm
+float64 lqr_right_wheel_allocated_nm
+# 混合后控制命令，不是电机力矩实测；仅在LQR active时发布。
 float64 left_wheel_output_command_nm
 float64 right_wheel_output_command_nm
 
@@ -103,5 +103,5 @@ float64[2] theta_rate_rad_s
 float64 pitch_rate_rad_s
 
 # status=9: 同一14状态增益的降级反馈+腿长控制；blend仅表示高度接管比例。
-bool lqr14_endpoint_gain
-bool lqr14_height_control_active
+bool lqr_endpoint_gain
+bool lqr_height_control_active

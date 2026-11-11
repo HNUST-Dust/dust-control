@@ -6,7 +6,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/"tools"))
-from prepare_lqr14_config import prepare
+from prepare_lqr_config import prepare
 
 probe = sys.argv[1]
 with tempfile.TemporaryDirectory() as directory:
@@ -34,4 +34,4 @@ with tempfile.TemporaryDirectory() as directory:
     else:
         raise AssertionError("non-realtime active profile accepted")
     assert original == (ROOT/"config/dust_control.yaml").read_bytes()
-print("LQR14 commissioning profile isolation and output gates passed")
+print("LQR commissioning profile isolation and output gates passed")

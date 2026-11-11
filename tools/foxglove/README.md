@@ -46,4 +46,4 @@ sequence 跳变可能来自发布回调主动选择最新样本、队列丢样�
 原 UDP 调试输出和 `--telemetry-port` 已删除；观测与队列归底盘模块所有。
 
 自定义消息由标准安装环境加载，不需要手工设置库或包搜索路径。
-桥已运行时不要重复启动。14状态观察布局为lqr14-layout.json，执行器布局为actuator-layout.json。
+桥已运行时不要重复启动。14状态观察布局为lqr-layout.json，执行器布局为actuator-layout.json。

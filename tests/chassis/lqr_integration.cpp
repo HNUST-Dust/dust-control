@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "chassis/balance/balance_controller.h"
-#include "chassis/balance/balance_lqr14.h"
+#include "chassis/balance/balance_lqr.h"
 #include "chassis/leg/leg_joint_coordinates.h"
 #include "chassis/leg/leg_vmc.h"
 
@@ -124,23 +124,23 @@ void Integration() {
     c::BalanceController controller(4.7, config);
     controller.ResetForEnable();
     auto out = Warm(controller, input);
-    assert(out.lqr14.status == c::Lqr14Status::kActive);
-    Near(out.lqr14.blend, 1);
-    Near(out.lqr14.requested_vertical_force_n.left, 12.054 * 9.80665 / 2, .05);
+    assert(out.lqr.status == c::LqrStatus::kActive);
+    Near(out.lqr.blend, 1);
+    Near(out.lqr.requested_vertical_force_n.left, 12.054 * 9.80665 / 2, .05);
     // 分项采用控制器实际使用的误差；总和必须还原未限幅请求。
     auto perturbed = input;
     perturbed.pitch += .01;
     c::BalanceController diagnostic_controller(4.7, config);
     diagnostic_controller.ResetForEnable();
     const auto diagnostic = Warm(diagnostic_controller, perturbed);
-    assert(diagnostic.lqr14.status == c::Lqr14Status::kActive);
+    assert(diagnostic.lqr.status == c::LqrStatus::kActive);
     double left_sum = 0.0, right_sum = 0.0;
     for (int j = 0; j < 14; ++j) {
-        left_sum += diagnostic.lqr14.left_wheel_contribution[j];
-        right_sum += diagnostic.lqr14.right_wheel_contribution[j];
+        left_sum += diagnostic.lqr.left_wheel_contribution[j];
+        right_sum += diagnostic.lqr.right_wheel_contribution[j];
     }
-    Near(left_sum, diagnostic.lqr14.requested_wheel_torque.left, 1e-10);
-    Near(right_sum, diagnostic.lqr14.requested_wheel_torque.right, 1e-10);
+    Near(left_sum, diagnostic.lqr.requested_wheel_torque.left, 1e-10);
+    Near(right_sum, diagnostic.lqr.requested_wheel_torque.right, 1e-10);
     // 在完整接管后，旧腿长 PID 参数不得改变新输出。
     auto other_config = config;
     other_config.leg_length_kp = 1e7;
@@ -152,56 +152,56 @@ void Integration() {
     auto moving = input;
     moving.imu.yaw_rate_rad_s = 2.0;
     out = Warm(controller, moving);
-    assert(out.lqr14.status == c::Lqr14Status::kActive);
+    assert(out.lqr.status == c::LqrStatus::kActive);
     auto unloaded = input;
     unloaded.measured_support_force_n.left = 0;
     out = Warm(controller, unloaded, 1);
-    assert(out.lqr14.status == c::Lqr14Status::kDegraded);
-    Near(out.lqr14.blend, 0);
+    assert(out.lqr.status == c::LqrStatus::kDegraded);
+    Near(out.lqr.blend, 0);
     Near(out.physical_wheel_torque.left, 0);
-    assert(!out.lqr14.height_control_active);
+    assert(!out.lqr.height_control_active);
     for (int j = 10; j < 14; ++j) {
-        Near(out.lqr14.left_wheel_contribution[j], 0.);
-        Near(out.lqr14.right_wheel_contribution[j], 0.);
+        Near(out.lqr.left_wheel_contribution[j], 0.);
+        Near(out.lqr.right_wheel_contribution[j], 0.);
     }
     assert(std::isfinite(out.joint_torque.left.b));
     assert(std::isfinite(out.joint_torque.right.d));
     out = Warm(controller, input, 10);
-    assert(out.lqr14.status == c::Lqr14Status::kDegraded);
+    assert(out.lqr.status == c::LqrStatus::kDegraded);
     Warm(controller, input);
     auto sloped = input;
     sloped.leg.left.length += .05;
     out = Warm(controller, sloped, 1);
-    assert(out.lqr14.status == c::Lqr14Status::kDegraded);
+    assert(out.lqr.status == c::LqrStatus::kDegraded);
     c::ExternalSupportForceCommand external;
     external.left_force_n = 40;
     external.right_force_n = 50;
     controller.Update(input, out, &external);
-    assert(out.lqr14.status == c::Lqr14Status::kExternalSupport);
+    assert(out.lqr.status == c::LqrStatus::kExternalSupport);
     controller.Update(input, out, nullptr, false);
-    assert(out.lqr14.status == c::Lqr14Status::kAction);
+    assert(out.lqr.status == c::LqrStatus::kAction);
     controller.Reset();
     out = Warm(controller, input, 1);
-    assert(out.lqr14.status == c::Lqr14Status::kDegraded);
+    assert(out.lqr.status == c::LqrStatus::kDegraded);
     auto long_legs = input;
     long_legs.leg.left.length = long_legs.leg.right.length = .33;
     out = Warm(controller, long_legs);
-    assert(out.lqr14.endpoint_gain);
-    assert(out.lqr14.status != c::Lqr14Status::kOutsideModel);
+    assert(out.lqr.endpoint_gain);
+    assert(out.lqr.status != c::LqrStatus::kOutsideModel);
     auto leaned = input;
     leaned.roll = .21;
     leaned.pitch = .28;
     out = Warm(controller, leaned);
-    assert(out.lqr14.status != c::Lqr14Status::kOutsideModel);
+    assert(out.lqr.status != c::LqrStatus::kOutsideModel);
     auto invalid_projection = input;
     invalid_projection.roll = 1.5;
     out = Warm(controller, invalid_projection);
-    assert(out.lqr14.status == c::Lqr14Status::kDegraded);
+    assert(out.lqr.status == c::LqrStatus::kDegraded);
     assert(std::isfinite(out.physical_wheel_torque.left));
     auto wrong_dt = input;
     wrong_dt.dt = .01;
     out = Warm(controller, wrong_dt, 1);
-    assert(out.lqr14.status == c::Lqr14Status::kInvalidFeedback);
+    assert(out.lqr.status == c::LqrStatus::kInvalidFeedback);
 }
 }  // namespace
 int main() {

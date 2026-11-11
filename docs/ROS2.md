@@ -51,8 +51,8 @@ simulate、realtime、enable_output 统一由 dust_control.yaml 的 execution �
 
 ROS2 话题和 Foxglove 性能验收留到实机；OrbStack 用于构建与功能调试。
 
-十四状态控制接入后 `ChassisTelemetry.version=6`，新增 `*_hip_height_m`、
-高度速度、左右支撑估计、LQR14 力目标及接管状态。需重编译发送与接收端消息。
-`lqr14_status=2` 且 `lqr14_blend=1` 才表示新控制完整接管；
+十四状态控制接入后 `ChassisTelemetry.version=7`，新增 `*_hip_height_m`、
+高度速度、左右支撑估计、LQR 力目标及接管状态。需重编译发送与接收端消息。
+`lqr_status=2` 且 `lqr_blend=1` 才表示新控制完整接管；
 `left_height_m/right_height_m` 仍保留原始机构几何含义。
-首次配置与状态码见 [LQR14](LQR14.md)。
+首次配置与状态码见 [LQR](LQR.md)。

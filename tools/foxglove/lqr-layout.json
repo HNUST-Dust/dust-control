@@ -88,19 +88,19 @@
       "followingViewWidth": 20
     },
     "Plot!mode": {
-      "title": "LQR14 接管与诊断有效性",
+      "title": "LQR 接管与诊断有效性",
       "paths": [
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_status",
+          "value": "/dust_control/chassis/telemetry.lqr_status",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "lqr14_status"
+          "label": "lqr_status"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_blend",
+          "value": "/dust_control/chassis/telemetry.lqr_blend",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "lqr14_blend"
+          "label": "lqr_blend"
         },
         {
           "value": "/dust_control/chassis/telemetry.motion_diagnostics_valid",
@@ -153,31 +153,31 @@
       "title": "left轮 LQR反馈分项 (N·m)，未限幅",
       "paths": [
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[0]",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_contribution_nm[0]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "位置"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[1]",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_contribution_nm[1]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "速度"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[4]",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_contribution_nm[4]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "左腿角"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[6]",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_contribution_nm[6]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "右腿角"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[8]",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_contribution_nm[8]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "pitch"
@@ -196,31 +196,31 @@
       "title": "right轮 LQR反馈分项 (N·m)，未限幅",
       "paths": [
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[0]",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_contribution_nm[0]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "位置"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[1]",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_contribution_nm[1]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "速度"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[4]",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_contribution_nm[4]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "左腿角"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[6]",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_contribution_nm[6]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "右腿角"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[8]",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_contribution_nm[8]",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "pitch"
@@ -239,25 +239,25 @@
       "title": "左右轮请求 / 分配 / 混合命令 (N·m)",
       "paths": [
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_requested_nm",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_requested_nm",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "left requested"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_allocated_nm",
+          "value": "/dust_control/chassis/telemetry.lqr_left_wheel_allocated_nm",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "left allocated"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_requested_nm",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_requested_nm",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "right requested"
         },
         {
-          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_allocated_nm",
+          "value": "/dust_control/chassis/telemetry.lqr_right_wheel_allocated_nm",
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "right allocated"

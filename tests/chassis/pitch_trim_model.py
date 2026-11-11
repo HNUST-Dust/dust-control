@@ -4,13 +4,13 @@ import sys
 import unittest
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'tools'))
-import derive_lqr14 as model
-import lqr14_pitch_trim as trim
+import derive_lqr as model
+import lqr_pitch_trim as trim
 
 class TrimModel(unittest.TestCase):
     def test_static_balance_and_anchor(self):
         samples=model.dynamics.read_leg_samples(model.ROOT/'tools/data/leg_mass_properties0820.csv')
-        params=model.read_parameters(model.ROOT/'tools/data/lqr14_trim7_candidate.json')
+        params=model.read_parameters(model.ROOT/'tools/data/lqr_trim7_candidate.json')
         robot=model.dynamics.RobotParameters()
         offset=trim.forward_offset(samples, params)
         for length in np.linspace(samples[0]['leg_length_m'], samples[-1]['leg_length_m'], 101):

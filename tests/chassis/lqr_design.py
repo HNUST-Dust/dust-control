@@ -10,7 +10,7 @@ import unittest
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("design_lqr14", ROOT / "tools/design_lqr14.py")
+spec = importlib.util.spec_from_file_location("design_lqr", ROOT / "tools/design_lqr.py")
 design = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(design)
 
@@ -48,8 +48,8 @@ def fixture_model():
 def fixture_header(result):
     text = "// SYNTHETIC TEST ONLY: never use this gain on the robot.\n" + design.cpp_header(result)
     text += "\nnamespace dust_control::chassis {\n"
-    for name, shape, key in (("Lqr14TestA", (14, 14), "discrete_a"),
-                             ("Lqr14TestB", (14, 6), "discrete_b")):
+    for name, shape, key in (("LqrTestA", (14, 14), "discrete_a"),
+                             ("LqrTestB", (14, 6), "discrete_b")):
         values = ",\n        ".join(", ".join(format(x, ".17g") for x in row)
                                    for row in result[key])
         text += (f"inline Eigen::Matrix<double, {shape[0]}, {shape[1]}> {name}() {{\n"
@@ -70,7 +70,7 @@ class DesignTests(unittest.TestCase):
         response = np.linalg.matrix_power(a - b @ k, 20000)
         self.assertLess(np.linalg.norm(response, ord=2), 0.01)
         # 检查提交的 C++ 测试增益与当前求解结果数值一致。
-        header = (ROOT / "tests/chassis/lqr14_test_design.h").read_text()
+        header = (ROOT / "tests/chassis/lqr_test_design.h").read_text()
         rows = header.split("design.gain <<", 1)[1].split(";", 1)[0]
         committed = np.fromstring(rows.replace("\n", " "), sep=",").reshape(6, 14)
         np.testing.assert_allclose(committed, k, rtol=1e-8, atol=1e-8)
@@ -99,16 +99,16 @@ class DesignTests(unittest.TestCase):
             model, output, header = (Path(directory) / name for name in
                                      ("model.json", "gain.json", "gain.h"))
             model.write_text(json.dumps(continuous))
-            subprocess.run([sys.executable, str(ROOT / "tools/design_lqr14.py"),
+            subprocess.run([sys.executable, str(ROOT / "tools/design_lqr.py"),
                             str(model), "--output", str(output), "--header", str(header)],
                            check=True, capture_output=True)
             self.assertEqual(json.loads(output.read_text())["gain"], first["gain"])
-            self.assertIn("MakeLqr14Design", header.read_text())
+            self.assertIn("MakeLqrDesign", header.read_text())
 
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--write-fixture"]:
         result = design.synthesize(fixture_model())
-        (ROOT / "tests/chassis/lqr14_test_design.h").write_text(fixture_header(result))
+        (ROOT / "tests/chassis/lqr_test_design.h").write_text(fixture_header(result))
     else:
         unittest.main()

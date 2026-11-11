@@ -5,7 +5,7 @@ This is a declared calibration assumption, not a CAD measurement or diagnosis.
 """
 import numpy as np
 
-import lqr14_robot_dynamics as dynamics
+import lqr_robot_dynamics as dynamics
 
 
 def forward_offset(samples, parameters):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""复制独立 LQR14 调试配置；不覆盖现有配置，不启动程序。"""
+"""复制独立 LQR 调试配置；不覆盖现有配置，不启动程序。"""
 import argparse
 from pathlib import Path
 import shutil
@@ -18,7 +18,7 @@ def prepare(source, output, mode, simulate=False, non_realtime=False):
     app["execution"]["simulate"] = simulate
     app["execution"]["realtime"] = not (simulate or non_realtime)
     app["execution"]["enable_output"] = mode != "observe"
-    chassis["balance"]["lqr14"] = {"roll_sign": 1.0}
+    chassis["balance"]["lqr"] = {"roll_sign": 1.0}
     chassis["balance"]["min_leg_length_m"] = .16
     chassis["balance"]["max_leg_length_m"] = .30
     if mode != "deploy":
@@ -44,7 +44,7 @@ def main():
     app, chassis = prepare(args.source, args.output, args.mode, args.simulate, args.non_realtime)
     print(f"configuration: {args.output.resolve()}")
     print(f"execution: {app['execution']}")
-    print(f"lqr14: {chassis['balance']['lqr14']}")
+    print(f"lqr: {chassis['balance']['lqr']}")
     print("No process started. Motor output still requires the existing remote enable sequence.")
 
 

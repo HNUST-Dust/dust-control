@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "chassis/balance/unified_lqr14.h"
+#include "chassis/balance/unified_lqr.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -9,7 +9,7 @@
 
 namespace dust_control::chassis {
 
-UnifiedLqr14::UnifiedLqr14(Design design, Limits limits)
+UnifiedLqr::UnifiedLqr(Design design, Limits limits)
     : design_(std::move(design)), limits_(std::move(limits)) {
     if (!design_.gain.allFinite() || design_.gain.isZero() ||
         !std::isfinite(design_.sample_time_s) ||
@@ -18,11 +18,11 @@ UnifiedLqr14::UnifiedLqr14(Design design, Limits limits)
         (limits_.lower.array() > limits_.upper.array()).any() ||
         limits_.lower[kLeftVerticalForce] < 0.0 ||
         limits_.lower[kRightVerticalForce] < 0.0) {
-        throw std::invalid_argument("invalid 1 kHz LQR14 design or limits");
+        throw std::invalid_argument("invalid 1 kHz LQR design or limits");
     }
 }
 
-UnifiedLqr14::Result UnifiedLqr14::Compute(
+UnifiedLqr::Result UnifiedLqr::Compute(
     const State& measured, const Reference& reference) const noexcept {
     if (!measured.allFinite() || !reference.state.allFinite() ||
         !reference.feedforward.allFinite()) {

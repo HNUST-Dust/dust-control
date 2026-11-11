@@ -60,7 +60,7 @@ struct ChassisConfig {
     double robot_mass = 12.054;
     double theta_balance_bias_deg = 5.0;
     // 平衡控制固定使用14状态模型；保留IMU roll方向标定。
-    double lqr14_roll_sign = 1.0;
+    double lqr_roll_sign = 1.0;
     double remote_deadband = 0.05;
     double min_commanded_leg_length = 0.15;
     double max_commanded_leg_length = 0.33;

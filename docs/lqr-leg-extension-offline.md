@@ -1,4 +1,4 @@
-# LQR14 腿长外推离线评估（2026-11-10）
+# LQR 腿长外推离线评估（2026-11-10）
 
 用户授权先做外推评估。原 CAD 上限 311.01 mm，分析延伸至 340 mm，覆盖
 当前悬空读数 335–338 mm。340 mm 仅为分析终点，不代表已确认机械极限。
@@ -6,8 +6,8 @@
 复现命令：
 
 ```sh
-OPENBLAS_NUM_THREADS=1 python3 tools/evaluate_lqr14_extension.py \
-  --output-dir .cache/lqr14-extension-340
+OPENBLAS_NUM_THREADS=1 python3 tools/evaluate_lqr_extension.py \
+  --output-dir .cache/lqr-extension-340
 ```
 
 输出 `evaluation.json` 包含输入哈希、外推参数、DARE 残差、稳定性及交叉模型结果。

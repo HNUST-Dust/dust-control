@@ -60,7 +60,7 @@ NUC execution为simulate:false、realtime:true；默认enable_output:false。
 Orb模拟应明确simulate:true、realtime:false、enable_output:false。
 不因构建关闭IgH就自动进入模拟。
 
-旧配置balance.lqr14仅保留roll_sign；删除enabled和shadow_only。
+旧配置balance.lqr仅保留roll_sign；删除enabled和shadow_only。
 当前使用7°经验腿角参考、速度Q权重1，候选非零工作点尚未启用。
 配置启动时加载，修改后重启生效，本身不需要重新编译。
 
@@ -77,7 +77,7 @@ ros2 run dust_control dust_control_node
 默认配置不存在则明确报错，不回退到安装目录中的另一份配置。
 程序在前台持续运行，不返回提示符是正常的。
 通信就绪后，按原遥控流程操作；停止前先遥控失能，再Ctrl+C。
-本次不会自动复制旧.cache/lqr14-deployed中的现场参数；如需保留，请人工核对合入config。
+本次不会自动复制旧.cache/lqr-deployed中的现场参数；如需保留，请人工核对合入config。
 
 ## 5. 启动Foxglove桥
 
@@ -108,17 +108,17 @@ ros2 topic list
 ## 6. 调整Q/R或模型
 
 ```bash
-OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir build/lqr14-generated \
-  && cp build/lqr14-generated/lqr14_development.h \
-        src/chassis/balance/generated/lqr14_gain_samples.h
+OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr.py --output-dir build/lqr-generated \
+  && cp build/lqr-generated/lqr_development.h \
+        src/chassis/balance/generated/lqr_gain_samples.h
 ```
 
 生成成功后重新执行编译安装、测试和启动步骤。仅改Python或生成头文件而不重新
 编译安装，实机增益不会改变。生成、协议和分析工具承担实际计算，继续保留。
-设计与工况边界见[LQR14](LQR14.md)。
+设计与工况边界见[LQR](LQR.md)。
 
 历史.cache中的配置、采集和调参产物暂不删除，避免丢失试验记录；
-它们不是新流程的依赖。旧build/lqr14-hardware也不自动删除，但日常不再从它运行。
+它们不是新流程的依赖。旧build/lqr-hardware也不自动删除，但日常不再从它运行。
 
 ## 可选便捷脚本
 

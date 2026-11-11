@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline analysis of captured LQR14 telemetry; no hardware access or tuning."""
+"""Offline analysis of captured LQR telemetry; no hardware access or tuning."""
 import argparse
 import json
 from pathlib import Path
@@ -26,6 +26,10 @@ def main():
     parser.add_argument('--output-dir', type=Path, required=True)
     args = parser.parse_args()
     rows = [json.loads(line) for line in args.capture.open() if line.strip()]
+    for row in rows:
+        for key in list(row):
+            if key.startswith('lqr14_'):
+                row.setdefault('lqr_'+key[len('lqr14_'):], row[key])
     if len(rows) < 100:
         raise SystemExit('Insufficient samples')
     def column(name):
@@ -52,9 +56,9 @@ def main():
     report['position_clipped_fraction'] = float(np.mean(np.abs(column('body_position_error_m')[valid]-column('body_position_error_unclamped_m')[valid]) > 1e-7)) if valid.any() else None
     terms = {}
     for side in ('left', 'right'):
-        contributions = column(f'lqr14_{side}_wheel_contribution_nm')
-        requested = column(f'lqr14_{side}_wheel_requested_nm')
-        allocated = column(f'lqr14_{side}_wheel_allocated_nm')
+        contributions = column(f'lqr_{side}_wheel_contribution_nm')
+        requested = column(f'lqr_{side}_wheel_requested_nm')
+        allocated = column(f'lqr_{side}_wheel_allocated_nm')
         command = column(f'{side}_wheel_output_command_nm')
         terms[side] = {'contributions': {name: stats(contributions[valid, j]) for j, name in enumerate(STATE_NAMES)},
                        'sum_minus_request': stats((contributions.sum(axis=1)-requested)[valid]),
@@ -154,12 +158,12 @@ def main():
         ax.set_title(title)
     for index, side in enumerate(('left','right')):
         ax = axes[2,index]
-        contribution = column(f'lqr14_{side}_wheel_contribution_nm')
+        contribution = column(f'lqr_{side}_wheel_contribution_nm')
         for name, indices in [('position',[0]),('speed',[1]),('theta',[4,6]),('theta_rate',[5,7]),('pitch',[8]),('pitch_rate',[9]),('remaining',[2,3,10,11,12,13])]:
             ax.plot(time_s, contribution[:,indices].sum(axis=1), label=name, lw=.8)
         ax.set_title(side+' wheel feedback contributions (Nm)')
         ax = axes[3,index]
-        for field in [f'lqr14_{side}_wheel_requested_nm',f'lqr14_{side}_wheel_allocated_nm',f'{side}_wheel_output_command_nm']:
+        for field in [f'lqr_{side}_wheel_requested_nm',f'lqr_{side}_wheel_allocated_nm',f'{side}_wheel_output_command_nm']:
             ax.plot(time_s, column(field), label=field, lw=.8)
         ax.set_title(side+' wheel torque commands (Nm), NOT measured torque')
     for ax in axes.flat:

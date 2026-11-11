@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "chassis/balance/lqr14_schedule.h"
+#include "chassis/balance/lqr_schedule.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,7 +8,7 @@
 
 namespace dust_control::chassis {
 
-Lqr14GainSchedule::Lqr14GainSchedule(Samples samples)
+LqrGainSchedule::LqrGainSchedule(Samples samples)
     : samples_(std::move(samples)) {
     double previous_length = 0.0;
     for (const auto& sample : samples_) {
@@ -20,13 +20,13 @@ Lqr14GainSchedule::Lqr14GainSchedule(Samples samples)
             !std::isfinite(sample.body_on_leg_feedforward_nm) ||
             !std::isfinite(sample.trim_anchor_theta_deg) ||
             sample.trim_anchor_theta_deg != samples_.front().trim_anchor_theta_deg) {
-            throw std::invalid_argument("invalid LQR14 gain schedule");
+            throw std::invalid_argument("invalid LQR gain schedule");
         }
         previous_length = sample.leg_length_m;
     }
 }
 
-Lqr14GainSchedule::Evaluation Lqr14GainSchedule::Evaluate(
+LqrGainSchedule::Evaluation LqrGainSchedule::Evaluate(
     double leg_length_m) const noexcept {
     if (!std::isfinite(leg_length_m)) {
         return {};

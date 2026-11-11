@@ -10,7 +10,7 @@ namespace dust_control::chassis {
  * 增益在离线以 1 ms 采样周期求解；周期内只做固定大小矩阵运算。
  * 不推断接触状态、不估计高度、不执行设备 I/O；调用方负责这些边界。
  */
-class UnifiedLqr14 {
+class UnifiedLqr {
    public:
     static constexpr int kStateCount = 14;
     static constexpr int kInputCount = 6;
@@ -79,7 +79,7 @@ class UnifiedLqr14 {
 
     // 启动时校验增益、采样周期和独立输出限幅；无效参数抛 invalid_argument。
     // 这里只能检查参数格式，闭环稳定性由离线模型验证。
-    UnifiedLqr14(Design design, Limits limits);
+    UnifiedLqr(Design design, Limits limits);
 
     // 无动态分配、无阻塞、无跨周期状态。无效输入返回 valid=false 的零结果，
     // 调用方必须据此回退，不能把零支撑力当作有效平衡命令。

@@ -21,7 +21,7 @@ struct ChassisObservation {
     devices::MotorTargets motor_targets{};  // 最终安全策略后的提交目标。
     std::array<double, 2> wheel_command_sign{1., 1.};
     MotionDiagnostics motion;
-    Lqr14Diagnostics lqr14;
+    LqrDiagnostics lqr;
 };
 
 // 控制线程单生产者、非实时线程单消费者；入队和出队均不等待、不分配内存。

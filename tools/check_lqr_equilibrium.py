@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 from scipy.optimize import root
 
-import derive_lqr14 as model
-import design_lqr14 as design
+import derive_lqr as model
+import design_lqr as design
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     samples = model.dynamics.read_leg_samples(model.ROOT/'tools/data/leg_mass_properties0820.csv')
-    parameters = model.read_parameters(model.ROOT/'tools/data/lqr14_development.json')
+    parameters = model.read_parameters(model.ROOT/'tools/data/lqr_development.json')
     lengths, _ = model.validate_samples(samples)
     sample, _ = model.sample_at(samples, args.length_m)
     gains = np.array([design.synthesize(model.derive_model(samples, float(length), parameters))['gain']

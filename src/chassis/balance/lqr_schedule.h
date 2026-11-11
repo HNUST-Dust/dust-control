@@ -3,28 +3,28 @@
 
 #include <array>
 
-#include "chassis/balance/unified_lqr14.h"
+#include "chassis/balance/unified_lqr.h"
 
 namespace dust_control::chassis {
 
-struct Lqr14GainSample {
+struct LqrGainSample {
     double leg_length_m = 0.0;
     bool has_pitch_trim = false;
     double theta_equilibrium_rad = 0.0;
     double body_on_leg_feedforward_nm = 0.0;
     double trim_anchor_theta_deg = 0.0;
-    UnifiedLqr14::Gain gain = UnifiedLqr14::Gain::Zero();
+    UnifiedLqr::Gain gain = UnifiedLqr::Gain::Zero();
 };
 
 /** 按当前 CSV 的十二个腿长工作点调度；构造时复制数据，无悬垂引用。 */
-class Lqr14GainSchedule {
+class LqrGainSchedule {
    public:
     static constexpr int kSampleCount = 12;
-    using Samples = std::array<Lqr14GainSample, kSampleCount>;
+    using Samples = std::array<LqrGainSample, kSampleCount>;
     struct Evaluation {
         bool valid = false;
         bool clamped = false;
-        UnifiedLqr14::Design design;
+        UnifiedLqr::Design design;
         bool has_pitch_trim = false;
         double theta_equilibrium_rad = 0.0;
         double body_on_leg_feedforward_nm = 0.0;
@@ -32,7 +32,7 @@ class Lqr14GainSchedule {
     };
 
     // 启动时拒绝无效或乱序样本。闭环稳定性由离线密集采样验证。
-    explicit Lqr14GainSchedule(Samples samples);
+    explicit LqrGainSchedule(Samples samples);
 
     // 固定大小线性插值，无分配；超范围夹紧并显式报告，NaN/Inf 无效。
     // 参数是左右平均等效腿长，不是高度。仅适用于近似对称双侧支撑。

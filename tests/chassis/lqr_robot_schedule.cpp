@@ -4,17 +4,17 @@
 #include <limits>
 #include <stdexcept>
 
-#include "chassis/balance/lqr14_schedule.h"
-#include "lqr14_development.h"
+#include "chassis/balance/lqr_schedule.h"
+#include "lqr_development.h"
 
 namespace chassis = dust_control::chassis;
-using Lqr = chassis::UnifiedLqr14;
+using Lqr = chassis::UnifiedLqr;
 
 int main() {
-    const auto samples = chassis::Lqr14DevelopmentSamples();
-    const chassis::Lqr14GainSchedule schedule(samples);
+    const auto samples = chassis::LqrDevelopmentSamples();
+    const chassis::LqrGainSchedule schedule(samples);
     Eigen::internal::set_is_malloc_allowed(false);
-    for (int i = 0; i < chassis::Lqr14GainSchedule::kSampleCount; ++i) {
+    for (int i = 0; i < chassis::LqrGainSchedule::kSampleCount; ++i) {
         const auto evaluation = schedule.Evaluate(samples[i].leg_length_m);
         assert(evaluation.valid && !evaluation.clamped);
         assert((evaluation.design.gain - samples[i].gain).norm() < 1e-10);
@@ -61,27 +61,27 @@ int main() {
     assert(!schedule.Evaluate(std::numeric_limits<double>::infinity()).valid);
     Eigen::internal::set_is_malloc_allowed(true);
     auto trimmed = samples;
-    for (int i = 0; i < chassis::Lqr14GainSchedule::kSampleCount; ++i) {
+    for (int i = 0; i < chassis::LqrGainSchedule::kSampleCount; ++i) {
         trimmed[i].has_pitch_trim = true;
         trimmed[i].trim_anchor_theta_deg = 7.0;
         trimmed[i].theta_equilibrium_rad = .1 + .001*i;
         trimmed[i].body_on_leg_feedforward_nm = -1.0;
     }
-    const chassis::Lqr14GainSchedule trim_schedule(trimmed);
+    const chassis::LqrGainSchedule trim_schedule(trimmed);
     const auto trim_mid = trim_schedule.Evaluate(.5*(trimmed[0].leg_length_m+trimmed[1].leg_length_m));
     assert(trim_mid.has_pitch_trim && trim_mid.trim_anchor_theta_deg == 7.0);
     assert(std::abs(trim_mid.theta_equilibrium_rad-.1005) < 1e-12);
     assert(trim_mid.body_on_leg_feedforward_nm == -1.0);
     trimmed[1].trim_anchor_theta_deg = 5.0;
     bool trim_rejected = false;
-    try { const chassis::Lqr14GainSchedule bad_trim(trimmed); }
+    try { const chassis::LqrGainSchedule bad_trim(trimmed); }
     catch (const std::invalid_argument&) { trim_rejected = true; }
     assert(trim_rejected);
     auto invalid = samples;
     invalid[1].leg_length_m = invalid[0].leg_length_m;
     bool rejected = false;
     try {
-        const chassis::Lqr14GainSchedule bad(invalid);
+        const chassis::LqrGainSchedule bad(invalid);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }

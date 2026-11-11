@@ -7,7 +7,7 @@ add_library(dust_chassis
 
   # 各动作独立拥有阶段、参考和控制状态。
   balance/balance_controller.cpp
-  balance/balance_lqr14.cpp
+  balance/balance_lqr.cpp
   actions/recovery_controller.cpp
   actions/flight_controller.cpp
   actions/jump_controller.cpp
@@ -18,8 +18,8 @@ add_library(dust_chassis
   leg/leg_vmc.cpp
   estimation/body_motion_estimator.cpp
   estimation/support_force_estimator.cpp
-  balance/unified_lqr14.cpp
-  balance/lqr14_schedule.cpp
+  balance/unified_lqr.cpp
+  balance/lqr_schedule.cpp
   chassis_config.cpp
 )
 target_link_libraries(dust_chassis PUBLIC dust_headers Eigen3::Eigen)

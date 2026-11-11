@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-#include "chassis/balance/balance_lqr14.h"
+#include "chassis/balance/balance_lqr.h"
 #include "chassis_config.h"
 #include "chassis/leg/leg_joint_coordinates.h"
 #include "chassis/leg/leg_kinematics.h"

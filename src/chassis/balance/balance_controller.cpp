@@ -6,10 +6,10 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "chassis/balance/balance_lqr14.h"
+#include "chassis/balance/balance_lqr.h"
 #include "chassis_config.h"
 #include "chassis/leg/leg_vmc.h"
-#include "chassis/balance/generated/lqr14_gain_samples.h"
+#include "chassis/balance/generated/lqr_gain_samples.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -56,10 +56,10 @@ BalanceController::BalanceController(double wheel_torque_limit,
       target_leg_length_(config_.default_leg_length) {
     {
         ValidateChassisConfig(config_);
-        lqr14_schedule_.emplace(Lqr14DevelopmentSamples());
-        const auto trim = lqr14_schedule_->Evaluate(config_.default_leg_length);
+        lqr_schedule_.emplace(LqrDevelopmentSamples());
+        const auto trim = lqr_schedule_->Evaluate(config_.default_leg_length);
         if (trim.has_pitch_trim && std::abs(trim.trim_anchor_theta_deg-config_.theta_balance_bias_deg) > 1e-8) {
-            throw std::invalid_argument("LQR14 trim anchor differs from configured theta bias");
+            throw std::invalid_argument("LQR trim anchor differs from configured theta bias");
         }
     }
 }
@@ -78,11 +78,11 @@ void BalanceController::Reset() {
     yaw_rate_filter_initialized_ = false;
 
     side_state_ = {};
-    lqr14_support_elapsed_s_ = 0.0;
-    lqr14_blend_ = 0.0;
-    lqr14_height_initialized_ = false;
-    lqr14_filtered_height_rate_ = 0.0;
-    lqr14_previous_height_reference_ = 0.0;
+    lqr_support_elapsed_s_ = 0.0;
+    lqr_blend_ = 0.0;
+    lqr_height_initialized_ = false;
+    lqr_filtered_height_rate_ = 0.0;
+    lqr_previous_height_reference_ = 0.0;
 }
 
 void BalanceController::ResetForEnable() {
@@ -103,7 +103,7 @@ void BalanceController::SynchronizeReferences(const ChassisCycleInput &input) {
 
 void BalanceController::Update(
     const ChassisCycleInput &input, ChassisControlOutput &output,
-    const ExternalSupportForceCommand *external_support, bool allow_lqr14) {
+    const ExternalSupportForceCommand *external_support, bool allow_lqr) {
     UpdateAttitudeReferences(input, external_support, output);
     const BodyMotionState &motion = EstimateBodyMotion(input, output);
     const MotionTracking tracking = UpdateMotionReferences(input, motion);
@@ -123,7 +123,7 @@ void BalanceController::Update(
         ChassisControlOutput candidate = output;
         candidate.motion = output.motion;
         candidate.joint_control_active = output.joint_control_active;
-        if (!ComputeLqr14Output(input, tracking, candidate, external_support, allow_lqr14)) {
+        if (!ComputeLqrOutput(input, tracking, candidate, external_support, allow_lqr)) {
             candidate.physical_wheel_torque = {};
             candidate.joint_torque = {};
             candidate.joint_control_active = false;
@@ -139,8 +139,8 @@ void BalanceController::UpdateAttitudeReferences(
     ChassisControlOutput &output) {
     // 从交接姿态以受限速率回到稳态目标，角速度反馈始终保持完整控制权。
     double theta_target = config_.theta_balance_bias();
-    if (lqr14_schedule_) {
-        const auto trim = lqr14_schedule_->Evaluate(
+    if (lqr_schedule_) {
+        const auto trim = lqr_schedule_->Evaluate(
             0.5*(input.leg.left.length+input.leg.right.length));
         if (trim.valid && !trim.clamped && trim.has_pitch_trim) {
             theta_target = trim.theta_equilibrium_rad;
@@ -331,14 +331,14 @@ void BalanceController::AllocateBalanceTorques(
     output.body_on_leg_torque = output.requested_body_on_leg_torque;
 }
 
-bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
+bool BalanceController::ComputeLqrOutput(const ChassisCycleInput &input,
                                            const MotionTracking &tracking,
                                            ChassisControlOutput &candidate,
                                            const ExternalSupportForceCommand *external_support,
                                            bool allow_extensions) {
     const auto saved_side_state = side_state_;
-    candidate.lqr14 = {};
-    auto &diag = candidate.lqr14;
+    candidate.lqr = {};
+    auto &diag = candidate.lqr;
     const auto height = EstimateFlatGroundHipHeight(input, config_);
     diag.height_valid = height.valid;
     diag.height_m = height.height_m;
@@ -346,19 +346,19 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
     diag.ground_mismatch_m = height.ground_mismatch_m;
     if (!input.feedback_valid || !input.imu_fresh || !std::isfinite(input.dt) || input.dt < 0.0005 ||
         input.dt > 0.002) {
-        diag.status = Lqr14Status::kInvalidFeedback;
-        lqr14_support_elapsed_s_ = 0.0;
-        lqr14_height_initialized_ = false;
+        diag.status = LqrStatus::kInvalidFeedback;
+        lqr_support_elapsed_s_ = 0.0;
+        lqr_height_initialized_ = false;
         return false;
     }
-    const double model_roll = config_.lqr14_roll_sign * input.roll;
-    const double model_roll_rate = config_.lqr14_roll_sign * input.roll_rate;
+    const double model_roll = config_.lqr_roll_sign * input.roll;
+    const double model_roll_rate = config_.lqr_roll_sign * input.roll_rate;
     const double mean_length =
         0.5 * (input.leg.left.length + input.leg.right.length);
-    const auto evaluation = lqr14_schedule_->Evaluate(mean_length);
+    const auto evaluation = lqr_schedule_->Evaluate(mean_length);
     diag.endpoint_gain = evaluation.clamped;
     if (!evaluation.valid) {
-        diag.status = Lqr14Status::kNumericalFailure;
+        diag.status = LqrStatus::kNumericalFailure;
         return false;
     }
     const bool supported = input.support_force_valid &&
@@ -368,16 +368,16 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
         input.measured_support_force_n.right >= 0.1*config_.robot_mass*kGravity;
     const bool extension_eligible = allow_extensions && !external_support && height.valid &&
         std::abs(height.ground_mismatch_m) <= .015 && supported;
-    if (extension_eligible) lqr14_support_elapsed_s_ += input.dt;
-    else lqr14_support_elapsed_s_ = 0.;
-    const bool height_active = extension_eligible && lqr14_support_elapsed_s_ >= .05;
-    if (height_active) lqr14_blend_ = std::min(1., lqr14_blend_+input.dt/.25);
-    else lqr14_blend_ = 0.;
+    if (extension_eligible) lqr_support_elapsed_s_ += input.dt;
+    else lqr_support_elapsed_s_ = 0.;
+    const bool height_active = extension_eligible && lqr_support_elapsed_s_ >= .05;
+    if (height_active) lqr_blend_ = std::min(1., lqr_blend_+input.dt/.25);
+    else lqr_blend_ = 0.;
     diag.height_control_active = height_active;
-    diag.blend = lqr14_blend_;
+    diag.blend = lqr_blend_;
     const double alpha_ref =
         balance_theta_reference_ + balance_pitch_reference_;
-    const double roll_ref = config_.lqr14_roll_sign * balance_roll_reference_;
+    const double roll_ref = config_.lqr_roll_sign * balance_roll_reference_;
     const double projection_ref =
         std::sin(balance_pitch_reference_) * std::sin(alpha_ref) +
         std::cos(roll_ref) * std::cos(balance_pitch_reference_) *
@@ -385,29 +385,29 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
     diag.height_reference_m =
         config_.wheel_radius + target_leg_length_ * projection_ref;
     if (!height.valid || !height_active) {
-        lqr14_height_initialized_ = false;
-        lqr14_filtered_height_rate_ = 0.;
-    } else if (!lqr14_height_initialized_) {
-        lqr14_filtered_height_rate_ = height.rate_m_s;
-        lqr14_previous_height_reference_ = diag.height_reference_m;
-        lqr14_height_initialized_ = true;
+        lqr_height_initialized_ = false;
+        lqr_filtered_height_rate_ = 0.;
+    } else if (!lqr_height_initialized_) {
+        lqr_filtered_height_rate_ = height.rate_m_s;
+        lqr_previous_height_reference_ = diag.height_reference_m;
+        lqr_height_initialized_ = true;
     } else {
         const double weight = 1.0 - std::exp(-kTwoPi * 20.0 * input.dt);
-        lqr14_filtered_height_rate_ +=
-            weight * (height.rate_m_s - lqr14_filtered_height_rate_);
+        lqr_filtered_height_rate_ +=
+            weight * (height.rate_m_s - lqr_filtered_height_rate_);
     }
     diag.height_rate_reference_m_s =
-        (diag.height_reference_m - lqr14_previous_height_reference_) / input.dt;
-    lqr14_previous_height_reference_ = diag.height_reference_m;
-    diag.height_rate_m_s = lqr14_filtered_height_rate_;
-    using Lqr = UnifiedLqr14;
+        (diag.height_reference_m - lqr_previous_height_reference_) / input.dt;
+    lqr_previous_height_reference_ = diag.height_reference_m;
+    diag.height_rate_m_s = lqr_filtered_height_rate_;
+    using Lqr = UnifiedLqr;
     Lqr::State measured = Lqr::State::Zero();
     measured << tracking.position_error, tracking.speed_error,
         tracking.yaw_error, tracking.yaw_rate_error,
         input.theta.left - balance_theta_reference_, input.theta_rate.left,
         input.theta.right - balance_theta_reference_, input.theta_rate.right,
         input.pitch - balance_pitch_reference_, input.pitch_rate, model_roll,
-        model_roll_rate, height.height_m, lqr14_filtered_height_rate_;
+        model_roll_rate, height.height_m, lqr_filtered_height_rate_;
     Lqr::Reference reference;
     reference.state[Lqr::kRoll] = roll_ref;
     reference.state[Lqr::kHeight] = diag.height_reference_m;
@@ -442,7 +442,7 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
     const Lqr controller(evaluation.design, limits);
     const auto result = controller.Compute(measured, reference);
     if (!result.valid) {
-        diag.status = Lqr14Status::kNumericalFailure;
+        diag.status = LqrStatus::kNumericalFailure;
         return false;
     }
     for (int j = 0; j < 14; ++j) {
@@ -483,7 +483,7 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
         if (!mapping.valid) {
             // Geometric allocation failure: keep bounded length control, not zero support.
             side_state_ = saved_side_state;
-            return ComputeLqr14Output(input, tracking, candidate, external_support, false);
+            return ComputeLqrOutput(input, tracking, candidate, external_support, false);
         }
         diag.allocated_vertical_force_n.Get(side) =
             mapping.realized_vertical_force_n;
@@ -495,7 +495,7 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
             0.0, 0.0, config_);
         if (!std::isfinite(vmc.phi1_torque) ||
             !std::isfinite(vmc.phi2_torque)) {
-            diag.status = Lqr14Status::kNumericalFailure;
+            diag.status = LqrStatus::kNumericalFailure;
             return false;
         }
         candidate.leg_axial_force.Get(side) = vmc.axial_force;
@@ -511,21 +511,21 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
             auto& torque = candidate.joint_torque.Get(side);
             for (Joint joint : {Joint::kB, Joint::kD}) {
                 const double base = length_joint_torque.Get(side).Get(joint);
-                torque.Get(joint) = base + lqr14_blend_*(torque.Get(joint)-base);
+                torque.Get(joint) = base + lqr_blend_*(torque.Get(joint)-base);
             }
             candidate.leg_axial_force.Get(side) = length_axial_force.Get(side) +
-                lqr14_blend_*(candidate.leg_axial_force.Get(side)-length_axial_force.Get(side));
-            if (lqr14_blend_ >= 1.) side_state_.Get(side).leg_length_integral_force = 0.;
+                lqr_blend_*(candidate.leg_axial_force.Get(side)-length_axial_force.Get(side));
+            if (lqr_blend_ >= 1.) side_state_.Get(side).leg_length_integral_force = 0.;
         }
     }
     candidate.roll_compensation_force = external_support
         ? .5*(external_support->left_force_n-external_support->right_force_n)
         : .5*(diag.requested_vertical_force_n.left-diag.requested_vertical_force_n.right);
     diag.status =
-        external_support ? Lqr14Status::kExternalSupport :
-        !allow_extensions ? Lqr14Status::kAction :
-        !height_active ? Lqr14Status::kDegraded :
-        Lqr14Status::kActive;
+        external_support ? LqrStatus::kExternalSupport :
+        !allow_extensions ? LqrStatus::kAction :
+        !height_active ? LqrStatus::kDegraded :
+        LqrStatus::kActive;
     return true;
 }
 

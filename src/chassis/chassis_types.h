@@ -72,7 +72,7 @@ enum class DmArmResetReason : uint8_t {
     kTiltFault,
 };
 
-enum class Lqr14Status : uint8_t {
+enum class LqrStatus : uint8_t {
     kDisabled = 0,
     // Value 1 was historical shadow mode; retained as an unused wire value.
     kActive = 2,
@@ -84,8 +84,8 @@ enum class Lqr14Status : uint8_t {
     kNumericalFailure,
     kDegraded,
 };
-struct Lqr14Diagnostics {
-    Lqr14Status status = Lqr14Status::kDisabled;
+struct LqrDiagnostics {
+    LqrStatus status = LqrStatus::kDisabled;
     bool height_valid = false;
     bool endpoint_gain = false;
     bool height_control_active = false;
@@ -198,7 +198,7 @@ struct ChassisControlOutput {
     SidePair<double> support_force_feedback_correction;
     bool support_force_feedback_applied = false;
     MotionDiagnostics motion;
-    Lqr14Diagnostics lqr14;
+    LqrDiagnostics lqr;
 };
 
 struct ChassisSupportForceEstimate {

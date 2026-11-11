@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only ROS telemetry capture, armed by active LQR14 and zero translation command."""
+"""Read-only ROS telemetry capture, armed by active LQR and zero translation command."""
 import argparse
 import json
 import math
@@ -41,7 +41,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--duration', type=float, default=20.)
     parser.add_argument('--wait', type=float, default=120.)
-    parser.add_argument('--min-version', type=int, default=5)
+    parser.add_argument('--min-version', type=int, default=7)
     args = parser.parse_args()
     if args.duration <= 0 or args.wait <= 0:
         parser.error('durations must be positive')
@@ -60,7 +60,7 @@ def main():
     def receive(msg):
         nonlocal start, samples, eligible, last, schema_validated
         good = (msg.version >= args.min_version and msg.feedback_valid and msg.motion_diagnostics_valid and
-                msg.lqr14_status == 2 and msg.lqr14_blend >= .999 and
+                msg.lqr_status == 2 and msg.lqr_blend >= .999 and
                 math.isfinite(msg.target_body_speed_mps) and
                 abs(msg.target_body_speed_mps) < .001 and
                 abs(msg.remote_chassis_x) < .05)
@@ -80,7 +80,7 @@ def main():
 
     subscription = node.create_subscription(ChassisTelemetry, '/dust_control/chassis/telemetry', receive,
                                              qos_profile_sensor_data)
-    print('ARMED: waiting for active LQR14, blend=1, centered translation stick.', flush=True)
+    print('ARMED: waiting for active LQR, blend=1, centered translation stick.', flush=True)
     try:
         while rclpy.ok():
             now = time.monotonic()

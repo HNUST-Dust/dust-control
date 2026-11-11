@@ -126,8 +126,8 @@ void ChassisRuntime::Run() {
         sample.motor_targets = output.motor_targets;
         sample.wheel_command_sign = wheel_command_sign_;
         sample.motion = output.motion;
-        sample.lqr14 = output.lqr14;
-        sample.lqr14.output_wheel_torque = output.physical_wheel_torque;
+        sample.lqr = output.lqr;
+        sample.lqr.output_wheel_torque = output.physical_wheel_torque;
         SubmitMotorTargets(output, ++command_sequence, tick_start);
         PublishObservation(sample, tick_start, ++observation_sequence,
                            late_cycles, observation_drops);

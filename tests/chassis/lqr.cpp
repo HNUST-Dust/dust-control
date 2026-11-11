@@ -5,15 +5,15 @@
 #include <stdexcept>
 
 #include "chassis/chassis_config.h"
-#include "chassis/balance/unified_lqr14.h"
-#include "lqr14_test_design.h"
+#include "chassis/balance/unified_lqr.h"
+#include "lqr_test_design.h"
 
 namespace chassis = dust_control::chassis;
-using Lqr = chassis::UnifiedLqr14;
+using Lqr = chassis::UnifiedLqr;
 
 int main() {
     // 测试模型由 Python/SciPy 独立求解，覆盖完整耦合矩阵；不是实机增益。
-    const auto design = chassis::MakeLqr14Design();
+    const auto design = chassis::MakeLqrDesign();
     Lqr::Limits limits;
     limits.lower << -5, -5, -10, -10, 0, 0;
     limits.upper << 5, 5, 10, 10, 200, 200;
@@ -28,8 +28,8 @@ int main() {
     assert(result.command == reference.feedforward);
 
     // 实际 C++ 反馈闭环：在合成耦合系统上验证所有状态的扰动恢复。
-    const auto a = chassis::Lqr14TestA();
-    const auto b = chassis::Lqr14TestB();
+    const auto a = chassis::LqrTestA();
+    const auto b = chassis::LqrTestB();
     for (int initial = 0; initial < Lqr::kStateCount; ++initial) {
         auto simulated = reference.state;
         simulated[initial] += 0.001;

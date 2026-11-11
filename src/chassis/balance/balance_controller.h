@@ -7,7 +7,7 @@
 #include "chassis/estimation/body_motion_estimator.h"
 #include "chassis_config.h"
 #include "chassis_types.h"
-#include "chassis/balance/lqr14_schedule.h"
+#include "chassis/balance/lqr_schedule.h"
 
 namespace dust_control::chassis {
 
@@ -27,7 +27,7 @@ class BalanceController {
     void SynchronizeReferences(const ChassisCycleInput &input);
     void Update(const ChassisCycleInput &input, ChassisControlOutput &output,
                 const ExternalSupportForceCommand *external_support = nullptr,
-                bool allow_lqr14 = true);
+                bool allow_lqr = true);
 
     void set_target_leg_length(double value) {
         target_leg_length_ = value;
@@ -76,7 +76,7 @@ class BalanceController {
     void AllocateBalanceTorques(double left_wheel, double right_wheel,
                                 double left_leg, double right_leg,
                                 ChassisControlOutput &output) const;
-    bool ComputeLqr14Output(const ChassisCycleInput &input,
+    bool ComputeLqrOutput(const ChassisCycleInput &input,
                             const MotionTracking &tracking,
                             ChassisControlOutput &candidate,
                             const ExternalSupportForceCommand *external_support = nullptr,
@@ -111,12 +111,12 @@ class BalanceController {
     double filtered_yaw_rate_ = 0.0;
     bool yaw_rate_filter_initialized_ = false;
 
-    std::optional<Lqr14GainSchedule> lqr14_schedule_;
-    double lqr14_support_elapsed_s_ = 0.0;
-    double lqr14_blend_ = 0.0;
-    double lqr14_filtered_height_rate_ = 0.0;
-    bool lqr14_height_initialized_ = false;
-    double lqr14_previous_height_reference_ = 0.0;
+    std::optional<LqrGainSchedule> lqr_schedule_;
+    double lqr_support_elapsed_s_ = 0.0;
+    double lqr_blend_ = 0.0;
+    double lqr_filtered_height_rate_ = 0.0;
+    bool lqr_height_initialized_ = false;
+    double lqr_previous_height_reference_ = 0.0;
 
     // 每侧腿长积分：Reset 清空；外部支撑力启用时在单腿计算中清空。
     SidePair<SideState> side_state_;

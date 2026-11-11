@@ -9,22 +9,22 @@ from scipy.linalg import expm, solve_discrete_are
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
-import derive_lqr14 as model
-import lqr14_robot_dynamics as dynamics
-import design_lqr14 as design
+import derive_lqr as model
+import lqr_robot_dynamics as dynamics
+import design_lqr as design
 
 
 class RobotModelTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.samples = dynamics.read_leg_samples(ROOT/"tools/data/leg_mass_properties0820.csv")
-        cls.parameters = model.read_parameters(ROOT/"tools/data/lqr14_development.json")
+        cls.parameters = model.read_parameters(ROOT/"tools/data/lqr_development.json")
         cls.lengths, _ = model.validate_samples(cls.samples)
         cls.models = [model.derive_model(cls.samples, float(l), cls.parameters) for l in cls.lengths]
         cls.designs = [design.synthesize(m) for m in cls.models]
 
     def test_committed_runtime_schedule(self):
-        text = (ROOT/"src/chassis/balance/generated/lqr14_gain_samples.h").read_text()
+        text = (ROOT/"src/chassis/balance/generated/lqr_gain_samples.h").read_text()
         rows = re.findall(r"value\[\d+\]\.gain\s*<<([^;]+);", text)
         self.assertEqual(len(rows), 12)
         for row, result in zip(rows, self.designs):
