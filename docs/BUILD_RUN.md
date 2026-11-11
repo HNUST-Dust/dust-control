@@ -119,3 +119,19 @@ OPENBLAS_NUM_THREADS=1 python3 tools/derive_lqr14.py --output-dir build/lqr14-ge
 
 历史.cache中的配置、采集和调参产物暂不删除，避免丢失试验记录；
 它们不是新流程的依赖。旧build/lqr14-hardware也不自动删除，但日常不再从它运行。
+
+## 可选便捷脚本
+
+脚本会打印实际执行的命令，不替代上面的原生命令说明，不修改运行配置。
+
+```bash
+./scripts/build.sh orb             # Orb离线预设，默认
+./scripts/build.sh nuc             # NUC实机预设，需要IgH依赖
+./scripts/launch.sh control        # 前台启动控制，读取仓库config
+./scripts/launch.sh foxglove        # 另开终端，本机监听
+./scripts/launch.sh foxglove 0.0.0.0 8765  # 远程查看
+```
+
+control可追加配置目录。脚本自动加载系统ROS及本仓库install环境；
+仍须先核对simulate/realtime/enable_output。启动脚本不自动使能或执行recover。
+控制与桥接各用一个终端，停止控制前先遥控失能，再Ctrl+C。

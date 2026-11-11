@@ -27,7 +27,7 @@ ros2 run dust_control dust_control_node
 
 上述是Orb离线构建；运行前明确设置模拟配置并保持输出关闭。
 NUC构建将预设改为ros-nuc，并核对实机配置。
-不需要手工设置库路径或依赖.cache目录。只有批量测试保留脚本。
+不需要手工设置库路径或依赖.cache目录。可选便捷入口为`scripts/build.sh`及`scripts/launch.sh`，完整显式命令仍保留在文档中。
 
 - [底盘代码导航](src/chassis/README.md)
 - [架构与所有权](docs/ARCHITECTURE.md)
