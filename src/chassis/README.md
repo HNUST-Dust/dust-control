@@ -25,7 +25,7 @@
 | 运动学与坐标 | [leg_kinematics.cpp](leg_kinematics.cpp)、[leg_joint_coordinates.h](leg_joint_coordinates.h)：FK/IK、雅可比和角度转换 |
 | 力矩与弹簧 | [leg_vmc.cpp](leg_vmc.cpp)、[gas_spring.h](gas_spring.h)：轴向力映射、弹簧几何及配置入口 |
 | 状态估计 | [body_motion_estimator.cpp](body_motion_estimator.cpp)、[support_force_estimator.cpp](support_force_estimator.cpp) |
-| 增益调度 | [unified_lqr_schedule.cpp](unified_lqr_schedule.cpp)、[系数表](unified_lqr_coefficients.inc) |
+| 增益调度 | [lqr14_schedule.cpp](lqr14_schedule.cpp)、[系数表](lqr14_gain_samples.h) |
 | 参数 | [chassis_config.h](chassis_config.h) 定义值，[chassis_config.cpp](chassis_config.cpp) 校验，[chassis_config_loading.cpp](chassis_config_loading.cpp) 加载 YAML |
 | 运行与观测 | [chassis_runtime.cpp](chassis_runtime.cpp)、[chassis_observation.hpp](chassis_observation.hpp)：线程寿命和观测队列 |
 | 十四状态 LQR 研发 | [unified_lqr14.h](unified_lqr14.h)：14×6 跟踪算法、腿长增益调度和[离线设计说明](../../docs/LQR14.md)，默认关闭，支持观察和显式接管平衡控制 |

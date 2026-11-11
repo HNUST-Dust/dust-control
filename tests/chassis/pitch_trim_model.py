@@ -9,9 +9,9 @@ import lqr14_pitch_trim as trim
 
 class TrimModel(unittest.TestCase):
     def test_static_balance_and_anchor(self):
-        samples=model.legacy.read_leg_samples(model.ROOT/'tools/data/leg_mass_properties0820.csv')
+        samples=model.dynamics.read_leg_samples(model.ROOT/'tools/data/leg_mass_properties0820.csv')
         params=model.read_parameters(model.ROOT/'tools/data/lqr14_trim7_candidate.json')
-        robot=model.legacy.RobotParameters()
+        robot=model.dynamics.RobotParameters()
         offset=trim.forward_offset(samples, params)
         for length in np.linspace(samples[0]['leg_length_m'], samples[-1]['leg_length_m'], 101):
             sample,_=model.sample_at(samples,float(length))
@@ -26,10 +26,10 @@ class TrimModel(unittest.TestCase):
         self.assertAlmostEqual(np.rad2deg(x[0]),7.,places=10)
 
     def test_zero_trim_preserves_historical_dynamics(self):
-        samples=model.legacy.read_leg_samples(model.ROOT/'tools/data/leg_mass_properties0820.csv')
-        robot=model.legacy.RobotParameters()
+        samples=model.dynamics.read_leg_samples(model.ROOT/'tools/data/leg_mass_properties0820.csv')
+        robot=model.dynamics.RobotParameters()
         x=np.array([.02,.1,.2,.05,-.01,.03]);u=np.array([.1,-.2])
         for sample in samples:
-            np.testing.assert_array_equal(trim.derivative(robot,sample,x,u,0.),model.legacy.planar_state_derivative(robot,sample,x,u))
+            np.testing.assert_array_equal(trim.derivative(robot,sample,x,u,0.),model.dynamics.planar_state_derivative(robot,sample,x,u))
 
 if __name__=='__main__':unittest.main()

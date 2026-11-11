@@ -9,10 +9,8 @@
 
 namespace c = dust_control::chassis;
 namespace {
-c::ChassisConfig Config(bool shadow = false) {
+c::ChassisConfig Config() {
     c::ChassisConfig config;
-    config.lqr14_enabled = true;
-    config.lqr14_shadow_only = shadow;
     config.min_commanded_leg_length = .16;
     config.max_commanded_leg_length = .30;
     config.default_leg_length = .20;
@@ -205,24 +203,9 @@ void Integration() {
     out = Warm(controller, wrong_dt, 1);
     assert(out.lqr14.status == c::Lqr14Status::kInvalidFeedback);
 }
-void Shadow() {
-    auto config = Config(true);
-    auto legacy_config = config;
-    legacy_config.lqr14_enabled = false;
-    const auto input = Pose(config);
-    c::BalanceController shadow(4.7, config), legacy(4.7, legacy_config);
-    shadow.ResetForEnable();
-    legacy.ResetForEnable();
-    const auto a = Warm(shadow, input);
-    const auto b = Warm(legacy, input);
-    assert(a.lqr14.status == c::Lqr14Status::kShadow);
-    Near(a.lqr14.blend, 0);
-    SameActuators(a, b);
-}
 }  // namespace
 int main() {
     Eigen::internal::set_is_malloc_allowed(false);
     HeightAndForce();
     Integration();
-    Shadow();
 }

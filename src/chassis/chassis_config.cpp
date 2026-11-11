@@ -41,7 +41,7 @@ void ValidateChassisConfig(const ChassisConfig& config) {
         throw std::runtime_error("balance.lqr14.roll_sign must be +1 or -1");
     }
     // 增益对应固定质量/轮径/轮距及 CSV；不允许悄悄使用另一台机器的增益。
-    if (config.lqr14_enabled &&
+    if (
         (std::abs(config.robot_mass - 12.054) > 1e-8 ||
          std::abs(config.wheel_radius - 0.058) > 1e-8 ||
          std::abs(config.wheel_reduction - 15.764705882352942) > 1e-8 ||

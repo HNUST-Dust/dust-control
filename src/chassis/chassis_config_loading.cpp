@@ -25,7 +25,7 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
         {"lqr14"});
     if (root["balance"]["lqr14"]) {
         ValidateKeys(root["balance"]["lqr14"],
-                     {"enabled", "shadow_only", "roll_sign"});
+                     {"roll_sign"});
     }
     ValidateKeys(root["stool"],
                  {"joint_position_kp", "joint_position_max_speed_rad_s",
@@ -63,8 +63,6 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
         root["balance"]["theta_bias_deg"].as<double>();
     if (root["balance"]["lqr14"]) {
         const auto node = root["balance"]["lqr14"];
-        config.lqr14_enabled = node["enabled"].as<bool>();
-        config.lqr14_shadow_only = node["shadow_only"].as<bool>();
         config.lqr14_roll_sign = node["roll_sign"].as<double>();
     }
     config.remote_deadband = root["balance"]["remote_deadband"].as<double>();

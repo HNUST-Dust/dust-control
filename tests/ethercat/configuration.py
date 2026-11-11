@@ -40,10 +40,10 @@ with tempfile.TemporaryDirectory() as temporary:
     run(lambda d: d['chassis_params.yaml'].__setitem__('unknown', 1))
     # 老 schema 2 配置可以没有可选 LQR14 块；显式接入必须校验模型范围。
     run(lambda d: d['chassis_params.yaml']['balance'].pop('lqr14'), valid=True)
-    run(lambda d: d['chassis_params.yaml']['balance']['lqr14'].__setitem__('enabled', True), valid=True)
+    run(lambda d: d['chassis_params.yaml']['balance']['lqr14'].__setitem__('enabled', True))
     def lqr14(d):
         p = d['chassis_params.yaml']
-        p['balance']['lqr14']['enabled'] = True
+        p['balance']['lqr14']['roll_sign'] = 1.0
         p['balance']['min_leg_length_m'] = .16
         p['balance']['max_leg_length_m'] = .30
         p['stool']['target_leg_length_m'] = .20

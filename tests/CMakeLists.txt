@@ -4,22 +4,6 @@ add_test(NAME chassis.observation_queue COMMAND chassis_observation_queue)
 set_tests_properties(chassis.observation_queue PROPERTIES TIMEOUT 10)
 add_executable(chassis_balance_fixture chassis/balance_fixture.cpp)
 target_link_libraries(chassis_balance_fixture PRIVATE dust_chassis)
-set(DUST_REFERENCE_CHASSIS_DIR "" CACHE PATH "Optional original MCU chassis source directory")
-if(DUST_REFERENCE_CHASSIS_DIR)
-  add_executable(chassis_reference_balance chassis/balance_fixture.cpp
-    ${DUST_REFERENCE_CHASSIS_DIR}/balance_controller.cpp
-    ${DUST_REFERENCE_CHASSIS_DIR}/body_motion_estimator.cpp
-    ${DUST_REFERENCE_CHASSIS_DIR}/leg_vmc.cpp
-    ${DUST_REFERENCE_CHASSIS_DIR}/leg_kinematics.cc
-    ${DUST_REFERENCE_CHASSIS_DIR}/unified_lqr_schedule.cc)
-  target_include_directories(chassis_reference_balance PRIVATE ${DUST_REFERENCE_CHASSIS_DIR})
-  target_link_libraries(chassis_reference_balance PRIVATE dust_headers Eigen3::Eigen)
-  target_compile_definitions(chassis_reference_balance PRIVATE EIGEN_NO_MALLOC EIGEN_DONT_VECTORIZE)
-  add_dependencies(chassis_reference_balance dust_chassis)
-  add_test(NAME chassis.original_balance_parity COMMAND ${Python3_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/chassis/compare_reference.py"
-    $<TARGET_FILE:chassis_reference_balance> $<TARGET_FILE:chassis_balance_fixture>)
-endif()
 if(DUST_BUILD_MPC)
   foreach(name leg_mpc_test leg_mpc_qp_test)
     add_executable(${name} mpc/${name}.cpp)
@@ -154,7 +138,8 @@ if(DUST_LQR14_SCIPY_STATUS EQUAL 0)
     COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/derive_lqr14.py"
             --output-dir "${DUST_LQR14_GENERATED_DIR}"
     DEPENDS "${PROJECT_SOURCE_DIR}/tools/derive_lqr14.py"
-            "${PROJECT_SOURCE_DIR}/tools/derive_lqr_schedule.py"
+            "${PROJECT_SOURCE_DIR}/tools/lqr14_robot_dynamics.py"
+            "${PROJECT_SOURCE_DIR}/tools/lqr14_pitch_trim.py"
             "${PROJECT_SOURCE_DIR}/tools/design_lqr14.py"
             "${PROJECT_SOURCE_DIR}/tools/data/leg_mass_properties0820.csv"
             "${PROJECT_SOURCE_DIR}/tools/data/lqr14_development.json"
@@ -179,3 +164,7 @@ target_compile_options(chassis_lqr14_integration PRIVATE -UNDEBUG -Wall -Wextra 
 add_test(NAME chassis.lqr14_integration COMMAND chassis_lqr14_integration)
 add_test(NAME chassis.lqr14_profiles COMMAND ${Python3_EXECUTABLE}
   "${CMAKE_CURRENT_SOURCE_DIR}/chassis/lqr14_profiles.py" $<TARGET_FILE:ethercat_config_probe>)
+
+add_executable(chassis_lqr14_action_gain chassis/lqr14_action_gain.cpp)
+target_link_libraries(chassis_lqr14_action_gain PRIVATE dust_chassis)
+add_test(NAME chassis.lqr14_action_gain COMMAND chassis_lqr14_action_gain)

@@ -7,7 +7,7 @@
 
 #include "chassis_config.h"
 #include "leg_vmc.h"
-#include "unified_lqr_schedule.h"
+#include "lqr14_action_gain.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -125,7 +125,7 @@ FlightControllerOutput FlightController::Update(
     state_error[kRightTheta] = input.theta.right - theta_reference_.right;
     state_error[kRightThetaRate] = input.theta_rate.right;
     double gain[kOutputCount][kStateCount] = {};
-    EvaluateUnifiedLqrGain(
+    EvaluateLqr14ActionGain(
         0.5 * (input.leg.left.length + input.leg.right.length), gain);
     double actuator[kOutputCount] = {};
     for (size_t row = 0U; row < kOutputCount; ++row) {

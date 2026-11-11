@@ -75,6 +75,8 @@ int main() {
     dust_control::chassis::BalanceController configured_turn(2.0);
     input.remote.chassis_x = 0;
     input.remote.chassis_rotate = .5;
+    input.support_force_valid = true;
+    input.measured_support_force_n = {60.,60.};
     input.remote.run = input.requested_enable = true;
     input.theta.left = input.theta.right =
         dust_control::chassis::ChassisConfig{}.theta_balance_bias();

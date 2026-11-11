@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--output-dir', type=Path, required=True)
     args = parser.parse_args()
     source = model.ROOT / 'tools/data/leg_mass_properties0820.csv'
-    samples = model.legacy.read_leg_samples(source)
+    samples = model.dynamics.read_leg_samples(source)
     lengths, _ = model.validate_samples(samples)
     endpoint = args.max_length_m
     if not np.isfinite(endpoint) or not lengths[-1] < endpoint <= .36:

@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from scipy.linalg import expm
 
-import derive_lqr_schedule as legacy
+import lqr14_robot_dynamics as dynamics
 import design_lqr14 as design
 import lqr14_pitch_trim as pitch_trim
 
@@ -61,7 +61,7 @@ def sample_at(samples, length):
     lengths, slopes = validate_samples(samples)
     if not np.isfinite(length) or not lengths[0] <= length <= lengths[-1]:
         raise ValueError("model leg length must lie inside measured CSV range")
-    sample = legacy.interpolate_sample(samples, lengths, length)
+    sample = dynamics.interpolate_sample(samples, lengths, length)
     # CSV 采用分段线性重心轨迹；内部节点使用左右导数平均，避免任意选边。
     index = int(np.searchsorted(lengths, length))
     if index < len(lengths) and length == lengths[index] and 0 < index < len(lengths)-1:
@@ -75,10 +75,10 @@ def sample_at(samples, length):
 
 def derive_model(samples, length, parameters):
     sample, com_slope = sample_at(samples, length)
-    robot = legacy.RobotParameters()
+    robot = dynamics.RobotParameters()
     com_x = pitch_trim.forward_offset(samples, parameters)
     if parameters.get("pitch_trim") is None:
-        a10, b10 = legacy.derive_model(sample)
+        a10, b10 = dynamics.derive_model(sample)
         trim_state, trim_input, trim_residual = np.zeros(6), np.zeros(2), np.zeros(6)
     else:
         a10, b10, trim_state, trim_input, trim_residual = pitch_trim.full_matrices(robot, sample, com_x)
@@ -101,7 +101,7 @@ def derive_model(samples, length, parameters):
     b[11, 4:] = [robot.half_track_m/inertia, -robot.half_track_m/inertia]
     b[13, 4:] = [1/moving_mass, 1/moving_mass]
     q, r = np.zeros((14, 14)), np.zeros((6, 6))
-    q[:10, :10], r[:4, :4] = legacy.Q, legacy.R
+    q[:10, :10], r[:4, :4] = dynamics.Q, dynamics.R
     q[10:, 10:] = np.diag(parameters["roll_state_weights"] + parameters["height_state_weights"])
     r[4:, 4:] = np.eye(2)*parameters["vertical_force_weight"]
     equilibrium = np.zeros(14)
@@ -115,7 +115,7 @@ def derive_model(samples, length, parameters):
         "sample_time_s": design.SAMPLE_TIME, "time_domain": "continuous",
         "contact_mode": "double_support",
         "input_convention": "physical_torques_upward_vertical_forces",
-        "model_source": "recovered derive_lqr_schedule.py + CSV COM slope heave reduction + explicit body-only roll approximation",
+        "model_source": "lqr14_robot_dynamics.py + CSV COM slope heave reduction + explicit body-only roll approximation",
         "height_definition": "world z of hip midpoint above common flat ground; h0 = wheel_radius + leg_length",
         "roll_convention": "positive raises left hip; positive left-minus-right vertical force accelerates positive roll",
         "calibration_status": parameters["calibration_status"],
@@ -191,7 +191,7 @@ def main():
     parser.add_argument("--dense-points", type=int, default=401)
     args = parser.parse_args()
     parameters = read_parameters(args.parameters)
-    samples = legacy.read_leg_samples(args.input)
+    samples = dynamics.read_leg_samples(args.input)
     lengths, _ = validate_samples(samples)
     models = [derive_model(samples, float(length), parameters) for length in lengths]
     results = [design.synthesize(model) for model in models]
@@ -200,7 +200,7 @@ def main():
     report = {"sample_time_s": design.SAMPLE_TIME,
               "calibration_status": parameters["calibration_status"],
               "csv_sha256": hashlib.sha256(args.input.read_bytes()).hexdigest(),
-              "legacy_script_sha256": hashlib.sha256(Path(legacy.__file__).read_bytes()).hexdigest(),
+              "dynamics_script_sha256": hashlib.sha256(Path(dynamics.__file__).read_bytes()).hexdigest(),
               "length_range_m": [float(lengths[0]), float(lengths[-1])],
               "interpolated_dense_max_spectral_radius": worst,
               "dense_points": args.dense_points,

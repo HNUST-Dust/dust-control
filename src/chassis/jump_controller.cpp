@@ -6,7 +6,7 @@
 
 #include "chassis_config.h"
 #include "leg_vmc.h"
-#include "unified_lqr_schedule.h"
+#include "lqr14_action_gain.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -249,7 +249,7 @@ void JumpController::ComputeAttitudeControl(
     state_error[kRightThetaRate] =
         input.theta_rate.right + (thrust ? 0.0 : input.pitch_rate);
     double gain[kOutputCount][kStateCount] = {};
-    EvaluateUnifiedLqrGain(
+    EvaluateLqr14ActionGain(
         0.5 * (input.leg.left.length + input.leg.right.length), gain);
     for (size_t row = 0U; row < kOutputCount; ++row) {
         actuator[row] = 0.0;

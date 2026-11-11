@@ -5,7 +5,7 @@ This is a declared calibration assumption, not a CAD measurement or diagnosis.
 """
 import numpy as np
 
-import derive_lqr_schedule as legacy
+import lqr14_robot_dynamics as dynamics
 
 
 def forward_offset(samples, parameters):
@@ -21,14 +21,14 @@ def forward_offset(samples, parameters):
         raise ValueError('trim must be within CAD range and +/-10 degrees')
     if not isinstance(trim.get('source'), str) or not trim['source'].strip():
         raise ValueError('empirical trim source is required')
-    sample = legacy.interpolate_sample(samples, lengths, length)
-    robot = legacy.RobotParameters()
+    sample = dynamics.interpolate_sample(samples, lengths, length)
+    robot = dynamics.RobotParameters()
     return float(-(length + 2*robot.leg_mass_each_kg*sample['leg_com_from_wheel_m']/robot.body_mass_kg)*np.sin(theta))
 
 
 def derivative(robot, sample, state, control, com_x):
     if com_x == 0.0:
-        return legacy.planar_state_derivative(robot, sample, state, control)
+        return dynamics.planar_state_derivative(robot, sample, state, control)
     mw, iw = 2*robot.wheel_mass_each_kg, 2*robot.wheel_inertia_each_kg_m2
     mp, ip = 2*robot.leg_mass_each_kg, 2*sample['single_leg_inertia_kg_m2']
     mb, ib, d, g = robot.body_mass_kg, robot.body_pitch_inertia_kg_m2, robot.body_com_offset_m, robot.gravity_m_s2
@@ -85,9 +85,9 @@ def linearize(robot, sample, state, control, com_x):
 def full_matrices(robot, sample, com_x):
     state, control, residual = operating_point(robot, sample, com_x)
     a6, b6 = linearize(robot, sample, state, control, com_x)
-    ay, by = legacy.yaw_matrices(robot, sample)
+    ay, by = dynamics.yaw_matrices(robot, sample)
     a, b = np.zeros((10,10)), np.zeros((10,4))
     a[:6,:6], a[6:,6:], b[:6,:2], b[6:,2:] = a6, ay, b6, by
-    transform, inputs = legacy.coordinate_transforms()
+    transform, inputs = dynamics.coordinate_transforms()
     inverse = np.linalg.inv(transform)
     return inverse@a@transform, inverse@b@inputs, state, control, residual

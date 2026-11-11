@@ -49,7 +49,7 @@ int main() {
     sample.lqr14.height_m = .3;
     sample.input.hip_height_valid = true;
     sample.input.hip_height_m = .3;
-    sample.lqr14.status = dust_control::chassis::Lqr14Status::kShadow;
+    sample.lqr14.status = dust_control::chassis::Lqr14Status::kActive;
     sample.lqr14.requested_vertical_force_n = {55, 65};
     sample.lqr14.left_wheel_contribution[0] = .25;
     message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
@@ -57,7 +57,7 @@ int main() {
     assert(message.estimated_body_speed_mps == .01 && message.body_position_error_m == .15);
     assert(std::abs(message.roll_reference_deg - 5.7295779513) < 1e-9);
     assert(message.hip_height_valid && message.hip_height_m == .3);
-    assert(message.lqr14_status == 1 && message.left_support_force_n == 50);
+    assert(message.lqr14_status == 2 && message.left_support_force_n == 50);
     assert(message.lqr14_right_force_target_n == 65);
     assert(message.body_position_error_unclamped_m == .4);
     assert(message.lqr14_left_wheel_contribution_nm[0] == .25);

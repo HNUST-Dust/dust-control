@@ -73,9 +73,6 @@ class BalanceController {
     // 更新遥控参考及 yaw 滤波，形成 LQR 所需的运动跟踪误差。
     MotionTracking UpdateMotionReferences(const ChassisCycleInput &input,
                                           const BodyMotionState &motion);
-    void ComputeBalanceTorques(const ChassisCycleInput &input,
-                               const MotionTracking &tracking,
-                               ChassisControlOutput &output) const;
     void AllocateBalanceTorques(double left_wheel, double right_wheel,
                                 double left_leg, double right_leg,
                                 ChassisControlOutput &output) const;

@@ -74,8 +74,8 @@ enum class DmArmResetReason : uint8_t {
 
 enum class Lqr14Status : uint8_t {
     kDisabled = 0,
-    kShadow,
-    kActive,
+    // Value 1 was historical shadow mode; retained as an unused wire value.
+    kActive = 2,
     kWaitingSupport,
     kInvalidFeedback,
     kOutsideModel,

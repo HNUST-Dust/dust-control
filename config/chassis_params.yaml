@@ -17,7 +17,7 @@ mechanics:
     gh: 0.25
 balance:
   # 开关仅在启动时读取；启用时腿长范围需处于 CSV 的 0.15362–0.31101 m。
-  lqr14: {enabled: false, shadow_only: true, roll_sign: 1.0}
+  lqr14: {roll_sign: 1.0}
   theta_bias_deg: 7.0
   remote_deadband: 0.05
   min_leg_length_m: 0.15

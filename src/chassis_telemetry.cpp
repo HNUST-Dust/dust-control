@@ -82,7 +82,6 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     const bool reference_valid =
         message.hip_height_valid && lqr14.height_valid &&
         (lqr14.status == chassis::Lqr14Status::kActive ||
-         lqr14.status == chassis::Lqr14Status::kShadow ||
          lqr14.status == chassis::Lqr14Status::kWaitingSupport);
     message.hip_height_reference_m =
         number(lqr14.height_reference_m, reference_valid);
@@ -97,8 +96,7 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     message.right_support_force_n =
         number(input.measured_support_force_n.right, support_valid);
     const bool force_valid = message.hip_height_valid &&
-                             (lqr14.status == chassis::Lqr14Status::kActive ||
-                              lqr14.status == chassis::Lqr14Status::kShadow);
+                             lqr14.status == chassis::Lqr14Status::kActive;
     message.lqr14_left_force_target_n =
         number(lqr14.requested_vertical_force_n.left, force_valid);
     message.lqr14_right_force_target_n =
@@ -108,7 +106,7 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     message.lqr14_right_force_allocated_n =
         number(lqr14.allocated_vertical_force_n.right, force_valid);
     const bool wheel_valid = message.feedback_valid && message.imu_fresh &&
-        (lqr14.status == chassis::Lqr14Status::kActive || lqr14.status == chassis::Lqr14Status::kShadow ||
+        (lqr14.status == chassis::Lqr14Status::kActive ||
          lqr14.status == chassis::Lqr14Status::kDegraded || lqr14.status == chassis::Lqr14Status::kAction ||
          lqr14.status == chassis::Lqr14Status::kExternalSupport);
     const auto& motion = sample.motion;
@@ -134,10 +132,10 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     }
     message.lqr14_left_wheel_requested_nm = number(lqr14.requested_wheel_torque.left, wheel_valid);
     message.lqr14_left_wheel_allocated_nm = number(lqr14.allocated_wheel_torque.left, wheel_valid);
-    message.left_wheel_output_command_nm = number(lqr14.output_wheel_torque.left, wheel_valid && lqr14.status != chassis::Lqr14Status::kShadow);
+    message.left_wheel_output_command_nm = number(lqr14.output_wheel_torque.left, wheel_valid);
     message.lqr14_right_wheel_requested_nm = number(lqr14.requested_wheel_torque.right, wheel_valid);
     message.lqr14_right_wheel_allocated_nm = number(lqr14.allocated_wheel_torque.right, wheel_valid);
-    message.right_wheel_output_command_nm = number(lqr14.output_wheel_torque.right, wheel_valid && lqr14.status != chassis::Lqr14Status::kShadow);
+    message.right_wheel_output_command_nm = number(lqr14.output_wheel_torque.right, wheel_valid);
     for (size_t i = 0; i < 6; ++i) {
         message.motor_target_mode[i] = connected ? static_cast<uint8_t>(sample.motor_targets[i].mode) : 0;
         message.motor_feedback_age_us[i] = number(double(input.motor_feedback_age_us[i]),

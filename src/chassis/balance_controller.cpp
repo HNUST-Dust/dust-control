@@ -10,7 +10,6 @@
 #include "chassis_config.h"
 #include "leg_vmc.h"
 #include "lqr14_gain_samples.h"
-#include "unified_lqr_schedule.h"
 
 namespace {
 // 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
@@ -19,7 +18,6 @@ constexpr double kBalancePitchReferenceRate = 0.6;
 constexpr double kPositionErrorLimit = 0.15;
 constexpr double kYawRateFilterCutoffHz = 20.0;
 constexpr double kDifferentialLegTorqueLimit = 4.0;
-constexpr bool kHoldLqrTranslationErrorAtZero = false;
 constexpr double kRollReferenceRateDegPerSec = 30.0;
 constexpr double kRollCompensationSign = 1;
 }  // namespace
@@ -27,33 +25,6 @@ constexpr double kRollCompensationSign = 1;
 namespace dust_control::chassis {
 namespace {
 using namespace chassis_config;
-
-enum class UnifiedLqrState : uint8_t {
-    kPosition = 0U,
-    kSpeed,
-    kYaw,
-    kYawRate,
-    kLeftLegAngle,
-    kLeftLegAngularVelocity,
-    kRightLegAngle,
-    kRightLegAngularVelocity,
-    kPitch,
-    kPitchRate,
-    kCount,
-};
-
-enum class UnifiedLqrOutput : uint8_t {
-    kLeftWheelTorque = 0U,
-    kRightWheelTorque,
-    kLeftLegTorque,
-    kRightLegTorque,
-    kCount,
-};
-
-template <typename Enum>
-constexpr size_t ToIndex(Enum value) {
-    return static_cast<size_t>(value);
-}
 
 double MoveToward(double current, double target, double max_delta) {
     return current + std::clamp(target - current, -max_delta, max_delta);
@@ -75,8 +46,6 @@ double ApplyRemoteDeadband(double value, const ChassisConfig &config) {
         limited);
 }
 
-static_assert(ToIndex(UnifiedLqrState::kCount) == 10U);
-static_assert(ToIndex(UnifiedLqrOutput::kCount) == 4U);
 
 }  // namespace
 
@@ -85,7 +54,7 @@ BalanceController::BalanceController(double wheel_torque_limit,
     : config_(config),
       wheel_torque_limit_(wheel_torque_limit),
       target_leg_length_(config_.default_leg_length) {
-    if (config_.lqr14_enabled) {
+    {
         ValidateChassisConfig(config_);
         lqr14_schedule_.emplace(Lqr14DevelopmentSamples());
         const auto trim = lqr14_schedule_->Evaluate(config_.default_leg_length);
@@ -150,8 +119,8 @@ void BalanceController::Update(
                      .pitch_reference = balance_pitch_reference_,
                      .theta_reference = balance_theta_reference_,
                      .roll_reference = balance_roll_reference_};
-    if (config_.lqr14_enabled && !config_.lqr14_shadow_only) {
-        ChassisControlOutput candidate;
+    {
+        ChassisControlOutput candidate = output;
         candidate.motion = output.motion;
         candidate.joint_control_active = output.joint_control_active;
         if (!ComputeLqr14Output(input, tracking, candidate, external_support, allow_lqr14)) {
@@ -162,65 +131,6 @@ void BalanceController::Update(
         output = candidate;
         return;
     }
-    ComputeBalanceTorques(input, tracking, output);
-    ComputeLegOutput(input, Side::kLeft, tracking.target_leg_length_rate,
-                     external_support, output);
-    ComputeLegOutput(input, Side::kRight, tracking.target_leg_length_rate,
-                     external_support, output);
-    if (!config_.lqr14_enabled) {
-        return;
-    }
-    if (external_support || !allow_lqr14) {
-        output.lqr14.status = external_support ? Lqr14Status::kExternalSupport
-                                               : Lqr14Status::kAction;
-        lqr14_support_elapsed_s_ = lqr14_blend_ = 0.0;
-        lqr14_height_initialized_ = false;
-        return;
-    }
-    ChassisControlOutput candidate;
-    const auto shadow_side_state = side_state_;
-    const bool eligible = ComputeLqr14Output(input, tracking, candidate);
-    if (config_.lqr14_shadow_only) side_state_ = shadow_side_state;
-    output.lqr14 = candidate.lqr14;
-    if (!eligible || config_.lqr14_shadow_only) {
-        output.lqr14.blend = 0.;
-        lqr14_blend_ = 0.0;
-        return;
-    }
-    lqr14_blend_ = std::min(1.0, lqr14_blend_ + input.dt / 0.25);
-    output.lqr14.blend = lqr14_blend_;
-    const auto blend = [this](double old_value, double new_value) {
-        return old_value + lqr14_blend_ * (new_value - old_value);
-    };
-    for (Side side : {Side::kLeft, Side::kRight}) {
-        output.physical_wheel_torque.Get(side) =
-            blend(output.physical_wheel_torque.Get(side),
-                  candidate.physical_wheel_torque.Get(side));
-        output.requested_body_on_leg_torque.Get(side) =
-            blend(output.requested_body_on_leg_torque.Get(side),
-                  candidate.requested_body_on_leg_torque.Get(side));
-        output.body_on_leg_torque.Get(side) =
-            blend(output.body_on_leg_torque.Get(side),
-                  candidate.body_on_leg_torque.Get(side));
-        output.leg_axial_force.Get(side) =
-            blend(output.leg_axial_force.Get(side),
-                  candidate.leg_axial_force.Get(side));
-        for (Joint joint : {Joint::kB, Joint::kD}) {
-            output.joint_torque.Get(side).Get(joint) =
-                blend(output.joint_torque.Get(side).Get(joint),
-                      candidate.joint_torque.Get(side).Get(joint));
-        }
-        // 新控制已接管时不允许被遮蔽的腿长积分持续累积。
-        side_state_.Get(side).leg_length_integral_force = 0.0;
-    }
-    output.requested_turn_torque =
-        blend(output.requested_turn_torque, candidate.requested_turn_torque);
-    output.allocated_turn_torque =
-        blend(output.allocated_turn_torque, candidate.allocated_turn_torque);
-    output.differential_leg_torque = blend(output.differential_leg_torque,
-                                           candidate.differential_leg_torque);
-    output.roll_compensation_force = blend(output.roll_compensation_force,
-                                           candidate.roll_compensation_force);
 }
 
 void BalanceController::UpdateAttitudeReferences(
@@ -229,7 +139,7 @@ void BalanceController::UpdateAttitudeReferences(
     ChassisControlOutput &output) {
     // 从交接姿态以受限速率回到稳态目标，角速度反馈始终保持完整控制权。
     double theta_target = config_.theta_balance_bias();
-    if (lqr14_schedule_ && !config_.lqr14_shadow_only) {
+    if (lqr14_schedule_) {
         const auto trim = lqr14_schedule_->Evaluate(
             0.5*(input.leg.left.length+input.leg.right.length));
         if (trim.valid && !trim.clamped && trim.has_pitch_trim) {
@@ -381,54 +291,6 @@ BalanceController::MotionTracking BalanceController::UpdateMotionReferences(
             .yaw_error = yaw_tracking_error,
             .yaw_rate_error = yaw_rate_error,
             .target_leg_length_rate = target_leg_length_rate};
-}
-
-void BalanceController::ComputeBalanceTorques(
-    const ChassisCycleInput &input, const MotionTracking &tracking,
-    ChassisControlOutput &output) const {
-    // 完整十状态、四输入 LQR 在左右物理坐标中一次生成四路力矩。
-    const double common_leg_length =
-        0.5 * (input.leg.left.length + input.leg.right.length);
-    constexpr size_t kUnifiedStateCount = ToIndex(UnifiedLqrState::kCount);
-    constexpr size_t kUnifiedOutputCount = ToIndex(UnifiedLqrOutput::kCount);
-    double state_error[kUnifiedStateCount] = {};
-    state_error[ToIndex(UnifiedLqrState::kPosition)] =
-        kHoldLqrTranslationErrorAtZero ? 0.0 : tracking.position_error;
-    state_error[ToIndex(UnifiedLqrState::kSpeed)] =
-        kHoldLqrTranslationErrorAtZero ? 0.0 : tracking.speed_error;
-    state_error[ToIndex(UnifiedLqrState::kYaw)] = tracking.yaw_error;
-    state_error[ToIndex(UnifiedLqrState::kYawRate)] = tracking.yaw_rate_error;
-    state_error[ToIndex(UnifiedLqrState::kLeftLegAngle)] =
-        input.theta.left - balance_theta_reference_;
-    state_error[ToIndex(UnifiedLqrState::kLeftLegAngularVelocity)] =
-        input.theta_rate.left;
-    state_error[ToIndex(UnifiedLqrState::kRightLegAngle)] =
-        input.theta.right - balance_theta_reference_;
-    state_error[ToIndex(UnifiedLqrState::kRightLegAngularVelocity)] =
-        input.theta_rate.right;
-    state_error[ToIndex(UnifiedLqrState::kPitch)] =
-        input.pitch - balance_pitch_reference_;
-    state_error[ToIndex(UnifiedLqrState::kPitchRate)] = input.pitch_rate;
-    double gain[kUnifiedOutputCount][kUnifiedStateCount] = {};
-    EvaluateUnifiedLqrGain(common_leg_length, gain);
-    double actuator_torque[kUnifiedOutputCount] = {};
-    for (size_t actuator = 0U; actuator < kUnifiedOutputCount; ++actuator) {
-        for (size_t state = 0U; state < kUnifiedStateCount; ++state) {
-            actuator_torque[actuator] -=
-                gain[actuator][state] * state_error[state];
-        }
-    }
-
-    const double left_wheel =
-        actuator_torque[ToIndex(UnifiedLqrOutput::kLeftWheelTorque)];
-    const double right_wheel =
-        actuator_torque[ToIndex(UnifiedLqrOutput::kRightWheelTorque)];
-    const double left_leg =
-        actuator_torque[ToIndex(UnifiedLqrOutput::kLeftLegTorque)];
-    const double right_leg =
-        actuator_torque[ToIndex(UnifiedLqrOutput::kRightLegTorque)];
-    AllocateBalanceTorques(left_wheel, right_wheel, left_leg, right_leg,
-                           output);
 }
 
 void BalanceController::AllocateBalanceTorques(
@@ -656,14 +518,14 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
             if (lqr14_blend_ >= 1.) side_state_.Get(side).leg_length_integral_force = 0.;
         }
     }
-    candidate.roll_compensation_force =
-        0.5 * (diag.requested_vertical_force_n.left -
-               diag.requested_vertical_force_n.right);
+    candidate.roll_compensation_force = external_support
+        ? .5*(external_support->left_force_n-external_support->right_force_n)
+        : .5*(diag.requested_vertical_force_n.left-diag.requested_vertical_force_n.right);
     diag.status =
         external_support ? Lqr14Status::kExternalSupport :
         !allow_extensions ? Lqr14Status::kAction :
         !height_active ? Lqr14Status::kDegraded :
-        config_.lqr14_shadow_only ? Lqr14Status::kShadow : Lqr14Status::kActive;
+        Lqr14Status::kActive;
     return true;
 }
 
@@ -686,7 +548,7 @@ void BalanceController::ComputeLegOutput(
             state.leg_length_integral_force, length_error, input.dt, config_);
     }
     double support_share = .5;
-    if (config_.lqr14_enabled && !config_.lqr14_shadow_only && input.support_force_valid &&
+    if (input.support_force_valid &&
         std::isfinite(input.measured_support_force_n.left) && std::isfinite(input.measured_support_force_n.right)) {
         const double threshold = .1*config_.robot_mass*kGravity;
         const bool left_contact = input.measured_support_force_n.left >= threshold;

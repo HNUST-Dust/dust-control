@@ -10,28 +10,18 @@ from scipy.linalg import expm, solve_discrete_are
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 import derive_lqr14 as model
-import derive_lqr_schedule as legacy
+import lqr14_robot_dynamics as dynamics
 import design_lqr14 as design
 
 
 class RobotModelTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.samples = legacy.read_leg_samples(ROOT/"tools/data/leg_mass_properties0820.csv")
+        cls.samples = dynamics.read_leg_samples(ROOT/"tools/data/leg_mass_properties0820.csv")
         cls.parameters = model.read_parameters(ROOT/"tools/data/lqr14_development.json")
         cls.lengths, _ = model.validate_samples(cls.samples)
         cls.models = [model.derive_model(cls.samples, float(l), cls.parameters) for l in cls.lengths]
         cls.designs = [design.synthesize(m) for m in cls.models]
-
-    def test_legacy_provenance(self):
-        self.assertEqual(len(self.samples), 12)
-        self.assertEqual((self.lengths[0], self.lengths[-1]), (0.15362, 0.31101))
-        gains = [legacy.continuous_lqr(*legacy.derive_model(s)) for s in self.samples]
-        coefficients = legacy.fit_cubic(self.lengths, np.asarray(gains))
-        text = (ROOT/"src/chassis/unified_lqr_coefficients.inc").read_text().split("=", 1)[1]
-        old = np.array([float(v) for v in re.findall(
-            r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?", text)]).reshape(4, 10, 4)
-        np.testing.assert_allclose(coefficients, old, atol=1e-9, rtol=1e-8)
 
     def test_committed_runtime_schedule(self):
         text = (ROOT/"src/chassis/lqr14_gain_samples.h").read_text()
@@ -42,12 +32,12 @@ class RobotModelTests(unittest.TestCase):
             np.testing.assert_allclose(coefficients, result["gain"], atol=1e-8, rtol=1e-8)
 
     def test_dimensions_physics_and_symmetry(self):
-        robot = legacy.RobotParameters()
+        robot = dynamics.RobotParameters()
         total_mass = robot.body_mass_kg+2*robot.leg_mass_each_kg+2*robot.wheel_mass_each_kg
         self.assertAlmostEqual(total_mass, 12.054)
         for m, sample in zip(self.models, self.samples):
             a, b = np.array(m["A"]), np.array(m["B"])
-            old_a, old_b = legacy.derive_model(sample)
+            old_a, old_b = dynamics.derive_model(sample)
             np.testing.assert_array_equal(a[:10, :10], old_a)
             np.testing.assert_array_equal(b[:10, :4], old_b)
             np.testing.assert_array_equal(a[:10, 10:], np.zeros((10, 4)))
@@ -68,7 +58,7 @@ class RobotModelTests(unittest.TestCase):
                 self.assertAlmostEqual(momentum_gain, m["heave_effective_mass_kg"], places=7)
 
     def test_new_channels_against_momentum_equations(self):
-        robot = legacy.RobotParameters()
+        robot = dynamics.RobotParameters()
         non_body_weight = 2*(robot.wheel_mass_each_kg+robot.leg_mass_each_kg)*robot.gravity_m_s2
         for m in self.models:
             a, b = np.asarray(m["A"])[10:, 10:], np.asarray(m["B"])[10:, 4:]
