@@ -19,3 +19,6 @@ results/
 
 # Colcon logs.
 /log/
+
+# Pytest runtime cache
+.pytest_cache/
