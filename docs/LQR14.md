@@ -285,3 +285,18 @@ IMU roll 正向以及支撑估计准确度仍需实测确认；未验证前不�
 若目标速度非零，查输入；若物理移动而速度近零，查轮速及腿部补偿；
 若速度正确而位置误差增大，查位置限幅、姿态平衡点及执行器余量。
 这次仅增加观测，不修改 Kalman、LQR 或参考更新算法。
+
+## 振荡诊断（遥测 version 4）
+
+保持用户选定的腿角偏置 7°，不改控制律与滤波参数。新增未限幅位置误差
+`body_position_error_unclamped_m`、校准腿角 `left_theta_deg/right_theta_deg`。
+与 `theta_reference_deg` 比较时使用同一 theta=alpha-pitch 定义。
+
+`lqr14_left_wheel_contribution_nm` 和右侧同名数组为按14状态顺序的
+`-K(row,j)*error[j]`，采用角度短弧处理后的真实控制误差。14项相加等于
+该轮未限幅 LQR 请求；轮通道前馈为零。布局默认显示位置、速度、左右腿角、
+pitch 项，其余速率和状态项仍在数组中，不能忽略它们后断言总和不符。
+`requested` 为 LQR 原始请求，`allocated` 为转向分配及轮限幅后的新控制候选值，
+`output_command` 为新旧控制混合后的轮力矩命令，均不是电机实测反馈。
+在 active/shadow 且高度有效时发布分项和候选值，仅 active 发布输出命令。
+启动/失能/恢复状态数值无效时为 NaN。7° 为实机对照值，不代表已标定最优平衡点。

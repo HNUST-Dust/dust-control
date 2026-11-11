@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 3
+uint32 version 4
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -64,3 +64,20 @@ float64 pitch_reference_deg
 float64 theta_reference_deg
 float64 roll_reference_deg
 float64 remote_chassis_x
+
+# 未限幅位置误差及校准腿角；角度与 theta_reference_deg 同定义。
+float64 body_position_error_unclamped_m
+float64 left_theta_deg
+float64 right_theta_deg
+# 单位 N*m，数组按14状态顺序，-K*error 的分项，未分配/限幅。
+# position,speed,yaw,yaw_rate,left_theta,left_theta_rate,right_theta,
+# right_theta_rate,pitch,pitch_rate,roll,roll_rate,height,height_rate
+float64[14] lqr14_left_wheel_contribution_nm
+float64[14] lqr14_right_wheel_contribution_nm
+float64 lqr14_left_wheel_requested_nm
+float64 lqr14_right_wheel_requested_nm
+float64 lqr14_left_wheel_allocated_nm
+float64 lqr14_right_wheel_allocated_nm
+# 混合后控制命令，不是电机力矩实测；仅在LQR14 active时发布。
+float64 left_wheel_output_command_nm
+float64 right_wheel_output_command_nm

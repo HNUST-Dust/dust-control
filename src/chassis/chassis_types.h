@@ -92,6 +92,12 @@ struct Lqr14Diagnostics {
     double height_rate_reference_m_s = 0.0;
     double ground_mismatch_m = 0.0;
     double blend = 0.0;
+    // -K(row,j)*error[j]，按14状态顺序；模型请求，未分配或限幅。
+    double left_wheel_contribution[14] = {};
+    double right_wheel_contribution[14] = {};
+    SidePair<double> requested_wheel_torque;
+    SidePair<double> allocated_wheel_torque;
+    SidePair<double> output_wheel_torque;  // 混合后控制命令，非电机实测。
     SidePair<double> requested_vertical_force_n;
     SidePair<double> allocated_vertical_force_n;
 };
@@ -151,6 +157,7 @@ struct MotionDiagnostics {
     double target_speed = 0.0;
     double estimated_position = 0.0;
     double target_position = 0.0;
+    double unclamped_position_error = 0.0;
     double position_error = 0.0;  // 控制使用的限幅后误差 m
     double speed_error = 0.0;
     double pitch_reference = 0.0;

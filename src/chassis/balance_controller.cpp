@@ -139,6 +139,7 @@ void BalanceController::Update(
                      .target_speed = target_body_speed_,
                      .estimated_position = motion.position,
                      .target_position = target_body_position_,
+                     .unclamped_position_error = motion.position - target_body_position_,
                      .position_error = tracking.position_error,
                      .speed_error = tracking.speed_error,
                      .pitch_reference = balance_pitch_reference_,
@@ -541,6 +542,14 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
         diag.status = Lqr14Status::kNumericalFailure;
         return false;
     }
+    for (int j = 0; j < 14; ++j) {
+        diag.left_wheel_contribution[j] =
+            -evaluation.design.gain(Lqr::kLeftWheelTorque, j) * result.error[j];
+        diag.right_wheel_contribution[j] =
+            -evaluation.design.gain(Lqr::kRightWheelTorque, j) * result.error[j];
+    }
+    diag.requested_wheel_torque = {result.requested[Lqr::kLeftWheelTorque],
+                                   result.requested[Lqr::kRightWheelTorque]};
     AllocateBalanceTorques(result.requested[Lqr::kLeftWheelTorque],
                            result.requested[Lqr::kRightWheelTorque],
                            result.requested[Lqr::kLeftBodyOnLegTorque],
@@ -550,6 +559,7 @@ bool BalanceController::ComputeLqr14Output(const ChassisCycleInput &input,
         candidate.physical_wheel_torque.Get(side) =
             std::clamp(candidate.physical_wheel_torque.Get(side),
                        -wheel_torque_limit_, wheel_torque_limit_);
+        diag.allocated_wheel_torque.Get(side) = candidate.physical_wheel_torque.Get(side);
         const int force_index = side == Side::kLeft ? Lqr::kLeftVerticalForce
                                                     : Lqr::kRightVerticalForce;
         const double vertical_force = result.command[force_index];

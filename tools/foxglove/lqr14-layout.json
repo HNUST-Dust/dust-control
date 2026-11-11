@@ -45,6 +45,12 @@
           "enabled": true,
           "timestampMethod": "receiveTime",
           "label": "body_position_error_m"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.body_position_error_unclamped_m",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "未限幅位置误差"
         }
       ],
       "xAxisVal": "timestamp",
@@ -111,19 +117,201 @@
       "showYAxisLabels": true,
       "isSynced": true,
       "followingViewWidth": 20
+    },
+    "Plot!theta": {
+      "title": "腿角实测 / 参考 (deg)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.left_theta_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left_theta_deg"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.right_theta_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right_theta_deg"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.theta_reference_deg",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "theta_reference_deg"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!leftterms": {
+      "title": "left轮 LQR反馈分项 (N·m)，未限幅",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "位置"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "速度"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[4]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "左腿角"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[6]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "右腿角"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_contribution_nm[8]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pitch"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!rightterms": {
+      "title": "right轮 LQR反馈分项 (N·m)，未限幅",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "位置"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "速度"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[4]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "左腿角"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[6]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "右腿角"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_contribution_nm[8]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pitch"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
+    },
+    "Plot!torque": {
+      "title": "左右轮请求 / 分配 / 混合命令 (N·m)",
+      "paths": [
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_requested_nm",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left requested"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_left_wheel_allocated_nm",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left allocated"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_requested_nm",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right requested"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.lqr14_right_wheel_allocated_nm",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right allocated"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.left_wheel_output_command_nm",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left output"
+        },
+        {
+          "value": "/dust_control/chassis/telemetry.right_wheel_output_command_nm",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right output"
+        }
+      ],
+      "xAxisVal": "timestamp",
+      "showLegend": true,
+      "legendDisplay": "top",
+      "showPlotValuesInLegend": true,
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "isSynced": true,
+      "followingViewWidth": 20
     }
   },
   "layout": {
     "direction": "column",
     "first": {
-      "direction": "row",
-      "first": "Plot!speed",
-      "second": "Plot!position"
+      "direction": "column",
+      "first": {
+        "direction": "row",
+        "first": "Plot!speed",
+        "second": "Plot!position"
+      },
+      "second": {
+        "direction": "row",
+        "first": "Plot!pitch",
+        "second": "Plot!mode"
+      }
     },
     "second": {
-      "direction": "row",
-      "first": "Plot!pitch",
-      "second": "Plot!mode"
+      "direction": "column",
+      "first": {
+        "direction": "row",
+        "first": "Plot!theta",
+        "second": "Plot!torque"
+      },
+      "second": {
+        "direction": "row",
+        "first": "Plot!leftterms",
+        "second": "Plot!rightterms"
+      }
     }
   }
 }

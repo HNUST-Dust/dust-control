@@ -129,6 +129,20 @@ void Integration() {
     assert(out.lqr14.status == c::Lqr14Status::kActive);
     Near(out.lqr14.blend, 1);
     Near(out.lqr14.requested_vertical_force_n.left, 12.054 * 9.80665 / 2, .05);
+    // 分项采用控制器实际使用的误差；总和必须还原未限幅请求。
+    auto perturbed = input;
+    perturbed.pitch += .01;
+    c::BalanceController diagnostic_controller(4.7, config);
+    diagnostic_controller.ResetForEnable();
+    const auto diagnostic = Warm(diagnostic_controller, perturbed);
+    assert(diagnostic.lqr14.status == c::Lqr14Status::kActive);
+    double left_sum = 0.0, right_sum = 0.0;
+    for (int j = 0; j < 14; ++j) {
+        left_sum += diagnostic.lqr14.left_wheel_contribution[j];
+        right_sum += diagnostic.lqr14.right_wheel_contribution[j];
+    }
+    Near(left_sum, diagnostic.lqr14.requested_wheel_torque.left, 1e-10);
+    Near(right_sum, diagnostic.lqr14.requested_wheel_torque.right, 1e-10);
     // 在完整接管后，旧腿长 PID 参数不得改变新输出。
     auto other_config = config;
     other_config.leg_length_kp = 1e7;

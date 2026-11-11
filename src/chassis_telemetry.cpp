@@ -117,6 +117,19 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     message.theta_reference_deg = number(motion.theta_reference * (180.0 / 3.14159265358979323846), motion_valid);
     message.roll_reference_deg = number(motion.roll_reference * (180.0 / 3.14159265358979323846), motion_valid);
     message.remote_chassis_x = number(input.remote.chassis_x, message.remote_fresh);
+    message.body_position_error_unclamped_m = number(motion.unclamped_position_error, motion_valid);
+    message.left_theta_deg = number(input.theta.left * (180.0 / 3.14159265358979323846), motion_valid);
+    message.right_theta_deg = number(input.theta.right * (180.0 / 3.14159265358979323846), motion_valid);
+    for (int j = 0; j < 14; ++j) {
+        message.lqr14_left_wheel_contribution_nm[j] = number(lqr14.left_wheel_contribution[j], force_valid);
+        message.lqr14_right_wheel_contribution_nm[j] = number(lqr14.right_wheel_contribution[j], force_valid);
+    }
+    message.lqr14_left_wheel_requested_nm = number(lqr14.requested_wheel_torque.left, force_valid);
+    message.lqr14_left_wheel_allocated_nm = number(lqr14.allocated_wheel_torque.left, force_valid);
+    message.left_wheel_output_command_nm = number(lqr14.output_wheel_torque.left, force_valid && lqr14.status == chassis::Lqr14Status::kActive);
+    message.lqr14_right_wheel_requested_nm = number(lqr14.requested_wheel_torque.right, force_valid);
+    message.lqr14_right_wheel_allocated_nm = number(lqr14.allocated_wheel_torque.right, force_valid);
+    message.right_wheel_output_command_nm = number(lqr14.output_wheel_torque.right, force_valid && lqr14.status == chassis::Lqr14Status::kActive);
     return message;
 }
 }  // namespace dust_control::ros
