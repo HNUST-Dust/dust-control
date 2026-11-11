@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 5
+uint32 version 6
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -101,3 +101,7 @@ float64[4] joint_position_feedback_rad
 float64[4] joint_velocity_feedback_rad_s
 float64[2] theta_rate_rad_s
 float64 pitch_rate_rad_s
+
+# status=9: 同一14状态增益的降级反馈+腿长控制；blend仅表示高度接管比例。
+bool lqr14_endpoint_gain
+bool lqr14_height_control_active

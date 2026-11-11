@@ -81,7 +81,9 @@ class BalanceController {
                                 ChassisControlOutput &output) const;
     bool ComputeLqr14Output(const ChassisCycleInput &input,
                             const MotionTracking &tracking,
-                            ChassisControlOutput &candidate);
+                            ChassisControlOutput &candidate,
+                            const ExternalSupportForceCommand *external_support = nullptr,
+                            bool allow_extensions = true);
     // 每侧独立维护腿长积分，再将支撑力和姿态力矩映射为关节力矩。
     void ComputeLegOutput(const ChassisCycleInput &input, Side side,
                           double target_leg_length_rate,

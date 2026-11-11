@@ -82,10 +82,13 @@ enum class Lqr14Status : uint8_t {
     kExternalSupport,
     kAction,
     kNumericalFailure,
+    kDegraded,
 };
 struct Lqr14Diagnostics {
     Lqr14Status status = Lqr14Status::kDisabled;
     bool height_valid = false;
+    bool endpoint_gain = false;
+    bool height_control_active = false;
     double height_m = 0.0;
     double height_rate_m_s = 0.0;
     double height_reference_m = 0.0;

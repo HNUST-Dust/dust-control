@@ -23,7 +23,7 @@ int main() {
     const rclcpp::Time now(2000000000LL);
     auto message =
         dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
-    assert(message.sequence == 17 && message.version == 5);
+    assert(message.sequence == 17 && message.version == 6);
     assert(message.header.stamp.sec == 1 &&
            message.header.stamp.nanosec == 990000000);
     assert(message.pitch_deg == 12.5 && message.imu_age_us == 123);
@@ -61,6 +61,13 @@ int main() {
     assert(message.lqr14_right_force_target_n == 65);
     assert(message.body_position_error_unclamped_m == .4);
     assert(message.lqr14_left_wheel_contribution_nm[0] == .25);
+    sample.lqr14.status = dust_control::chassis::Lqr14Status::kDegraded;
+    sample.lqr14.endpoint_gain = true;
+    sample.input.hip_height_valid = false;
+    message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
+    assert(message.lqr14_status == 9 && message.lqr14_endpoint_gain);
+    assert(message.lqr14_left_wheel_contribution_nm[0] == .25);
+    assert(std::isnan(message.lqr14_left_force_target_n));
     sample.input.motor_stale_mask = 0x0c;
     sample.input.imu_fresh = false;
     message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);

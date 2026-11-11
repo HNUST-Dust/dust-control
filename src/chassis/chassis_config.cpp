@@ -46,9 +46,7 @@ void ValidateChassisConfig(const ChassisConfig& config) {
          std::abs(config.wheel_radius - 0.058) > 1e-8 ||
          std::abs(config.wheel_reduction - 15.764705882352942) > 1e-8 ||
          std::abs(config.half_wheel_track - 0.215) > 1e-8 ||
-         std::abs(config.support_wheel_mass - 0.6) > 1e-8 ||
-         config.min_commanded_leg_length < 0.15362 ||
-         config.max_commanded_leg_length > 0.31101)) {
+         std::abs(config.support_wheel_mass - 0.6) > 1e-8)) {
         throw std::runtime_error(
             "LQR14 configuration does not match generated model/range");
     }
