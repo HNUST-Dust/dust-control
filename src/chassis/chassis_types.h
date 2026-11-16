@@ -125,6 +125,9 @@ struct ChassisCycleInput {
     double pitch_rate = 0.0;
     double roll = 0.0;
     double roll_rate = 0.0;
+    // Optional calibrated body-forward acceleration; false is missing, NOT zero.
+    bool forward_acceleration_valid = false;
+    double forward_acceleration_mps2 = 0.0;
     // theta = 校准腿角 alpha - pitch，单位 rad；对应角速度为 rad/s。
     SidePair<double> theta;
     SidePair<double> theta_rate;
@@ -155,6 +158,9 @@ struct ChassisCycleInput {
 
 // 本周期平衡估计与参考；未执行平衡计算时 valid=false。
 struct MotionDiagnostics {
+    BodyMotionDiagnostics estimation;
+    double acceleration_mps2 = 0.0;
+    double acceleration_bias_mps2 = 0.0;
     bool valid = false;
     double raw_speed = 0.0;
     double estimated_speed = 0.0;

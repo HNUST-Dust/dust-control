@@ -31,6 +31,11 @@ DustControlNode::DustControlNode(const rclcpp::NodeOptions& options)
             "~/chassis/telemetry", rclcpp::QoS(rclcpp::KeepLast(1))
                                        .best_effort()
                                        .durability_volatile());
+    telemetry_samples_publisher_ =
+        create_publisher<dust_control::msg::ChassisTelemetry>(
+            "~/chassis/telemetry_samples", rclcpp::QoS(rclcpp::KeepLast(256))
+                                               .best_effort()
+                                               .durability_volatile());
     publication_timer_ = create_wall_timer(kPublicationPeriod,
                                            [this] { PublishObservations(); });
     auxiliary_timer_ = create_wall_timer(std::chrono::milliseconds(10), [this] {
@@ -95,6 +100,8 @@ void DustControlNode::PublishObservations() {
     }
     chassis::ChassisObservation sample;
     bool available = false;
+    const bool record_samples =
+        telemetry_samples_publisher_->get_subscription_count() > 0;
     // 限定消费次数，防止生产者持续写入时占满 ROS executor。
     for (size_t count = 0;
          count < chassis::ChassisObservationQueue::kCapacity &&
@@ -103,6 +110,10 @@ void DustControlNode::PublishObservations() {
         available = true;
         latest_observation_ = sample;
         have_observation_ = true;
+        if (record_samples) {
+            telemetry_samples_publisher_->publish(MakeChassisTelemetry(
+                sample, now(), dust_control::realtime::MonotonicTimeNs()));
+        }
     }
     // 空队列不重复发布新鲜样本；源停更时继续告知观测已经失效。
     const auto monotonic_ns = dust_control::realtime::MonotonicTimeNs();

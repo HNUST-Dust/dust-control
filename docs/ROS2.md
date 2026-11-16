@@ -23,10 +23,11 @@
 | `~/imu` | `sensor_msgs/msg/Imu` | HI91 原始测量，hi91_link 坐标系；不发布未验证的姿态四元数 |
 | `~/joint_states` | `sensor_msgs/msg/JointState` | 四个关节电机的解码位置、速度和反馈力矩；反馈有效时发布 |
 | `~/chassis/telemetry` | `dust_control/msg/ChassisTelemetry` | 姿态、双腿运动学、有效性、样本时间和周期统计；无效数值为 NaN |
+| `~/chassis/telemetry_samples` | `dust_control/msg/ChassisTelemetry` | 有订阅者时逐条发布控制样本，供阈值日志采集；有界队列及BestEffort，需检查丢样 |
 | `~/status` | `diagnostic_msgs/msg/DiagnosticArray` | 状态机、使能请求、新鲜度、错过周期 |
 
 暂不接入外部规划节点，没有运动目标订阅或通往控制线程的指令队列。
-底盘状态每个控制周期采样（目标 1 kHz），高频发布回调周期 1 ms，只发布最近观测。
+底盘状态每个控制周期采样（目标 1 kHz），高频发布回调周期 1 ms；主telemetry话题只发布最近观测。
 `~/chassis/telemetry` 使用 KeepLast(1) / BestEffort / Volatile；订阅者也应采用
 相容 QoS 并缓存最新状态。回调延迟时跳过旧样本，不补发历史，不承诺每个控制周期都送达。
 IMU 与 joint_states 最多 100 Hz，使用 SensorDataQoS；status 约 50 Hz，reliable / depth 1。
@@ -51,8 +52,10 @@ simulate、realtime、enable_output 统一由 dust_control.yaml 的 execution �
 
 ROS2 话题和 Foxglove 性能验收留到实机；OrbStack 用于构建与功能调试。
 
-十四状态控制接入后 `ChassisTelemetry.version=7`，新增 `*_hip_height_m`、
+十四状态控制接入后 `ChassisTelemetry.version=9`，新增 `*_hip_height_m`、
 高度速度、左右支撑估计、LQR 力目标及接管状态。需重编译发送与接收端消息。
 `lqr_status=2` 且 `lqr_blend=1` 才表示新控制完整接管；
 `left_height_m/right_height_m` 仍保留原始机构几何含义。
 首次配置与状态码见 [LQR](LQR.md)。
+
+version 9 包含三状态KF诊断，并补齐阈值标定所需的原始IMU、输入有效性、轮速更新前预测、实际门控阈值、参数快照与独立证据位。`telemetry_samples`在非实时消费者中逐条发布，KeepLast(256)/BestEffort；采集工具使用独立磁盘队列并报告丢样。采集命令和实验分组见 [运动估计](MOTION_ESTIMATION.md)。发送端、接收端及桥需重新构建同一版消息。

@@ -62,3 +62,24 @@ hardware:
     leg_angle_offset_rad: -0.036063
   right:
     leg_angle_offset_rad: -3.12101
+
+# 三状态KF [前向速度,前向加速度,加速度计零偏]；详细定义见 docs/MOTION_ESTIMATION.md。
+motion_estimation:
+  # -1: 尚未标定，不使用IMU加速度；标定后选择0/1/2并确认符号与重力补偿。
+  forward_acceleration_axis: -1
+  forward_acceleration_sign: 1.0
+  acceleration_max_yaw_rate_rad_s: 0.5
+  acceleration_process_noise: 3000.0
+  bias_random_walk_psd: 0.1
+  wheel_speed_variance: 10.0
+  acceleration_variance: 3.0
+  reliability:
+    contact_off_fraction: 0.06
+    contact_on_fraction: 0.12
+    contact_loss_delay_s: 0.005
+    recovery_time_s: 0.10
+    pair_residual_limit_mps: 0.4
+    innovation_floor_mps: 0.4
+    innovation_sigma: 3.0
+    rejection_ratio: 3.0
+    suspect_confidence: 0.05

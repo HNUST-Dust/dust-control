@@ -169,3 +169,12 @@ add_executable(chassis_lqr_action_gain chassis/lqr_action_gain.cpp)
 target_link_libraries(chassis_lqr_action_gain PRIVATE dust_chassis)
 target_compile_options(chassis_lqr_action_gain PRIVATE -UNDEBUG)
 add_test(NAME chassis.lqr_action_gain COMMAND chassis_lqr_action_gain)
+
+add_executable(chassis_body_motion_estimator chassis/body_motion_estimator.cpp)
+target_link_libraries(chassis_body_motion_estimator PRIVATE dust_chassis)
+target_compile_definitions(chassis_body_motion_estimator PRIVATE EIGEN_RUNTIME_NO_MALLOC EIGEN_DONT_VECTORIZE)
+target_compile_options(chassis_body_motion_estimator PRIVATE -UNDEBUG -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME chassis.body_motion_estimator COMMAND chassis_body_motion_estimator)
+
+add_test(NAME chassis.motion_diagnostics COMMAND ${Python3_EXECUTABLE}
+  "${CMAKE_CURRENT_SOURCE_DIR}/chassis/motion_diagnostics.py")

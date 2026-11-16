@@ -5,6 +5,15 @@
 #include <stdexcept>
 namespace dust_control::chassis {
 void ValidateChassisConfig(const ChassisConfig& config) {
+    ValidateBodyMotionParameters(config.motion_estimation);
+    if (config.forward_acceleration_axis < -1 ||
+        config.forward_acceleration_axis > 2 ||
+        !std::isfinite(config.forward_acceleration_sign) ||
+        std::abs(config.forward_acceleration_sign) != 1.0 ||
+        !std::isfinite(config.acceleration_max_yaw_rate) ||
+        config.acceleration_max_yaw_rate <= 0.) {
+        throw std::runtime_error("Invalid motion_estimation IMU calibration");
+    }
     if (!std::isfinite(config.joint_b_zero_offset)) {
         throw std::runtime_error(
             "Invalid chassis parameter: mechanics.joint_b_zero_offset_rad");

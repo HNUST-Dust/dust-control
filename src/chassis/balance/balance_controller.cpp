@@ -53,7 +53,8 @@ BalanceController::BalanceController(double wheel_torque_limit,
                                      ChassisConfig config)
     : config_(config),
       wheel_torque_limit_(wheel_torque_limit),
-      target_leg_length_(config_.default_leg_length) {
+      target_leg_length_(config_.default_leg_length),
+      body_motion_estimator_(config_.motion_estimation) {
     {
         ValidateChassisConfig(config_);
         lqr_schedule_.emplace(LqrDevelopmentSamples());
@@ -67,6 +68,7 @@ BalanceController::BalanceController(double wheel_torque_limit,
 void BalanceController::Reset() {
     // target_leg_length_ 和三项姿态参考由交接入口管理，此处有意保留。
     body_motion_estimator_.Reset();
+    last_motion_imu_sequence_ = 0;
     target_body_speed_ = 0.0;
     target_body_position_ = 0.0;
 
@@ -107,18 +109,22 @@ void BalanceController::Update(
     UpdateAttitudeReferences(input, external_support, output);
     const BodyMotionState &motion = EstimateBodyMotion(input, output);
     const MotionTracking tracking = UpdateMotionReferences(input, motion);
-    output.motion = {.valid = true,
-                     .raw_speed = output.raw_body_speed,
-                     .estimated_speed = motion.speed,
-                     .target_speed = target_body_speed_,
-                     .estimated_position = motion.position,
-                     .target_position = target_body_position_,
-                     .unclamped_position_error = motion.position - target_body_position_,
-                     .position_error = tracking.position_error,
-                     .speed_error = tracking.speed_error,
-                     .pitch_reference = balance_pitch_reference_,
-                     .theta_reference = balance_theta_reference_,
-                     .roll_reference = balance_roll_reference_};
+    output.motion = {
+        .estimation = body_motion_estimator_.diagnostics(),
+        .acceleration_mps2 = motion.acceleration,
+        .acceleration_bias_mps2 = motion.acceleration_bias,
+        .valid = body_motion_estimator_.diagnostics().valid,
+        .raw_speed = output.raw_body_speed,
+        .estimated_speed = motion.speed,
+        .target_speed = target_body_speed_,
+        .estimated_position = motion.position,
+        .target_position = target_body_position_,
+        .unclamped_position_error = motion.position - target_body_position_,
+        .position_error = tracking.position_error,
+        .speed_error = tracking.speed_error,
+        .pitch_reference = balance_pitch_reference_,
+        .theta_reference = balance_theta_reference_,
+        .roll_reference = balance_roll_reference_};
     {
         ChassisControlOutput candidate = output;
         candidate.motion = output.motion;
@@ -214,9 +220,31 @@ const BodyMotionState &BalanceController::EstimateBodyMotion(
     output.measured_turn_wheel_speed =
         0.5 * (body_speed.left - body_speed.right);
     output.raw_body_speed = raw_common_x_speed;
-    // IMU 前向加速度轴尚未标定，暂传 0，避免引入错误的轴向和符号。
-    const BodyMotionState &motion =
-        body_motion_estimator_.Update(raw_common_x_speed, 0.0, input.dt);
+    BodyMotionObservation observation;
+    observation.dt_s = input.dt;
+    observation.yaw_valid =
+        input.imu_fresh && std::isfinite(input.imu.yaw_rate_rad_s);
+    const double yaw_speed =
+        observation.yaw_valid
+            ? config_.half_wheel_track * input.imu.yaw_rate_rad_s
+            : 0.;
+    // IMU yaw positive CCW: v_left=v_center-d*yaw_rate.
+    observation.center_speed_mps = {body_speed.left + yaw_speed,
+                                    body_speed.right - yaw_speed};
+    observation.wheel_valid = {input.feedback_valid, input.feedback_valid};
+    observation.support_valid = input.support_force_valid;
+    const double weight = config_.robot_mass * kGravity;
+    observation.support_fraction = {
+        input.measured_support_force_n.left / weight,
+        input.measured_support_force_n.right / weight};
+    observation.acceleration_valid = input.forward_acceleration_valid;
+    observation.forward_acceleration_mps2 = input.forward_acceleration_mps2;
+    observation.acceleration_new_sample =
+        input.imu.sequence != last_motion_imu_sequence_;
+    if (input.forward_acceleration_valid) {
+        last_motion_imu_sequence_ = input.imu.sequence;
+    }
+    const BodyMotionState &motion = body_motion_estimator_.Update(observation);
     output.estimated_body_speed = motion.speed;
     return motion;
 }

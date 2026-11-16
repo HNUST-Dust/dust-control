@@ -56,4 +56,18 @@ with tempfile.TemporaryDirectory() as temporary:
     run(lambda d: d['chassis_params.yaml']['balance']['lqr'].__setitem__('extra', 1))
     run(lambda d: d['dust_control.yaml']['execution'].update(simulate=True, enable_output=True))
     run(lambda d: d['dust_control.yaml']['execution'].update(simulate=True, realtime=False), valid=True)
+
+    # Motion estimation is optional for existing deployments; new values fail
+    # validation before bus access, including calibration and unknown keys.
+    run(lambda d: d['chassis_params.yaml'].pop('motion_estimation'), valid=True)
+    run(lambda d: d['chassis_params.yaml'].__setitem__('motion_estimation', {}), valid=True)
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('wheel_speed_variance', -1))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('acceleration_variance', float('nan')))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('forward_acceleration_axis', 3))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('forward_acceleration_sign', 0))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('acceleration_max_yaw_rate_rad_s', 0))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation']['reliability'].__setitem__('recovery_time_s', 0))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation']['reliability'].__setitem__('contact_off_fraction', .3))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('unknown', 1))
+
 print('Application/PDO schema, bindings, missing files and retired configuration rejection passed')

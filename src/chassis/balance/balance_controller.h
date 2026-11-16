@@ -99,6 +99,7 @@ class BalanceController {
 
     // 运动估计与平移参考：Reset 同时清空估计位移及目标位移。
     BodyMotionEstimator body_motion_estimator_;
+    uint32_t last_motion_imu_sequence_ = 0;
     double target_body_speed_ = 0.0;
     double target_body_position_ = 0.0;
 

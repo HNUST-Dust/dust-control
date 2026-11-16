@@ -23,7 +23,7 @@ int main() {
     const rclcpp::Time now(2000000000LL);
     auto message =
         dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
-    assert(message.sequence == 17 && message.version == 7);
+    assert(message.sequence == 17 && message.version == 9);
     assert(message.header.stamp.sec == 1 &&
            message.header.stamp.nanosec == 990000000);
     assert(message.pitch_deg == 12.5 && message.imu_age_us == 123);
@@ -36,6 +36,26 @@ int main() {
     assert(message.transport_age_ms == 10 &&
            message.control_duration_us == 12.5);
     assert(!message.motion_diagnostics_valid && std::isnan(message.raw_body_speed_mps));
+    assert(!message.motion_estimator_valid &&
+           std::isnan(message.body_acceleration_bias_mps2));
+    sample.motion.estimation.valid = true;
+    sample.motion.estimation.acceleration_used = true;
+    sample.motion.estimation.wheels[0].status =
+        dust_control::chassis::WheelSpeedStatus::kInconsistent;
+    sample.motion.estimation.wheels[0].confidence = .05;
+    sample.motion.acceleration_bias_mps2 = .3;
+    sample.motion.estimation.center_speed_mps = {.4, .5};
+    sample.motion.estimation.wheel_valid = {true, false};
+    sample.motion.estimation.prior_speed_mps = .25;
+    sample.motion.estimation.prior_speed_variance = .04;
+    sample.motion.estimation.wheels[0].prediction_gate_active = true;
+    sample.motion.estimation.wheels[0].prediction_gate_mps = .6;
+    sample.motion.estimation.wheels[0].prediction_ratio = .25;
+    sample.motion.estimation.wheels[0].evidence =
+        dust_control::chassis::kPairDisagreement;
+    sample.input.imu.accel_g[0] = .12;
+    sample.input.imu.sequence = 42;
+    sample.input.imu.precise_timestamp_us = 1000000;
     sample.motion.valid = true;
     sample.motion.raw_speed = .02;
     sample.motion.estimated_speed = .01;
@@ -53,6 +73,23 @@ int main() {
     sample.lqr.requested_vertical_force_n = {55, 65};
     sample.lqr.left_wheel_contribution[0] = .25;
     message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
+    assert(message.motion_estimator_valid && message.motion_acceleration_used);
+    assert(message.wheel_speed_status[0] == 5 &&
+           message.wheel_speed_confidence[0] == .05);
+    assert(message.body_acceleration_bias_mps2 == .3);
+    assert(message.motion_center_speed_mps[0] == .4);
+    assert(std::isnan(message.motion_center_speed_mps[1]));
+    assert(message.motion_prior_speed_mps == .25 &&
+           message.motion_prior_speed_variance == .04);
+    assert(message.wheel_prediction_gate_mps[0] == .6 &&
+           message.wheel_prediction_ratio[0] == .25);
+    assert(message.wheel_speed_evidence[0] == 16);
+    assert(std::isnan(message.wheel_speed_pair_residual_mps[0]));
+    assert(message.imu_sequence == 42 &&
+           message.imu_sample_monotonic_us == 1000000);
+    assert(std::abs(message.imu_raw_accel_g[0] - .12) < 1e-7);
+    assert(message.motion_reliability_parameters[4] == .4);
+    assert(std::isnan(message.motion_wheel_speed_variance));
     assert(message.motion_diagnostics_valid && message.raw_body_speed_mps == .02);
     assert(message.estimated_body_speed_mps == .01 && message.body_position_error_m == .15);
     assert(std::abs(message.roll_reference_deg - 5.7295779513) < 1e-9);
@@ -74,6 +111,8 @@ int main() {
     assert(std::isnan(message.pitch_deg));
     assert(std::isnan(message.lqr_left_wheel_contribution_nm[0]));
     assert(!message.motion_diagnostics_valid && std::isnan(message.estimated_body_speed_mps));
+    assert(!message.motion_estimator_valid &&
+           std::isnan(message.wheel_speed_confidence[0]));
     assert(!message.left_leg_fresh && std::isnan(message.left_length_m));
     assert(message.right_leg_fresh && message.right_length_m == .26);
     sample.input.feedback_invalid_mask = 8;

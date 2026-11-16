@@ -50,7 +50,7 @@ balance:
 
 ## 遥测与记录
 
-遥测version7，status=2为完整扩展控制、status=9为统一增益降级控制。
+遥测version9，status=2为完整扩展控制、status=9为统一增益降级控制。
 blend是高度接管比例，不再是新旧控制器混合比例。
 `lqr_endpoint_gain`和`lqr_height_control_active`表示端点及高度控制状态。
 轮力矩14项贡献按状态顺序排列，request/allocated/output均不是电机实测力矩。
@@ -63,6 +63,6 @@ C620反馈保留协议原始电流；最终关节命令包含气弹簧补偿及�
 本次统一命名为LQR，状态/输入的数学维度不变。
 配置键`balance.lqr14`改为`balance.lqr`，旧键会报错，需迁移现场配置。
 工具入口为`derive_lqr.py`、`design_lqr.py`及`prepare_lqr_config.py`。
-遥测version7使用`lqr_*`字段；控制节点、订阅程序和桥需使用同次重新安装的消息，
+遥测version9使用`lqr_*`字段；控制节点、订阅程序和桥需使用同次重新安装的消息，
 并重启。Foxglove重新导入`tools/foxglove/lqr-layout.json`。
 历史试验记录保留原字段和路径，分析工具可读取旧`lqr14_*`采集字段。

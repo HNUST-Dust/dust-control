@@ -122,6 +122,107 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
     message.pitch_reference_deg = number(motion.pitch_reference * (180.0 / 3.14159265358979323846), motion_valid);
     message.theta_reference_deg = number(motion.theta_reference * (180.0 / 3.14159265358979323846), motion_valid);
     message.roll_reference_deg = number(motion.roll_reference * (180.0 / 3.14159265358979323846), motion_valid);
+    const auto& estimator = motion.estimation;
+    const bool estimator_valid = motion_valid && estimator.valid;
+    message.motion_estimator_valid = estimator_valid;
+    message.motion_acceleration_used =
+        estimator_valid && estimator.acceleration_used;
+    message.motion_wheel_speed_used =
+        estimator_valid && estimator.wheel_speed_used;
+    message.body_acceleration_mps2 =
+        number(motion.acceleration_mps2, estimator_valid);
+    message.body_acceleration_bias_mps2 =
+        number(motion.acceleration_bias_mps2, estimator_valid);
+    message.motion_wheel_speed_variance =
+        number(estimator.wheel_speed_variance,
+               estimator_valid && estimator.wheel_speed_used);
+    for (size_t i = 0; i < 3; ++i) {
+        message.motion_covariance_diagonal[i] =
+            number(estimator.covariance_diagonal[i], estimator_valid);
+    }
+    for (size_t i = 0; i < 2; ++i) {
+        const auto& wheel = estimator.wheels[i];
+        message.wheel_speed_status[i] =
+            estimator_valid ? static_cast<uint8_t>(wheel.status) : 0;
+        message.wheel_speed_confidence[i] =
+            number(wheel.confidence, estimator_valid);
+        message.wheel_speed_prediction_residual_mps[i] =
+            number(wheel.prediction_residual_mps, estimator_valid);
+        message.wheel_speed_pair_residual_mps[i] =
+            number(wheel.pair_residual_mps, estimator_valid);
+    }
+    message.control_dt_s = number(input.dt, connected);
+    message.imu_sequence = input.imu.sequence;
+    message.imu_sample_monotonic_us = input.imu.precise_timestamp_us;
+    for (size_t i = 0; i < 3; ++i) {
+        message.imu_raw_accel_g[i] =
+            number(input.imu.accel_g[i], message.imu_fresh);
+    }
+    message.roll_rate_rad_s = number(input.roll_rate, message.imu_fresh);
+    message.yaw_rate_rad_s =
+        number(input.imu.yaw_rate_rad_s, message.imu_fresh);
+    message.forward_acceleration_valid =
+        connected && input.forward_acceleration_valid;
+    message.forward_acceleration_mps2 = number(
+        input.forward_acceleration_mps2, message.forward_acceleration_valid);
+    message.motion_acceleration_new_sample =
+        estimator_valid && estimator.acceleration_new_sample;
+    message.motion_yaw_valid = estimator_valid && estimator.yaw_valid;
+    message.motion_support_valid = estimator_valid && estimator.support_valid;
+    message.motion_prior_speed_mps =
+        number(estimator.prior_speed_mps, estimator_valid);
+    message.motion_prior_speed_variance =
+        number(estimator.prior_speed_variance, estimator_valid);
+    message.motion_fused_wheel_speed_mps =
+        number(estimator.fused_wheel_speed_mps,
+               estimator_valid && estimator.wheel_speed_used);
+    for (size_t i = 0; i < 2; ++i) {
+        const auto& wheel = estimator.wheels[i];
+        message.motion_wheel_valid[i] =
+            estimator_valid && estimator.wheel_valid[i];
+        message.motion_center_speed_mps[i] = number(
+            estimator.center_speed_mps[i], message.motion_wheel_valid[i]);
+        message.motion_support_fraction[i] =
+            number(estimator.support_fraction[i], message.motion_support_valid);
+        message.wheel_pair_comparison_valid[i] =
+            estimator_valid && wheel.pair_comparison_valid;
+        message.wheel_prediction_gate_active[i] =
+            estimator_valid && wheel.prediction_gate_active;
+        message.wheel_contact_known[i] = estimator_valid && wheel.contact_known;
+        message.wheel_contact[i] = estimator_valid && wheel.contact;
+        message.wheel_low_support_time_s[i] =
+            number(wheel.low_support_time_s, message.wheel_contact_known[i]);
+        message.wheel_prediction_gate_mps[i] = number(
+            wheel.prediction_gate_mps, message.wheel_prediction_gate_active[i]);
+        message.wheel_prediction_ratio[i] = number(
+            wheel.prediction_ratio, message.wheel_prediction_gate_active[i] &&
+                                        message.motion_wheel_valid[i]);
+        message.wheel_speed_evidence[i] = estimator_valid ? wheel.evidence : 0;
+        // Do not encode an unavailable comparison as a measured zero residual.
+        message.wheel_speed_pair_residual_mps[i] = number(
+            wheel.pair_residual_mps, message.wheel_pair_comparison_valid[i]);
+        message.wheel_speed_prediction_residual_mps[i] = number(
+            wheel.prediction_residual_mps, message.motion_wheel_valid[i]);
+    }
+    const auto& filter = estimator.parameters;
+    const auto& thresholds = filter.reliability;
+    const std::array<double, 4> filter_parameters = {
+        filter.acceleration_process_noise, filter.bias_random_walk_psd,
+        filter.wheel_speed_variance, filter.acceleration_variance};
+    const std::array<double, 9> reliability_parameters = {
+        thresholds.contact_off_fraction,    thresholds.contact_on_fraction,
+        thresholds.contact_loss_delay_s,    thresholds.recovery_time_s,
+        thresholds.pair_residual_limit_mps, thresholds.innovation_floor_mps,
+        thresholds.innovation_sigma,        thresholds.rejection_ratio,
+        thresholds.suspect_confidence};
+    for (size_t i = 0; i < filter_parameters.size(); ++i) {
+        message.motion_filter_parameters[i] =
+            number(filter_parameters[i], estimator_valid);
+    }
+    for (size_t i = 0; i < reliability_parameters.size(); ++i) {
+        message.motion_reliability_parameters[i] =
+            number(reliability_parameters[i], estimator_valid);
+    }
     message.remote_chassis_x = number(input.remote.chassis_x, message.remote_fresh);
     message.body_position_error_unclamped_m = number(motion.unclamped_position_error, motion_valid);
     message.left_theta_deg = number(input.theta.left * (180.0 / 3.14159265358979323846), motion_valid);

@@ -8,7 +8,8 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
     ValidateKeys(root,
                  {"actuator", "balance", "flight", "gas_spring", "hardware",
                   "jump", "mechanics", "safety", "schema_version", "stool",
-                  "support_force_estimator", "vmc"});
+                  "support_force_estimator", "vmc"},
+                 {"motion_estimation"});
     ValidateKeys(root["mechanics"],
                  {"half_wheel_track_m", "joint_b_zero_offset_rad",
                   "joint_d_zero_offset_rad", "leg_geometry_m", "robot_mass_kg",
@@ -50,6 +51,53 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
         throw std::runtime_error("Unsupported chassis schema version");
     }
     ChassisConfig config;
+    if (const auto node = root["motion_estimation"]) {
+        ValidateKeys(
+            node, {},
+            {"forward_acceleration_axis", "forward_acceleration_sign",
+             "acceleration_max_yaw_rate_rad_s", "acceleration_process_noise",
+             "bias_random_walk_psd", "wheel_speed_variance",
+             "acceleration_variance", "reliability"});
+        if (node["forward_acceleration_axis"]) {
+            config.forward_acceleration_axis =
+                node["forward_acceleration_axis"].as<int>();
+        }
+        const auto read = [](const YAML::Node& mapping, const char* key,
+                             double& target) {
+            if (mapping[key]) {
+                target = mapping[key].as<double>();
+            }
+        };
+        read(node, "forward_acceleration_sign",
+             config.forward_acceleration_sign);
+        read(node, "acceleration_max_yaw_rate_rad_s",
+             config.acceleration_max_yaw_rate);
+        auto& motion = config.motion_estimation;
+        read(node, "acceleration_process_noise",
+             motion.acceleration_process_noise);
+        read(node, "bias_random_walk_psd", motion.bias_random_walk_psd);
+        read(node, "wheel_speed_variance", motion.wheel_speed_variance);
+        read(node, "acceleration_variance", motion.acceleration_variance);
+        if (const auto reliability = node["reliability"]) {
+            ValidateKeys(
+                reliability, {},
+                {"contact_off_fraction", "contact_on_fraction",
+                 "contact_loss_delay_s", "recovery_time_s",
+                 "pair_residual_limit_mps", "innovation_floor_mps",
+                 "innovation_sigma", "rejection_ratio", "suspect_confidence"});
+            auto& p = motion.reliability;
+            read(reliability, "contact_off_fraction", p.contact_off_fraction);
+            read(reliability, "contact_on_fraction", p.contact_on_fraction);
+            read(reliability, "contact_loss_delay_s", p.contact_loss_delay_s);
+            read(reliability, "recovery_time_s", p.recovery_time_s);
+            read(reliability, "pair_residual_limit_mps",
+                 p.pair_residual_limit_mps);
+            read(reliability, "innovation_floor_mps", p.innovation_floor_mps);
+            read(reliability, "innovation_sigma", p.innovation_sigma);
+            read(reliability, "rejection_ratio", p.rejection_ratio);
+            read(reliability, "suspect_confidence", p.suspect_confidence);
+        }
+    }
     config.joint_b_zero_offset =
         root["mechanics"]["joint_b_zero_offset_rad"].as<double>();
     config.joint_d_zero_offset =

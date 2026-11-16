@@ -82,6 +82,10 @@ if(DUST_BUILD_ROS2)
       "${PROJECT_SOURCE_DIR}/tests/ros/ethercat_node_smoke.py"
       $<TARGET_FILE:dust_control_node> "${PROJECT_SOURCE_DIR}/config")
     set_tests_properties(ros.ethercat_node_smoke PROPERTIES TIMEOUT 20 RUN_SERIAL TRUE)
+    add_test(NAME ros.motion_capture COMMAND ${Python3_EXECUTABLE}
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/ros/motion_capture.py"
+      $<TARGET_FILE:dust_control_node> "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+    set_tests_properties(ros.motion_capture PROPERTIES TIMEOUT 35 RUN_SERIAL TRUE)
     add_executable(ros_state_benchmark_publisher EXCLUDE_FROM_ALL tests/benchmarks/ros_state_publisher.cpp)
     ament_target_dependencies(ros_state_benchmark_publisher rclcpp)
     target_link_libraries(ros_state_benchmark_publisher "${dust_control_typesupport}")

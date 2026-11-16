@@ -1,95 +1,138 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @file src/chassis/estimation/body_motion_estimator.cpp
- * @ingroup wbr_modules
- * @brief 根据底盘传感器数据估计机体运动状态。
- * @details 由主机控制线程按冻结输入调用；硬件采集和执行器输出通过显式接口提供。
- */
-
-#include "chassis/estimation/body_motion_estimator.h"
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "body_motion_estimator.h"
 
 #include <Eigen/Core>
-
-#include "chassis_config.h"
-
-namespace {
-// 本模块使用的固定算法参数，调整时与对应控制逻辑一起审查。
-constexpr double kProcessNoise = 0.1;
-constexpr double kSpeedMeasurementNoise = 100.0;
-constexpr double kAccelerationMeasurementNoise = 1000000000000.0;
-}  // namespace
-
-namespace {
-
-using StateVector = Eigen::Matrix<double, 2, 1>;
-using StateMatrix = Eigen::Matrix<double, 2, 2>;
-using ObservationVector = Eigen::Matrix<double, 1, 2>;
-
-using namespace dust_control::chassis::chassis_config;
-
-}  // namespace
+#include <cmath>
+#include <stdexcept>
 
 namespace dust_control::chassis {
+namespace {
+using Vector = Eigen::Matrix<double, 3, 1>;
+using Matrix = Eigen::Matrix<double, 3, 3>;
+using Row = Eigen::Matrix<double, 1, 3>;
 
+void Correct(Vector& state, Matrix& covariance, const Row& observation,
+             double measurement, double variance) {
+    const Vector gain =
+        covariance * observation.transpose() /
+        ((observation * covariance * observation.transpose())(0, 0) + variance);
+    state += gain * (measurement - (observation * state)(0));
+    // Joseph form preserves symmetry/positive semidefiniteness under roundoff.
+    const Matrix residual = Matrix::Identity() - gain * observation;
+    covariance = (residual * covariance * residual.transpose() +
+                  variance * gain * gain.transpose())
+                     .eval();
+    covariance = (0.5 * (covariance + covariance.transpose())).eval();
+}
+}  // namespace
+void ValidateBodyMotionParameters(const BodyMotionParameters& p) {
+    for (double value : {p.acceleration_process_noise, p.bias_random_walk_psd,
+                         p.wheel_speed_variance, p.acceleration_variance}) {
+        if (!std::isfinite(value) || value <= 0.) {
+            throw std::invalid_argument(
+                "Motion KF variances must be finite and positive");
+        }
+    }
+    ValidateWheelReliabilityParameters(p.reliability);
+}
+BodyMotionEstimator::BodyMotionEstimator(BodyMotionParameters parameters)
+    : parameters_(parameters), reliability_(parameters.reliability) {
+    ValidateBodyMotionParameters(parameters_);
+}
 void BodyMotionEstimator::Reset() {
     state_ = {};
-    covariance_ = {1.0, 0.0, 0.0, 1.0};
+    covariance_ = {1., 0., 0., 0., 1., 0., 0., 0., 1.};
+    reliability_.Reset();
+    diagnostics_ = {};
 }
+const BodyMotionState& BodyMotionEstimator::Update(
+    const BodyMotionObservation& input) {
+    diagnostics_ = {};
+    diagnostics_.parameters = parameters_;
+    diagnostics_.center_speed_mps = input.center_speed_mps;
+    diagnostics_.wheel_valid = input.wheel_valid;
+    diagnostics_.support_fraction = input.support_fraction;
+    diagnostics_.support_valid = input.support_valid;
+    diagnostics_.yaw_valid = input.yaw_valid;
+    diagnostics_.acceleration_valid = input.acceleration_valid;
+    diagnostics_.acceleration_new_sample = input.acceleration_new_sample;
+    diagnostics_.forward_acceleration_mps2 = input.forward_acceleration_mps2;
+    diagnostics_.dt_s = input.dt_s;
+    const double dt = input.dt_s;
+    if (!std::isfinite(dt) || dt <= 0. || dt > .02) {
+        return state_;
+    }
+    Vector state;
+    state << state_.speed, state_.acceleration, state_.acceleration_bias;
+    Matrix covariance = Eigen::Map<const Matrix>(covariance_.data());
+    Matrix transition = Matrix::Identity();
+    transition(0, 1) = dt;
+    // One random acceleration increment per cycle: G=[dt²/2,dt,0].
+    Vector driving;
+    driving << .5 * dt * dt, dt, 0.;
+    Matrix process =
+        parameters_.acceleration_process_noise * driving * driving.transpose();
+    process(2, 2) = dt * parameters_.bias_random_walk_psd;
+    state = (transition * state).eval();
+    covariance =
+        (transition * covariance * transition.transpose() + process).eval();
 
-const BodyMotionState &BodyMotionEstimator::Update(
-    double speed_measurement, double acceleration_measurement, double dt) {
-    Eigen::Map<StateMatrix> covariance(covariance_.data());
+    const bool imu_valid = input.acceleration_valid &&
+                           std::isfinite(input.forward_acceleration_mps2);
+    if (imu_valid && input.acceleration_new_sample) {
+        Correct(state, covariance, (Row() << 0., 1., 1.).finished(),
+                input.forward_acceleration_mps2,
+                parameters_.acceleration_variance);
+        diagnostics_.acceleration_used = true;
+    }
+    diagnostics_.prior_speed_mps = state[0];
+    diagnostics_.prior_speed_variance = covariance(0, 0);
+    // All wheel residuals use the SAME prior, before any wheel correction.
+    WheelReliabilityInput reliability_input;
+    reliability_input.center_speed_mps = input.center_speed_mps;
+    reliability_input.wheel_valid = input.wheel_valid;
+    reliability_input.support_fraction = input.support_fraction;
+    reliability_input.support_valid = input.support_valid;
+    reliability_input.yaw_valid = input.yaw_valid;
+    reliability_input.inertial_prediction_valid = imu_valid;
+    reliability_input.predicted_speed_mps = state[0];
+    reliability_input.predicted_speed_variance = covariance(0, 0);
+    reliability_input.dt_s = dt;
+    diagnostics_.wheels = reliability_.Update(reliability_input);
 
-    // x = [前向速度, 前向加速度]。
-    StateVector state;
-    state << state_.speed, state_.acceleration;
-
-    StateMatrix state_transition;
-    state_transition << 1.0, dt, 0.0, 1.0;
-    const StateMatrix process_noise = StateMatrix::Identity() * kProcessNoise;
-
-    // 预测：x^- = F x，P^- = F P F^T + Q。
-    state = state_transition * state;
-    const StateMatrix predicted_covariance =
-        state_transition * covariance * state_transition.transpose() +
-        process_noise;
-    covariance = predicted_covariance;
-
-    // 依次进行两个一维观测校正：K = P H^T / (H P H^T + R)。
-    // 顺序更新保留旧实现的计算结构，同时不需要构造或求逆通用观测矩阵。
-    const auto correct = [&](const ObservationVector &observation,
-                             double measurement, double measurement_noise) {
-        const double innovation = measurement - (observation * state)(0);
-        const double innovation_variance =
-            (observation * covariance * observation.transpose())(0, 0) +
-            measurement_noise;
-        const StateVector kalman_gain =
-            covariance * observation.transpose() / innovation_variance;
-        state += kalman_gain * innovation;
-        const StateMatrix corrected_covariance =
-            (StateMatrix::Identity() - kalman_gain * observation) * covariance;
-        covariance = corrected_covariance;
-    };
-
-    ObservationVector speed_observation;
-    speed_observation << 1.0, 0.0;
-    correct(speed_observation, speed_measurement, kSpeedMeasurementNoise);
-
-    ObservationVector acceleration_observation;
-    acceleration_observation << 0.0, 1.0;
-    correct(acceleration_observation, acceleration_measurement,
-            kAccelerationMeasurementNoise);
-
-    state_.speed = state(0);
-    state_.acceleration = state(1);
-
-    // 连续保留位移历史；控制器限制位置误差，因此高速运动不会清空里程，
-    // 估计偏置也不会产生无界 LQR 力矩请求。
+    double weight_sum = 0., weighted_speed = 0.;
+    for (int side = 0; side < 2; ++side) {
+        const double weight = diagnostics_.wheels[side].confidence;
+        if (weight <= 0.) {
+            continue;  // Never multiply NaN by zero.
+        }
+        weight_sum += weight;
+        weighted_speed += weight * input.center_speed_mps[side];
+    }
+    if (weight_sum > 0.) {
+        // Fuse once: shared yaw/kinematic errors must not be counted twice.
+        // One trusted wheel has twice nominal variance; two trusted wheels R_v.
+        const double variance =
+            parameters_.wheel_speed_variance * 2. / weight_sum;
+        diagnostics_.fused_wheel_speed_mps = weighted_speed / weight_sum;
+        Correct(state, covariance, (Row() << 1., 0., 0.).finished(),
+                diagnostics_.fused_wheel_speed_mps, variance);
+        diagnostics_.wheel_speed_used = true;
+        diagnostics_.wheel_speed_variance = variance;
+    }
+    if (!state.allFinite() || !covariance.allFinite()) {
+        Reset();
+        return state_;
+    }
+    state_.speed = state[0];
+    state_.acceleration = state[1];
+    state_.acceleration_bias = state[2];
     state_.position += state_.speed * dt;
+    Eigen::Map<Matrix>(covariance_.data()) = covariance;
+    diagnostics_.valid = true;
+    for (int i = 0; i < 3; ++i) {
+        diagnostics_.covariance_diagonal[i] = covariance(i, i);
+    }
     return state_;
 }
-
 }  // namespace dust_control::chassis

@@ -1,54 +1,85 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @file src/chassis/estimation/body_motion_estimator.h
- * @ingroup wbr_modules
- * @brief 根据底盘传感器数据估计机体运动状态。
- * @details 由控制线程同步调用，不创建线程或执行设备 I/O。
- */
-
+/* SPDX-License-Identifier: Apache-2.0 */
 #pragma once
 
 #include <array>
 
-namespace dust_control::chassis {
+#include "chassis/estimation/wheel_speed_reliability.h"
 
-/** @brief 机体运动估计器输出的速度和姿态状态。 */
+namespace dust_control::chassis {
 struct BodyMotionState {
-    double speed = 0.0;  ///< 卡尔曼滤波后的车体前向速度，单位为米每秒。
-    double acceleration = 0.0;  ///< 当前线加速度，单位为米每二次方秒。
-    double position = 0.0;  ///< 由估计速度积分得到的车体前向位置，单位为米。
+    double speed = 0.0;              // m/s, body forward
+    double acceleration = 0.0;       // m/s², derivative of forward speed
+    double acceleration_bias = 0.0;  // m/s²
+    double position = 0.0;  // m, integral of forward speed, not world X
 };
 
-/*
- * SPR 风格的二状态卡尔曼估计器。
- *
- * 卡尔曼状态为 [前向速度, 前向加速度]。位置由估计速度独立连续积分，
- * 使用方负责限制送入控制器的位置误差。
- */
-/** @brief 融合底盘反馈并估计机体运动状态。 */
+struct BodyMotionParameters {
+    // Per-cycle acceleration-increment driving variance, NOT continuous jerk
+    // PSD.
+    double acceleration_process_noise = 3000.0;
+    double bias_random_walk_psd = 0.1;
+    double wheel_speed_variance = 10.0;  // (m/s)², nominal combined observation
+    double acceleration_variance = 3.0;  // (m/s²)²
+    WheelReliabilityParameters reliability;
+};
+
+struct BodyMotionObservation {
+    // Each side translated to body-center forward speed using IMU yaw.
+    std::array<double, 2> center_speed_mps{};
+    std::array<bool, 2> wheel_valid{};
+    std::array<double, 2> support_fraction{};  // vertical force / total weight
+    bool support_valid = false;
+    bool yaw_valid = false;
+    // Caller owns axis mapping, gravity/rotation compensation and time
+    // alignment.
+    double forward_acceleration_mps2 = 0.0;
+    bool acceleration_valid = false;
+    bool acceleration_new_sample =
+        true;  // do not correct repeatedly with one IMU frame
+    double dt_s = 0.001;
+};
+
+struct BodyMotionDiagnostics {
+    bool valid = false;
+    bool acceleration_used = false;
+    bool wheel_speed_used = false;
+    BodyMotionParameters parameters;
+    std::array<double, 2> center_speed_mps{};
+    std::array<bool, 2> wheel_valid{};
+    std::array<double, 2> support_fraction{};
+    bool support_valid = false;
+    bool yaw_valid = false;
+    bool acceleration_valid = false;
+    bool acceleration_new_sample = false;
+    double forward_acceleration_mps2 = 0.0;
+    double dt_s = 0.0;
+    // Prior AFTER optional IMU correction, BEFORE all wheel corrections.
+    double prior_speed_mps = 0.0;
+    double prior_speed_variance = 0.0;
+    double fused_wheel_speed_mps = 0.0;
+    double wheel_speed_variance = 0.0;
+    std::array<double, 3> covariance_diagonal{1.0, 1.0, 1.0};
+    std::array<WheelSpeedAssessment, 2> wheels{};
+};
+
+// Three-state KF [v,a,b]. Fixed-size, allocation-free, no device or mode
+// access. Missing observations skip their correction, including covariance
+// correction.
 class BodyMotionEstimator {
    public:
-    /**
-     * @brief 清空内部状态并恢复到初始条件。
-     */
+    explicit BodyMotionEstimator(BodyMotionParameters parameters = {});
     void Reset();
-    /**
-     * @brief 使用当前采样更新内部状态并返回本周期结果。
-     * @param speed_measurement 车体前向速度测量值，单位为米每秒。
-     * @param acceleration_measurement
-     * 车体前向加速度测量值，单位为米每二次方秒。
-     * @param dt 相邻两次更新的时间间隔，单位为秒且必须为正。
-     * @return 内部最新运动状态的常量引用，在下一次 `Update()` 前保持有效。
-     */
-    const BodyMotionState &Update(double speed_measurement,
-                                  double acceleration_measurement, double dt);
+    const BodyMotionState& Update(const BodyMotionObservation& observation);
+    const BodyMotionDiagnostics& diagnostics() const {
+        return diagnostics_;
+    }
 
    private:
+    const BodyMotionParameters parameters_;
     BodyMotionState state_;
-    std::array<double, 4> covariance_ = {1.0, 0.0, 0.0, 1.0};
+    std::array<double, 9> covariance_{1., 0., 0., 0., 1., 0., 0., 0., 1.};
+    WheelSpeedReliability reliability_;
+    BodyMotionDiagnostics diagnostics_;
 };
-
+void ValidateBodyMotionParameters(const BodyMotionParameters& parameters);
 }  // namespace dust_control::chassis

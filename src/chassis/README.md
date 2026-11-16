@@ -80,3 +80,5 @@ chassis/
 - `chassis.coordinate_boundaries`：单位、坐标、虚功关系和补偿/限幅。
 
 这些程序支持 `--trace`，可在结构调整前后对照输出；离线回归不替代实机验收。
+
+运动估计的状态、观测有效性、可信度与标定步骤见 [运动估计维护说明](../../docs/MOTION_ESTIMATION.md)。

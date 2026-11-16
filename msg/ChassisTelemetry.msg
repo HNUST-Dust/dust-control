@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 7
+uint32 version 9
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -105,3 +105,51 @@ float64 pitch_rate_rad_s
 # status=9: 同一14状态增益的降级反馈+腿长控制；blend仅表示高度接管比例。
 bool lqr_endpoint_gain
 bool lqr_height_control_active
+
+# 三状态运动KF。数组为左/右；状态枚举见 wheel_speed_reliability.h。
+# status: 0 unavailable,1 airborne,2 unknown contact,3 recovering,4 trusted,
+#         5 inconsistent,6 rejected. 无效诊断数值为NaN，status=0。
+bool motion_estimator_valid
+bool motion_acceleration_used
+bool motion_wheel_speed_used
+float64 body_acceleration_mps2
+float64 body_acceleration_bias_mps2
+float64 motion_wheel_speed_variance
+float64[3] motion_covariance_diagonal
+uint8[2] wheel_speed_status
+float64[2] wheel_speed_confidence
+float64[2] wheel_speed_prediction_residual_mps
+float64[2] wheel_speed_pair_residual_mps
+
+# 阈值标定：输入、轮速校正前状态与门控依据。数组顺序左/右。
+# 完整样本话题 ~/chassis/telemetry_samples；主话题仍为最新帧。
+float64 control_dt_s
+uint32 imu_sequence
+uint64 imu_sample_monotonic_us
+float64[3] imu_raw_accel_g
+float64 roll_rate_rad_s
+float64 yaw_rate_rad_s
+bool forward_acceleration_valid
+float64 forward_acceleration_mps2
+bool motion_acceleration_new_sample
+bool motion_yaw_valid
+bool motion_support_valid
+bool[2] motion_wheel_valid
+float64[2] motion_center_speed_mps
+float64[2] motion_support_fraction
+float64 motion_prior_speed_mps
+float64 motion_prior_speed_variance
+float64 motion_fused_wheel_speed_mps
+bool[2] wheel_pair_comparison_valid
+bool[2] wheel_prediction_gate_active
+bool[2] wheel_contact_known
+bool[2] wheel_contact
+float64[2] wheel_low_support_time_s
+float64[2] wheel_prediction_gate_mps
+float64[2] wheel_prediction_ratio
+# evidence位：0无轮速,1接触未知,2离地,3无yaw,4左右不一致,5预测不一致,6强拒绝。
+uint16[2] wheel_speed_evidence
+# 实际使用参数快照：q,qb,Rv,Ra；只在motion_estimator_valid时有效。
+float64[4] motion_filter_parameters
+# off,on,loss_delay,recovery,pair_limit,innovation_floor,sigma,rejection_ratio,suspect_confidence
+float64[9] motion_reliability_parameters

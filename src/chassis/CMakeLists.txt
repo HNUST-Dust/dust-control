@@ -17,6 +17,7 @@ add_library(dust_chassis
   leg/leg_kinematics.cpp
   leg/leg_vmc.cpp
   estimation/body_motion_estimator.cpp
+  estimation/wheel_speed_reliability.cpp
   estimation/support_force_estimator.cpp
   balance/unified_lqr.cpp
   balance/lqr_schedule.cpp

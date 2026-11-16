@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <string>
 
+#include "chassis/estimation/body_motion_estimator.h"
+
 namespace dust_control::chassis::chassis_config {
 // 多个底盘模块共用的物理量、坐标约定及关节控制限值。
 inline constexpr double kGravity = 9.80665;
@@ -52,6 +54,15 @@ inline constexpr double kWheelTorqueLimit = 4.748985507246377;
 namespace dust_control::chassis {
 // 启动时加载后按值复制给使用者，控制周期不读 YAML、不访问全局可变配置。
 struct ChassisConfig {
+    BodyMotionParameters motion_estimation;
+    // -1 disables uncalibrated acceleration fusion; otherwise raw HI91 axis
+    // 0..2. Selected/signed axis must align with BODY forward, with pitch
+    // convention verified.
+    int forward_acceleration_axis = -1;
+    double forward_acceleration_sign = 1.0;
+    // Scalar forward model omits lateral-velocity and IMU lever-arm spin terms.
+    double acceleration_max_yaw_rate =
+        0.5;  // rad/s, outside: wheel-only estimation
     double joint_b_zero_offset = 0.0;
     double joint_d_zero_offset = 3.141592653589793;
     double wheel_reduction = 15.764705882352942;

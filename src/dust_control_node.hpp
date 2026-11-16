@@ -40,6 +40,9 @@ class DustControlNode : public rclcpp::Node {
     bool have_observation_ = false;
     rclcpp::Publisher<dust_control::msg::ChassisTelemetry>::SharedPtr
         telemetry_publisher_;
+    // Optional per-control-sample stream, published only with subscribers.
+    rclcpp::Publisher<dust_control::msg::ChassisTelemetry>::SharedPtr
+        telemetry_samples_publisher_;
     std::unique_ptr<app::DustControl> dust_control_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr
