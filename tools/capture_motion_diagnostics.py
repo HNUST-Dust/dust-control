@@ -102,7 +102,7 @@ class JsonlWriter:
             try:
                 self.stream.close()
             except Exception as error:
-                self.error = self.error or f'{type(error).__name__}: {error}' 
+                self.error = self.error or f'{type(error).__name__}: {error}'
 
     def close(self):
         # Drain queued samples; terminate cleanly even if the writer already failed.
