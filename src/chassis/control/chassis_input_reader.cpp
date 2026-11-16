@@ -132,13 +132,13 @@ void ChassisInputReader::Read(const ControllerInputs &sources,
     if (config_.forward_acceleration_axis >= 0 && input.imu_fresh &&
         std::abs(input.imu.yaw_rate_rad_s) <=
             config_.acceleration_max_yaw_rate) {
-        // Raw accelerometer measures specific force. In the configured BODY-x
-        // direction gravity projects as -g*sin(pitch); add it back to obtain
-        // a_x.
+        // Match the LQR forward-speed coordinate, not an assumed IMU body X.
+        // On the calibrated HI91 axis, static specific force is +g*sin(pitch).
+        // Remove that projection; dynamic logs independently verify the sign.
         input.forward_acceleration_mps2 =
             kGravity *
             (config_.forward_acceleration_sign *
-                 input.imu.accel_g[config_.forward_acceleration_axis] +
+                 input.imu.accel_g[config_.forward_acceleration_axis] -
              std::sin(input.pitch));
         input.forward_acceleration_valid =
             std::isfinite(input.forward_acceleration_mps2);

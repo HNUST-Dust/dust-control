@@ -216,21 +216,37 @@ void ControlBoundaryAndAccelerationCalibration() {
            1e-10);
 
     config.forward_acceleration_axis = 1;
-    config.forward_acceleration_sign = -1.;
+    config.forward_acceleration_sign = 1.;
     c::ChassisInputReader reader({}, config);
     c::ControllerInputs sources;
     sources.imu.valid = true;
     sources.imu.sequence = 1;
     sources.imu.precise_timestamp_us = 1000;
     sources.imu.pitch_deg = 30.;
-    sources.imu.accel_g[1] =
-        .5;  // static tilt, selected axis has negative sign
+    sources.imu.accel_g[1] = .5;  // measured static projection on HI91 axis 1
     reader.Read(sources, input, 1000, .001, false);
     assert(input.forward_acceleration_valid);
     assert(std::abs(input.forward_acceleration_mps2) < 1e-6);
-    sources.imu.accel_g[1] = .5 - .8 / c::chassis_config::kGravity;
+    sources.imu.accel_g[1] = .5 + .8 / c::chassis_config::kGravity;
     reader.Read(sources, input, 1000, .001, false);
     assert(std::abs(input.forward_acceleration_mps2 - .8) < 1e-6);
+    // Independent dynamic contract: acceleration must have the sign of a
+    // known forward-speed increment, including braking and reverse motion.
+    for (double pitch_deg : {-15., 0., 15.}) {
+        sources.imu.pitch_deg = pitch_deg;
+        const double gravity_projection =
+            std::sin(pitch_deg * c::chassis_config::kDegToRad);
+        for (double delta_speed : {-.08, .08}) {
+            constexpr double interval = .1;
+            const double expected_acceleration = delta_speed / interval;
+            sources.imu.accel_g[1] =
+                gravity_projection +
+                expected_acceleration / c::chassis_config::kGravity;
+            reader.Read(sources, input, 1000, .001, false);
+            assert(std::abs(input.forward_acceleration_mps2 * interval -
+                            delta_speed) < 1e-6);
+        }
+    }
     sources.imu.yaw_rate_rad_s = 2.;
     reader.Read(sources, input, 1000, .001, false);
     assert(!input.forward_acceleration_valid);
