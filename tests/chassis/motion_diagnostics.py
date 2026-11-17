@@ -90,6 +90,21 @@ class ThresholdLogs(unittest.TestCase):
         with self.assertRaises(ValueError):
             analyze([row])
 
+    def test_fixed_noise_logs_have_contact_parameters_and_no_threshold_scan(self):
+        row = sample()
+        row['version'] = 10
+        row['motion_contact_parameters'] = [.06, .12, .005]
+        row['motion_reliability_parameters'] = [None]*9
+        row['wheel_prediction_gate_active'] = [False, False]
+        row['motion_support_fraction'] = [0., .5]
+        report = analyze([row])
+        group = report['groups']['normal:flat_reverse']
+        self.assertTrue(group['residual_diagnostics_only'])
+        self.assertNotIn('threshold_scan', group)
+        self.assertNotIn('normal_p99_9_envelopes', group)
+        self.assertEqual(group['low_support_runs_s']['left']['samples'], 1)
+        self.assertEqual(report['actual_contact_parameters'][0]['contact_on_fraction'], .12)
+
     def test_events_and_async_disk_writer(self):
         rows = [sample(1), sample(2), sample(3)]
         rows[2]['wheel_speed_status'][0] = 6

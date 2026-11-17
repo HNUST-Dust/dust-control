@@ -13,7 +13,7 @@ import time
 from capture_balance_diagnostics import json_native
 
 
-MINIMUM_VERSION = 9
+MINIMUM_VERSION = 10
 
 
 def finite_json(value):

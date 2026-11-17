@@ -110,14 +110,14 @@ def contact_loss_runs(rows, side):
     duration = 0.
     previous = None
     for row in rows:
-        parameters = row.get('motion_reliability_parameters', [])
+        parameters = row.get('motion_contact_parameters', row.get('motion_reliability_parameters', []))
         force = row.get('motion_support_fraction', [None, None])[side]
         dt = row.get('control_dt_s')
         continuous = previous is None or (
             row['sequence'] == previous['sequence']+1 and
             0 < row['monotonic_ns']-previous['monotonic_ns'] <= 3_000_000)
         low = (row.get('motion_estimator_valid') and row.get('motion_support_valid') and
-               len(parameters) == 9 and finite(parameters[0]) and finite(force) and
+               len(parameters) >= 3 and finite(parameters[0]) and finite(force) and
                force < parameters[0] and finite(dt) and 0 < dt <= .02)
         if not continuous or not low:
             if duration:
@@ -159,7 +159,7 @@ def analyze(rows, pair_thresholds=(.2, .4, .6, .8), innovation_floors=(.2, .4, .
     if any(row.get('simulated') for row in rows):
         warnings.append('Contains simulated data; not evidence for physical threshold calibration.')
     if not any(row.get('wheel_prediction_gate_active', [False, False])[0] for row in rows):
-        warnings.append('No active inertial gate; cannot calibrate absolute prediction gating from this log.')
+        warnings.append('No active prediction gate. Version 10 uses fixed-noise fusion; residuals are diagnostics only.' if all(row['version'] >= 10 for row in rows) else 'No active inertial gate; cannot calibrate absolute prediction gating from this log.')
     if any(row.get('condition') == 'anomaly' for row in rows):
         warnings.append('Anomaly labels describe the experiment, not frame-level slip truth; exceedance is not detection accuracy.')
     groups = defaultdict(list)
@@ -171,8 +171,11 @@ def analyze(rows, pair_thresholds=(.2, .4, .6, .8), innovation_floors=(.2, .4, .
         entry = {'condition': condition, 'scenario': scenario, 'samples': len(samples),
                  'signals': signals, 'threshold_scan': threshold_scan(samples, pair_thresholds, innovation_floors),
                  'low_support_runs_s': {name: contact_loss_runs(samples, side) for side, name in enumerate(('left', 'right'))}}
-        # Quantile envelopes are candidates for normal-data review, not auto-tuning.
-        if condition == 'normal' and not any(row.get('simulated') for row in samples):
+        if all(row['version'] >= 10 for row in samples):
+            entry.pop('threshold_scan')
+            entry['residual_diagnostics_only'] = True
+        # Quantile envelopes are candidates for historical normal-data review.
+        if condition == 'normal' and any(row['version'] == 9 for row in samples) and not any(row.get('simulated') for row in samples):
             entry['normal_p99_9_envelopes'] = {
                 name: stats.get('p99.9') for name, stats in signals.items()
                 if name.endswith(('pair_abs_mps', 'prediction_abs_mps', 'prediction_ratio'))}
@@ -202,6 +205,10 @@ def analyze(rows, pair_thresholds=(.2, .4, .6, .8), innovation_floors=(.2, .4, .
             'left_status_counts': dict(Counter(str(row['wheel_speed_status'][0]) for row in rows)),
             'right_status_counts': dict(Counter(str(row['wheel_speed_status'][1]) for row in rows)),
             'actual_reliability_parameters': [dict(zip(RELIABILITY_PARAMETER_NAMES, values)) for values in parameter_snapshots],
+            'actual_contact_parameters': [dict(zip(RELIABILITY_PARAMETER_NAMES[:3], values)) for values in sorted({
+                tuple(row['motion_contact_parameters']) for row in rows
+                if row.get('motion_estimator_valid') and len(row.get('motion_contact_parameters', [])) == 3
+                and all(finite(value) for value in row['motion_contact_parameters'])})],
             'groups': grouped, 'warnings': warnings,
             'limitations': ['Threshold scans hold the logged prior fixed; they are NOT a KF replay with candidate parameters.',
                             'Accepted/rejected status is not ground truth and never filters the residual distributions.',

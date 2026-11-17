@@ -205,24 +205,24 @@ dust_control::msg::ChassisTelemetry MakeChassisTelemetry(
             wheel.prediction_residual_mps, message.motion_wheel_valid[i]);
     }
     const auto& filter = estimator.parameters;
-    const auto& thresholds = filter.reliability;
+    const auto& thresholds = filter.contact;
     const std::array<double, 4> filter_parameters = {
         filter.acceleration_process_noise, filter.bias_random_walk_psd,
         filter.wheel_speed_variance, filter.acceleration_variance};
-    const std::array<double, 9> reliability_parameters = {
-        thresholds.contact_off_fraction,    thresholds.contact_on_fraction,
-        thresholds.contact_loss_delay_s,    thresholds.recovery_time_s,
-        thresholds.pair_residual_limit_mps, thresholds.innovation_floor_mps,
-        thresholds.innovation_sigma,        thresholds.rejection_ratio,
-        thresholds.suspect_confidence};
+    const std::array<double, 3> contact_parameters = {
+        thresholds.contact_off_fraction, thresholds.contact_on_fraction,
+        thresholds.contact_loss_delay_s};
     for (size_t i = 0; i < filter_parameters.size(); ++i) {
         message.motion_filter_parameters[i] =
             number(filter_parameters[i], estimator_valid);
     }
-    for (size_t i = 0; i < reliability_parameters.size(); ++i) {
-        message.motion_reliability_parameters[i] =
-            number(reliability_parameters[i], estimator_valid);
+    for (size_t i = 0; i < contact_parameters.size(); ++i) {
+        message.motion_contact_parameters[i] =
+            number(contact_parameters[i], estimator_valid);
     }
+    // Historical adaptive-noise parameters no longer apply. Keep the wire
+    // field explicitly unavailable rather than advertise inactive thresholds.
+    message.motion_reliability_parameters.fill(invalid);
     message.remote_chassis_x = number(input.remote.chassis_x, message.remote_fresh);
     message.body_position_error_unclamped_m = number(motion.unclamped_position_error, motion_valid);
     message.left_theta_deg = number(input.theta.left * (180.0 / 3.14159265358979323846), motion_valid);

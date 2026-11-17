@@ -1,6 +1,6 @@
 # 控制样本的 ROS 时间；monotonic_ns 保留原始单调时钟，不能与 ROS 时间直接相减。
 std_msgs/Header header
-uint32 version 9
+uint32 version 10
 uint64 sequence
 uint64 monotonic_ns
 bool simulated
@@ -106,7 +106,8 @@ float64 pitch_rate_rad_s
 bool lqr_endpoint_gain
 bool lqr_height_control_active
 
-# 三状态运动KF。数组为左/右；状态枚举见 wheel_speed_reliability.h。
+# 三状态运动KF。数组为左/右；状态枚举见 wheel_contact_gate.h。
+# 下述3/5/6仅描述历史版本，version10不产生。
 # status: 0 unavailable,1 airborne,2 unknown contact,3 recovering,4 trusted,
 #         5 inconsistent,6 rejected. 无效诊断数值为NaN，status=0。
 bool motion_estimator_valid
@@ -153,3 +154,10 @@ uint16[2] wheel_speed_evidence
 float64[4] motion_filter_parameters
 # off,on,loss_delay,recovery,pair_limit,innovation_floor,sigma,rejection_ratio,suspect_confidence
 float64[9] motion_reliability_parameters
+
+# version10: 固定噪声KF，仅保留接触/有效性切换。
+# confidence为0/1可用标志；状态3/5/6和证据位4..6保留，当前不产生。
+# prediction_gate始终关闭，gate/ratio为NaN；残差仅用于记录。
+# motion_reliability_parameters已停用，全NaN。
+# off_fraction,on_fraction,loss_delay_s
+float64[3] motion_contact_parameters

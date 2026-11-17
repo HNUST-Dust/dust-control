@@ -23,7 +23,7 @@ int main() {
     const rclcpp::Time now(2000000000LL);
     auto message =
         dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
-    assert(message.sequence == 17 && message.version == 9);
+    assert(message.sequence == 17 && message.version == 10);
     assert(message.header.stamp.sec == 1 &&
            message.header.stamp.nanosec == 990000000);
     assert(message.pitch_deg == 12.5 && message.imu_age_us == 123);
@@ -41,18 +41,15 @@ int main() {
     sample.motion.estimation.valid = true;
     sample.motion.estimation.acceleration_used = true;
     sample.motion.estimation.wheels[0].status =
-        dust_control::chassis::WheelSpeedStatus::kInconsistent;
-    sample.motion.estimation.wheels[0].confidence = .05;
+        dust_control::chassis::WheelSpeedStatus::kTrusted;
+    sample.motion.estimation.wheels[0].confidence = 1.;
     sample.motion.acceleration_bias_mps2 = .3;
     sample.motion.estimation.center_speed_mps = {.4, .5};
     sample.motion.estimation.wheel_valid = {true, false};
     sample.motion.estimation.prior_speed_mps = .25;
     sample.motion.estimation.prior_speed_variance = .04;
-    sample.motion.estimation.wheels[0].prediction_gate_active = true;
-    sample.motion.estimation.wheels[0].prediction_gate_mps = .6;
-    sample.motion.estimation.wheels[0].prediction_ratio = .25;
-    sample.motion.estimation.wheels[0].evidence =
-        dust_control::chassis::kPairDisagreement;
+    sample.motion.estimation.wheels[0].prediction_gate_active = false;
+    sample.motion.estimation.wheels[0].evidence = 0;
     sample.input.imu.accel_g[0] = .12;
     sample.input.imu.sequence = 42;
     sample.input.imu.precise_timestamp_us = 1000000;
@@ -74,21 +71,22 @@ int main() {
     sample.lqr.left_wheel_contribution[0] = .25;
     message = dust_control::ros::MakeChassisTelemetry(sample, now, 1010000000);
     assert(message.motion_estimator_valid && message.motion_acceleration_used);
-    assert(message.wheel_speed_status[0] == 5 &&
-           message.wheel_speed_confidence[0] == .05);
+    assert(message.wheel_speed_status[0] == 4 &&
+           message.wheel_speed_confidence[0] == 1.);
     assert(message.body_acceleration_bias_mps2 == .3);
     assert(message.motion_center_speed_mps[0] == .4);
     assert(std::isnan(message.motion_center_speed_mps[1]));
     assert(message.motion_prior_speed_mps == .25 &&
            message.motion_prior_speed_variance == .04);
-    assert(message.wheel_prediction_gate_mps[0] == .6 &&
-           message.wheel_prediction_ratio[0] == .25);
-    assert(message.wheel_speed_evidence[0] == 16);
+    assert(std::isnan(message.wheel_prediction_gate_mps[0]) &&
+           std::isnan(message.wheel_prediction_ratio[0]));
+    assert(message.wheel_speed_evidence[0] == 0);
     assert(std::isnan(message.wheel_speed_pair_residual_mps[0]));
     assert(message.imu_sequence == 42 &&
            message.imu_sample_monotonic_us == 1000000);
     assert(std::abs(message.imu_raw_accel_g[0] - .12) < 1e-7);
-    assert(message.motion_reliability_parameters[4] == .4);
+    assert(std::isnan(message.motion_reliability_parameters[4]));
+    assert(message.motion_contact_parameters[0] == .06);
     assert(std::isnan(message.motion_wheel_speed_variance));
     assert(message.motion_diagnostics_valid && message.raw_body_speed_mps == .02);
     assert(message.estimated_body_speed_mps == .01 && message.body_position_error_m == .15);

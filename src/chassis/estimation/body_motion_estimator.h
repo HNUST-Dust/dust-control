@@ -3,7 +3,7 @@
 
 #include <array>
 
-#include "chassis/estimation/wheel_speed_reliability.h"
+#include "chassis/estimation/wheel_contact_gate.h"
 
 namespace dust_control::chassis {
 struct BodyMotionState {
@@ -20,7 +20,7 @@ struct BodyMotionParameters {
     double bias_random_walk_psd = 0.1;
     double wheel_speed_variance = 10.0;  // (m/s)², nominal combined observation
     double acceleration_variance = 3.0;  // (m/s²)²
-    WheelReliabilityParameters reliability;
+    WheelContactParameters contact;
 };
 
 struct BodyMotionObservation {
@@ -78,7 +78,7 @@ class BodyMotionEstimator {
     const BodyMotionParameters parameters_;
     BodyMotionState state_;
     std::array<double, 9> covariance_{1., 0., 0., 0., 1., 0., 0., 0., 1.};
-    WheelSpeedReliability reliability_;
+    WheelContactGate contact_gate_;
     BodyMotionDiagnostics diagnostics_;
 };
 void ValidateBodyMotionParameters(const BodyMotionParameters& parameters);

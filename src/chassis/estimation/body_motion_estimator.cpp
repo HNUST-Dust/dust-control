@@ -33,16 +33,16 @@ void ValidateBodyMotionParameters(const BodyMotionParameters& p) {
                 "Motion KF variances must be finite and positive");
         }
     }
-    ValidateWheelReliabilityParameters(p.reliability);
+    ValidateWheelContactParameters(p.contact);
 }
 BodyMotionEstimator::BodyMotionEstimator(BodyMotionParameters parameters)
-    : parameters_(parameters), reliability_(parameters.reliability) {
+    : parameters_(parameters), contact_gate_(parameters.contact) {
     ValidateBodyMotionParameters(parameters_);
 }
 void BodyMotionEstimator::Reset() {
     state_ = {};
     covariance_ = {1., 0., 0., 0., 1., 0., 0., 0., 1.};
-    reliability_.Reset();
+    contact_gate_.Reset();
     diagnostics_ = {};
 }
 const BodyMotionState& BodyMotionEstimator::Update(
@@ -87,38 +87,29 @@ const BodyMotionState& BodyMotionEstimator::Update(
     }
     diagnostics_.prior_speed_mps = state[0];
     diagnostics_.prior_speed_variance = covariance(0, 0);
-    // All wheel residuals use the SAME prior, before any wheel correction.
-    WheelReliabilityInput reliability_input;
-    reliability_input.center_speed_mps = input.center_speed_mps;
-    reliability_input.wheel_valid = input.wheel_valid;
-    reliability_input.support_fraction = input.support_fraction;
-    reliability_input.support_valid = input.support_valid;
-    reliability_input.yaw_valid = input.yaw_valid;
-    reliability_input.inertial_prediction_valid = imu_valid;
-    reliability_input.predicted_speed_mps = state[0];
-    reliability_input.predicted_speed_variance = covariance(0, 0);
-    reliability_input.dt_s = dt;
-    diagnostics_.wheels = reliability_.Update(reliability_input);
+    // Contact and validity select whether the TWO-wheel observation exists.
+    // Residual magnitude never changes R or rejects a grounded observation.
+    WheelContactInput contact_input;
+    contact_input.center_speed_mps = input.center_speed_mps;
+    contact_input.wheel_valid = input.wheel_valid;
+    contact_input.support_fraction = input.support_fraction;
+    contact_input.support_valid = input.support_valid;
+    contact_input.yaw_valid = input.yaw_valid;
+    contact_input.predicted_speed_mps = state[0];
+    contact_input.dt_s = dt;
+    diagnostics_.wheels = contact_gate_.Update(contact_input);
 
-    double weight_sum = 0., weighted_speed = 0.;
-    for (int side = 0; side < 2; ++side) {
-        const double weight = diagnostics_.wheels[side].confidence;
-        if (weight <= 0.) {
-            continue;  // Never multiply NaN by zero.
-        }
-        weight_sum += weight;
-        weighted_speed += weight * input.center_speed_mps[side];
-    }
-    if (weight_sum > 0.) {
-        // Fuse once: shared yaw/kinematic errors must not be counted twice.
-        // One trusted wheel has twice nominal variance; two trusted wheels R_v.
-        const double variance =
-            parameters_.wheel_speed_variance * 2. / weight_sum;
-        diagnostics_.fused_wheel_speed_mps = weighted_speed / weight_sum;
-        Correct(state, covariance, (Row() << 1., 0., 0.).finished(),
-                diagnostics_.fused_wheel_speed_mps, variance);
+    const bool double_support =
+        diagnostics_.wheels[0].status == WheelSpeedStatus::kTrusted &&
+        diagnostics_.wheels[1].status == WheelSpeedStatus::kTrusted;
+    if (double_support) {
+        const double speed =
+            .5 * input.center_speed_mps[0] + .5 * input.center_speed_mps[1];
+        Correct(state, covariance, (Row() << 1., 0., 0.).finished(), speed,
+                parameters_.wheel_speed_variance);
+        diagnostics_.fused_wheel_speed_mps = speed;
         diagnostics_.wheel_speed_used = true;
-        diagnostics_.wheel_speed_variance = variance;
+        diagnostics_.wheel_speed_variance = parameters_.wheel_speed_variance;
     }
     if (!state.allFinite() || !covariance.allFinite()) {
         Reset();

@@ -4,6 +4,7 @@
 #include <cstdint>
 
 namespace dust_control::chassis {
+// Codes 3,5,6 and evidence bits 4..6 are reserved for reading historical logs.
 enum class WheelSpeedStatus : uint8_t {
     kUnavailable = 0,
     kAirborne = 1,
@@ -13,16 +14,10 @@ enum class WheelSpeedStatus : uint8_t {
     kInconsistent = 5,
     kRejected = 6
 };
-struct WheelReliabilityParameters {
+struct WheelContactParameters {
     double contact_off_fraction = 0.06;
     double contact_on_fraction = 0.12;
     double contact_loss_delay_s = 0.005;
-    double recovery_time_s = 0.10;
-    double pair_residual_limit_mps = 0.4;
-    double innovation_floor_mps = 0.4;
-    double innovation_sigma = 3.0;
-    double rejection_ratio = 3.0;
-    double suspect_confidence = 0.05;
 };
 // Independent evidence bits, so simultaneous causes remain visible in logs.
 enum WheelSpeedEvidence : uint16_t {
@@ -36,7 +31,8 @@ enum WheelSpeedEvidence : uint16_t {
 };
 struct WheelSpeedAssessment {
     WheelSpeedStatus status = WheelSpeedStatus::kUnavailable;
-    double confidence = 0.0;  // reliability score, not a calibrated probability
+    double confidence =
+        0.0;  // binary observation availability, not a probability
     double prediction_residual_mps = 0.0;
     double pair_residual_mps = 0.0;
     bool pair_comparison_valid = false;
@@ -48,35 +44,29 @@ struct WheelSpeedAssessment {
     double prediction_ratio = 0.0;
     uint16_t evidence = 0;
 };
-struct WheelReliabilityInput {
+struct WheelContactInput {
     std::array<double, 2> center_speed_mps{};
     std::array<bool, 2> wheel_valid{};
     std::array<double, 2> support_fraction{};
     bool support_valid = false;
     bool yaw_valid = false;
-    // Enable absolute residual gating only with a usable inertial observation.
-    bool inertial_prediction_valid = false;
     double predicted_speed_mps = 0.0;
-    double predicted_speed_variance = 1.0;
     double dt_s = 0.001;
 };
-// Assesses observation consistency; does not measure physical slip ratio.
-class WheelSpeedReliability {
+// Binary contact/validity gate only. Residuals are diagnostics, never gates.
+class WheelContactGate {
    public:
-    explicit WheelSpeedReliability(WheelReliabilityParameters parameters = {});
+    explicit WheelContactGate(WheelContactParameters parameters = {});
     void Reset();
-    std::array<WheelSpeedAssessment, 2> Update(
-        const WheelReliabilityInput& input);
+    std::array<WheelSpeedAssessment, 2> Update(const WheelContactInput& input);
 
    private:
     struct SideHistory {
         bool contact = false;
         double low_support_time_s = 0.0;
-        double confidence = 0.0;
     };
-    const WheelReliabilityParameters parameters_;
+    const WheelContactParameters parameters_;
     std::array<SideHistory, 2> history_{};
 };
-void ValidateWheelReliabilityParameters(
-    const WheelReliabilityParameters& parameters);
+void ValidateWheelContactParameters(const WheelContactParameters& parameters);
 }  // namespace dust_control::chassis

@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory() as temporary:
         assert result.returncode == 0, (result.stdout, result.stderr, (directory/'node.log').read_text())
         rows = [json.loads(line) for line in capture.read_text().splitlines()]
         assert len(rows) > 10, len(rows)
-        assert all(row['version'] == 9 for row in rows)
+        assert all(row['version'] == 10 for row in rows)
         assert all(not row['motion_estimator_valid'] for row in rows) # invalid states must be logged
         assert all('imu_sample_monotonic_us' in row for row in rows)
         assert all('motion_reliability_parameters' in row for row in rows)

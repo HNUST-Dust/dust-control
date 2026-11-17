@@ -73,13 +73,7 @@ motion_estimation:
   bias_random_walk_psd: 0.1
   wheel_speed_variance: 10.0
   acceleration_variance: 3.0
-  reliability:
+  contact:
     contact_off_fraction: 0.06
     contact_on_fraction: 0.12
     contact_loss_delay_s: 0.005
-    recovery_time_s: 0.10
-    pair_residual_limit_mps: 0.4
-    innovation_floor_mps: 0.4
-    innovation_sigma: 3.0
-    rejection_ratio: 3.0
-    suspect_confidence: 0.05

@@ -52,10 +52,15 @@ simulate、realtime、enable_output 统一由 dust_control.yaml 的 execution �
 
 ROS2 话题和 Foxglove 性能验收留到实机；OrbStack 用于构建与功能调试。
 
-十四状态控制接入后 `ChassisTelemetry.version=9`，新增 `*_hip_height_m`、
+十四状态控制接入后 `ChassisTelemetry.version=10`，新增 `*_hip_height_m`、
 高度速度、左右支撑估计、LQR 力目标及接管状态。需重编译发送与接收端消息。
 `lqr_status=2` 且 `lqr_blend=1` 才表示新控制完整接管；
 `left_height_m/right_height_m` 仍保留原始机构几何含义。
 首次配置与状态码见 [LQR](LQR.md)。
 
-version 9 包含三状态KF诊断，并补齐阈值标定所需的原始IMU、输入有效性、轮速更新前预测、实际门控阈值、参数快照与独立证据位。`telemetry_samples`在非实时消费者中逐条发布，KeepLast(256)/BestEffort；采集工具使用独立磁盘队列并报告丢样。采集命令和实验分组见 [运动估计](MOTION_ESTIMATION.md)。发送端、接收端及桥需重新构建同一版消息。
+version 10使用固定噪声三状态KF，仅保留接触/有效性切换。轮速更新方差固定，
+不再有残差降权或恢复权重。confidence字段为0/1，新增contact参数快照；
+历史自适应参数及gate/ratio字段为NaN。残差仍记录用于诊断。
+`telemetry_samples`在非实时消费者中逐条发布，KeepLast(256)/BestEffort；
+采集命令、版本迁移和配置变更见 [运动估计](MOTION_ESTIMATION.md)。
+发送端、接收端及桥需重新构建同一版消息。

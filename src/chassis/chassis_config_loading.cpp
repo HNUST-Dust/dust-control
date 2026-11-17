@@ -57,7 +57,7 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
             {"forward_acceleration_axis", "forward_acceleration_sign",
              "acceleration_max_yaw_rate_rad_s", "acceleration_process_noise",
              "bias_random_walk_psd", "wheel_speed_variance",
-             "acceleration_variance", "reliability"});
+             "acceleration_variance", "contact"});
         if (node["forward_acceleration_axis"]) {
             config.forward_acceleration_axis =
                 node["forward_acceleration_axis"].as<int>();
@@ -78,24 +78,14 @@ ChassisConfig LoadChassisConfig(const std::string& file) {
         read(node, "bias_random_walk_psd", motion.bias_random_walk_psd);
         read(node, "wheel_speed_variance", motion.wheel_speed_variance);
         read(node, "acceleration_variance", motion.acceleration_variance);
-        if (const auto reliability = node["reliability"]) {
-            ValidateKeys(
-                reliability, {},
-                {"contact_off_fraction", "contact_on_fraction",
-                 "contact_loss_delay_s", "recovery_time_s",
-                 "pair_residual_limit_mps", "innovation_floor_mps",
-                 "innovation_sigma", "rejection_ratio", "suspect_confidence"});
-            auto& p = motion.reliability;
-            read(reliability, "contact_off_fraction", p.contact_off_fraction);
-            read(reliability, "contact_on_fraction", p.contact_on_fraction);
-            read(reliability, "contact_loss_delay_s", p.contact_loss_delay_s);
-            read(reliability, "recovery_time_s", p.recovery_time_s);
-            read(reliability, "pair_residual_limit_mps",
-                 p.pair_residual_limit_mps);
-            read(reliability, "innovation_floor_mps", p.innovation_floor_mps);
-            read(reliability, "innovation_sigma", p.innovation_sigma);
-            read(reliability, "rejection_ratio", p.rejection_ratio);
-            read(reliability, "suspect_confidence", p.suspect_confidence);
+        if (const auto contact = node["contact"]) {
+            ValidateKeys(contact, {},
+                         {"contact_off_fraction", "contact_on_fraction",
+                          "contact_loss_delay_s"});
+            auto& p = motion.contact;
+            read(contact, "contact_off_fraction", p.contact_off_fraction);
+            read(contact, "contact_on_fraction", p.contact_on_fraction);
+            read(contact, "contact_loss_delay_s", p.contact_loss_delay_s);
         }
     }
     config.joint_b_zero_offset =

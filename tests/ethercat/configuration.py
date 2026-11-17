@@ -66,8 +66,10 @@ with tempfile.TemporaryDirectory() as temporary:
     run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('forward_acceleration_axis', 3))
     run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('forward_acceleration_sign', 0))
     run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('acceleration_max_yaw_rate_rad_s', 0))
-    run(lambda d: d['chassis_params.yaml']['motion_estimation']['reliability'].__setitem__('recovery_time_s', 0))
-    run(lambda d: d['chassis_params.yaml']['motion_estimation']['reliability'].__setitem__('contact_off_fraction', .3))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation']['contact'].__setitem__('contact_loss_delay_s', 0))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation']['contact'].__setitem__('contact_off_fraction', .3))
     run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('unknown', 1))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation'].__setitem__('reliability', {}))
+    run(lambda d: d['chassis_params.yaml']['motion_estimation']['contact'].__setitem__('recovery_time_s', .1))
 
 print('Application/PDO schema, bindings, missing files and retired configuration rejection passed')
